@@ -1,4 +1,11 @@
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import {
+  Document,
+  Page,
+  Text,
+  View,
+  StyleSheet,
+  Image,
+} from '@react-pdf/renderer';
 
 interface QuoteItem {
   code: string;
@@ -11,6 +18,7 @@ interface QuoteItem {
 
 interface Props {
   items: QuoteItem[];
+  logoUrl?: string;
 }
 
 const styles = StyleSheet.create({
@@ -19,13 +27,43 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: 'Helvetica',
   },
-  headerTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    textAlign: 'right',
+  headerRow: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  // LOGO
+  logoWrapper: {
+    flexDirection: 'row',
+  },
+  logoBox: {
+    width: 60,
+    height: 60,
+    borderWidth: 1,
+    borderColor: '#000',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoImage: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'contain',
+  },
+  companyInfo: {
+    paddingTop: '20px',
+    display: 'flex',
   },
   companyName: {
     fontSize: 12,
+    fontWeight: 'bold',
+  },
+  headerTitleBlock: {
+    width: 150,
+    alignItems: 'flex-end',
+  },
+  headerTitle: {
+    fontSize: 14,
     fontWeight: 'bold',
   },
   section: {
@@ -60,11 +98,11 @@ const styles = StyleSheet.create({
   },
   cell: {
     padding: 4,
+    fontSize: 8,
     borderRightWidth: 1,
     borderColor: '#000',
   },
-  // anchos aproximados de columnas
-  colCode: { width: 40 },
+  colCode: { width: 45 },
   colUnit: { width: 40 },
   colDesc: { flex: 1 },
   colQty: { width: 40, textAlign: 'right' },
@@ -72,7 +110,7 @@ const styles = StyleSheet.create({
   colUnitPrice: { width: 70, textAlign: 'right' },
   colTotal: { width: 70, textAlign: 'right' },
   totals: {
-    marginTop: 10,
+    marginTop: 50,
     alignItems: 'flex-end',
   },
 });
@@ -83,7 +121,7 @@ const formatMoney = (value: number) =>
     currency: 'USD',
   }).format(value);
 
-export const QuotePdfDocument = ({ items }: Props) => {
+export const QuotePdfDocument = ({ items, logoUrl }: Props) => {
   const subtotal = items.reduce(
     (acc, it) => acc + it.quantity * it.unitPrice,
     0
@@ -98,9 +136,31 @@ export const QuotePdfDocument = ({ items }: Props) => {
         size="LETTER"
         style={styles.page}
       >
-        {/* Cabecera */}
-        <View style={styles.row}>
-          <View style={{ flex: 1 }}>
+        {/* CABECERA CON LOGO */}
+        <View style={styles.headerRow}>
+          {/* IZQUIERDA: LOGO + DATOS EMPRESA */}
+          <View style={styles.logoWrapper}>
+            <View style={styles.logoBox}>
+              {logoUrl ? (
+                <Image
+                  src={logoUrl}
+                  style={styles.logoImage}
+                />
+              ) : (
+                <Text>LOGO</Text> // placeholder si no hay logo
+              )}
+            </View>
+          </View>
+
+          {/* DERECHA: TÍTULO Y FECHA */}
+          <View style={styles.headerTitleBlock}>
+            <Text style={styles.headerTitle}>PRESUPUESTO</Text>
+            <Text>FECHA EMISIÓN: 20/10/2025</Text>
+          </View>
+        </View>
+        {/* Datos Empresa */}
+        <View>
+          <View style={styles.companyInfo}>
             <Text style={styles.companyName}>
               José Miguelangel Zavala Henriquez
             </Text>
@@ -111,13 +171,9 @@ export const QuotePdfDocument = ({ items }: Props) => {
               Residencias Incumosa Piso PB Apt. Pb2. La Floresta, Maracaibo
             </Text>
           </View>
-          <View style={{ width: 140 }}>
-            <Text style={styles.headerTitle}>PRESUPUESTO</Text>
-            <Text>FECHA EMISIÓN: 20/10/2025</Text>
-          </View>
         </View>
 
-        {/* Datos de obra/cliente */}
+        {/* DATOS OBRA / CLIENTE */}
         <View style={styles.section}>
           <View style={styles.row}>
             <Text style={styles.label}>OBRA :</Text>
@@ -137,9 +193,8 @@ export const QuotePdfDocument = ({ items }: Props) => {
           </View>
         </View>
 
-        {/* Tabla */}
+        {/* TABLA */}
         <View style={styles.table}>
-          {/* Encabezado */}
           <View style={styles.tableHeader}>
             <Text style={[styles.cell, styles.colCode]}>CÓDIGO</Text>
             <Text style={[styles.cell, styles.colUnit]}>UND</Text>
@@ -150,7 +205,6 @@ export const QuotePdfDocument = ({ items }: Props) => {
             <Text style={[styles.cell, styles.colTotal]}>PRECIO TOTAL</Text>
           </View>
 
-          {/* Filas */}
           {items.map((item, idx) => {
             const lineTotal = item.quantity * item.unitPrice;
             return (
@@ -178,7 +232,7 @@ export const QuotePdfDocument = ({ items }: Props) => {
           })}
         </View>
 
-        {/* Nota y totales */}
+        {/* NOTA Y TOTALES */}
         <View style={styles.section}>
           <Text>
             Nota: El pago de los equipos electrónicos se realiza por adelantado.
