@@ -6,19 +6,12 @@ import {
   StyleSheet,
   Image,
 } from '@react-pdf/renderer';
-
-interface QuoteItem {
-  code: string;
-  unit: string;
-  description: string;
-  quantity: number;
-  sg: string;
-  unitPrice: number;
-}
+import type { CompanyInfo, QuoteInfo, QuoteItem } from '../types/types';
 
 interface Props {
   items: QuoteItem[];
-  logoUrl?: string;
+  company: CompanyInfo;
+  quote: QuoteInfo;
 }
 
 const styles = StyleSheet.create({
@@ -121,7 +114,7 @@ const formatMoney = (value: number) =>
     currency: 'USD',
   }).format(value);
 
-export const QuotePdfDocument = ({ items, logoUrl }: Props) => {
+export const QuotePdfDocument = ({ company, quote, items }: Props) => {
   const subtotal = items.reduce(
     (acc, it) => acc + it.quantity * it.unitPrice,
     0
@@ -141,9 +134,9 @@ export const QuotePdfDocument = ({ items, logoUrl }: Props) => {
           {/* IZQUIERDA: LOGO + DATOS EMPRESA */}
           <View style={styles.logoWrapper}>
             <View style={styles.logoBox}>
-              {logoUrl ? (
+              {company.logoUrl ? (
                 <Image
-                  src={logoUrl}
+                  src={company.logoUrl}
                   style={styles.logoImage}
                 />
               ) : (
@@ -155,21 +148,18 @@ export const QuotePdfDocument = ({ items, logoUrl }: Props) => {
           {/* DERECHA: TÍTULO Y FECHA */}
           <View style={styles.headerTitleBlock}>
             <Text style={styles.headerTitle}>PRESUPUESTO</Text>
-            <Text>FECHA EMISIÓN: 20/10/2025</Text>
+            <Text>{quote.issueDate}</Text>
           </View>
         </View>
         {/* Datos Empresa */}
         <View>
           <View style={styles.companyInfo}>
-            <Text style={styles.companyName}>
-              José Miguelangel Zavala Henriquez
-            </Text>
-            <Text>RIF. : V145627512</Text>
-            <Text>TELÉFONO : 0414-068.30.70</Text>
-            <Text>DIRECCIÓN : Av. 91 La Limpia entre Calle 79F y 79G Edif</Text>
-            <Text>
-              Residencias Incumosa Piso PB Apt. Pb2. La Floresta, Maracaibo
-            </Text>
+            <Text style={styles.companyName}>{company.name}</Text>
+            <Text>RIF. : {company.rif}</Text>
+            <Text>TELÉFONO : {company.phone}</Text>
+            {company.addressLines.map((line, i) => (
+              <Text key={i}>{line}</Text>
+            ))}
           </View>
         </View>
 
@@ -177,19 +167,19 @@ export const QuotePdfDocument = ({ items, logoUrl }: Props) => {
         <View style={styles.section}>
           <View style={styles.row}>
             <Text style={styles.label}>OBRA :</Text>
-            <Text style={styles.value}>SERVICIO E INSTALACIÓN</Text>
+            <Text style={styles.value}>{quote.work}</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>CLIENTE :</Text>
-            <Text style={styles.value}>Palmeras de Casigua</Text>
+            <Text style={styles.value}>{quote.client}</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>RIF :</Text>
-            <Text style={styles.value}>------------</Text>
+            <Text style={styles.value}>{quote.clientRif}</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>DIRECCIÓN :</Text>
-            <Text style={styles.value}>------------</Text>
+            <Text style={styles.value}>{quote.clientAddress}</Text>
           </View>
         </View>
 

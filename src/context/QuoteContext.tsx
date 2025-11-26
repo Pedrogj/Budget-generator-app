@@ -73,6 +73,6 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
 
 export const useQuote = () => {
   const context = useContext(QuoteContext);
-  if (context) throw new Error('useQuote must be used within QuoteProvider');
+  if (!context) throw new Error('useQuote must be used within QuoteProvider');
   return context;
 };

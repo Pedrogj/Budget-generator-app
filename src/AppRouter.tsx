@@ -13,7 +13,7 @@ export const AppRouter = () => {
           path="/"
           element={
             <Navigate
-              to="/quote/new"
+              to="/quotes/new"
               replace
             />
           }
