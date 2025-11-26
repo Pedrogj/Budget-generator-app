@@ -18,11 +18,8 @@ const initialCompany: CompanyInfo = {
   name: 'José Miguelangel Zavala Henriquez',
   rif: 'V145627512',
   phone: '0414-068.30.70',
-  addressLines: [
-    'Av. 91 La Limpia entre Calle 79F y 79G Edif',
-    'Residencias Incumosa Piso PB Apt. Pb2. La Floresta',
-    'Maracaibo, Edo. Zulia',
-  ],
+  addressLines:
+    'Av. 91 La Limpia entre Calle 79F y 79G Edif Residencias Incumosa Piso PB Apt. Pb2. La Floresta Maracaibo, Edo. Zulia',
   logoUrl: '',
 };
 

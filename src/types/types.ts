@@ -11,7 +11,7 @@ export interface CompanyInfo {
   name: string;
   rif: string;
   phone: string;
-  addressLines: string[];
+  addressLines: string;
   logoUrl?: string;
 }
 

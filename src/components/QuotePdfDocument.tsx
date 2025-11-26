@@ -157,9 +157,7 @@ export const QuotePdfDocument = ({ company, quote, items }: Props) => {
             <Text style={styles.companyName}>{company.name}</Text>
             <Text>RIF. : {company.rif}</Text>
             <Text>TELÉFONO : {company.phone}</Text>
-            {company.addressLines.map((line, i) => (
-              <Text key={i}>{line}</Text>
-            ))}
+            <Text>DIRECCIÓN : {company.addressLines}</Text>
           </View>
         </View>
 
