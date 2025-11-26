@@ -41,7 +41,12 @@ export const QuoteFormPage = () => {
     formSchema
   ) as Resolver<FormValues>;
 
-  const { control, register, handleSubmit } = useForm<FormValues>({
+  const {
+    control,
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormValues>({
     resolver,
     defaultValues: {
       work: quote.work,
@@ -115,6 +120,11 @@ export const QuoteFormPage = () => {
             style={{ width: '100%' }}
           />
         </label>
+        {errors.issueDate && (
+          <p style={{ color: 'red', fontSize: 12, marginTop: 4 }}>
+            {errors.issueDate.message}
+          </p>
+        )}
 
         <h2>Ítems</h2>
         {fields.map((field, index) => (
