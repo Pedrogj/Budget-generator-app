@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { QuotePreviewPage } from './pages/QuotePreviewPage/QuotePreviewPage';
 import { Navbar } from './components/Navbar';
 import { QuoteFormPage } from './pages/QuoteFormPage/QuoteFormPage';
+import { ProfilePage } from './pages/ProfilePage/ProfilePage';
 
 export const AppRouter = () => {
   return (
@@ -25,6 +26,10 @@ export const AppRouter = () => {
         <Route
           path="/quotes/preview"
           element={<QuotePreviewPage />}
+        />
+        <Route
+          path="/profile"
+          element={<ProfilePage />}
         />
       </Routes>
     </>
