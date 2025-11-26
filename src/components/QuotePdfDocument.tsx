@@ -148,7 +148,7 @@ export const QuotePdfDocument = ({ company, quote, items }: Props) => {
           {/* DERECHA: TÍTULO Y FECHA */}
           <View style={styles.headerTitleBlock}>
             <Text style={styles.headerTitle}>PRESUPUESTO</Text>
-            <Text>{quote.issueDate}</Text>
+            <Text>Fecha emisión: {quote.issueDate}</Text>
           </View>
         </View>
         {/* Datos Empresa */}
