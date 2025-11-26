@@ -1,4 +1,10 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from 'react';
 import type { CompanyInfo, QuoteInfo, QuoteItem } from '../types/types';
 
 interface QuoteContextType {
@@ -13,6 +19,8 @@ interface QuoteContextType {
 }
 
 const QuoteContext = createContext<QuoteContextType | undefined>(undefined);
+
+const COMPANY_STORAGE_KEY = 'budget-app:company';
 
 const initialCompany: CompanyInfo = {
   name: 'José Miguelangel Zavala Henriquez',
@@ -51,9 +59,34 @@ const initialItems: QuoteItem[] = [
 ];
 
 export const QuoteProvider = ({ children }: { children: ReactNode }) => {
-  const [company, setCompany] = useState<CompanyInfo>(initialCompany);
+  const [company, setCompany] = useState<CompanyInfo>(() => {
+    if (typeof window === 'undefined') return initialCompany;
+
+    try {
+      const stored = window.localStorage.getItem(COMPANY_STORAGE_KEY);
+      if (!stored) return initialCompany;
+
+      const parsed = JSON.parse(stored) as CompanyInfo;
+
+      if (!parsed.name || !parsed.rif) return initialCompany;
+
+      return parsed;
+    } catch {
+      return initialCompany;
+    }
+  });
+
   const [quote, setQuote] = useState<QuoteInfo>(initialQuote);
   const [items, setItems] = useState<QuoteItem[]>(initialItems);
+
+  // Every time the company changes, we save it to localStorage.
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(COMPANY_STORAGE_KEY, JSON.stringify(company));
+    } catch (error) {
+      console.error('Error saving company to localStorage', error);
+    }
+  }, [company]);
 
   const setFromForm: QuoteContextType['setFromForm'] = (data) => {
     setCompany(data.company);
