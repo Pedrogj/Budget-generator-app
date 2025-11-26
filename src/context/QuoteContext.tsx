@@ -33,7 +33,7 @@ const initialQuote: QuoteInfo = {
   client: 'Palmeras de Casigua',
   clientRif: '------------',
   clientAddress: '------------',
-  issueDate: '20/10/2025',
+  issueDate: new Date().toISOString().slice(0, 10),
 };
 
 const initialItems: QuoteItem[] = [

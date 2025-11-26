@@ -23,7 +23,10 @@ const formSchema = z.object({
   client: z.string().min(1),
   clientRif: z.string().min(1),
   clientAddress: z.string().min(1),
-  issueDate: z.string().min(1),
+  issueDate: z
+    .string()
+    .min(1, 'La fecha es obligatoria')
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido'),
   items: z.array(itemSchema).min(1),
 });
 
@@ -107,6 +110,7 @@ export const QuoteFormPage = () => {
         <label>
           Fecha emisión
           <input
+            type="date"
             {...register('issueDate')}
             style={{ width: '100%' }}
           />
