@@ -75,7 +75,7 @@ export const ProfilePage = () => {
         <label style={{ display: 'block', marginBottom: 8 }}>
           Logo de Empresa
           <input
-            {...register('logoUrl', { required: true })}
+            {...register('logoUrl')}
             style={{ width: '100%' }}
           />
         </label>
