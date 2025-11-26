@@ -16,6 +16,7 @@ interface QuoteContextType {
     quote: QuoteInfo;
     items: QuoteItem[];
   }) => void;
+  updateCompany: (company: CompanyInfo) => void;
 }
 
 const QuoteContext = createContext<QuoteContextType | undefined>(undefined);
@@ -94,8 +95,14 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
     setItems(data.items);
   };
 
+  const updateCompany: QuoteContextType['updateCompany'] = (newCompany) => {
+    setCompany(newCompany);
+  };
+
   return (
-    <QuoteContext.Provider value={{ company, quote, items, setFromForm }}>
+    <QuoteContext.Provider
+      value={{ company, quote, items, setFromForm, updateCompany }}
+    >
       {children}
     </QuoteContext.Provider>
   );
