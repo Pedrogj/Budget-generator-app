@@ -11,11 +11,7 @@ interface QuoteContextType {
   company: CompanyInfo;
   quote: QuoteInfo;
   items: QuoteItem[];
-  setFromForm: (data: {
-    company: CompanyInfo;
-    quote: QuoteInfo;
-    items: QuoteItem[];
-  }) => void;
+  setFromForm: (data: { quote: QuoteInfo; items: QuoteItem[] }) => void;
   updateCompany: (company: CompanyInfo) => void;
 }
 
@@ -90,7 +86,6 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
   }, [company]);
 
   const setFromForm: QuoteContextType['setFromForm'] = (data) => {
-    setCompany(data.company);
     setQuote(data.quote);
     setItems(data.items);
   };

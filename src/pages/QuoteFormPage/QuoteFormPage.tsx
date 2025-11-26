@@ -1,7 +1,12 @@
 import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useFieldArray, useForm, type Resolver } from 'react-hook-form';
+import {
+  useFieldArray,
+  useForm,
+  type Resolver,
+  type SubmitHandler,
+} from 'react-hook-form';
 import { useQuote } from '../../context/QuoteContext';
 
 const itemSchema = z.object({
@@ -14,10 +19,6 @@ const itemSchema = z.object({
 });
 
 const formSchema = z.object({
-  companyName: z.string().min(1),
-  companyRif: z.string().min(1),
-  companyPhone: z.string().min(1),
-  companyLogoUrl: z.string().optional(),
   work: z.string().min(1),
   client: z.string().min(1),
   clientRif: z.string().min(1),
@@ -31,7 +32,7 @@ type FormValues = z.infer<typeof formSchema>;
 export const QuoteFormPage = () => {
   const navigate = useNavigate();
 
-  const { company, quote, items, setFromForm } = useQuote();
+  const { quote, items, setFromForm } = useQuote();
 
   const resolver: Resolver<FormValues> = zodResolver(
     formSchema
@@ -40,10 +41,6 @@ export const QuoteFormPage = () => {
   const { control, register, handleSubmit } = useForm<FormValues>({
     resolver,
     defaultValues: {
-      companyName: company.name,
-      companyRif: company.rif,
-      companyPhone: company.phone,
-      companyLogoUrl: company.logoUrl ?? '',
       work: quote.work,
       client: quote.client,
       clientRif: quote.clientRif,
@@ -58,15 +55,8 @@ export const QuoteFormPage = () => {
     name: 'items',
   });
 
-  const onSubmit = (data: FormValues) => {
+  const onSubmit: SubmitHandler<FormValues> = (data) => {
     setFromForm({
-      company: {
-        name: data.companyName,
-        rif: data.companyRif,
-        phone: data.companyPhone,
-        logoUrl: data.companyLogoUrl,
-        addressLines: company.addressLines,
-      },
       quote: {
         work: data.work,
         client: data.client,
@@ -85,36 +75,6 @@ export const QuoteFormPage = () => {
       <h1>Nuevo presupuesto</h1>
 
       <form onSubmit={handleSubmit(onSubmit)}>
-        <h2>Datos de la empresa</h2>
-        <label>
-          Nombre
-          <input
-            {...register('companyName')}
-            style={{ width: '100%' }}
-          />
-        </label>
-        <label>
-          RIF
-          <input
-            {...register('companyRif')}
-            style={{ width: '100%' }}
-          />
-        </label>
-        <label>
-          Teléfono
-          <input
-            {...register('companyPhone')}
-            style={{ width: '100%' }}
-          />
-        </label>
-        <label>
-          Logo (URL)
-          <input
-            {...register('companyLogoUrl')}
-            style={{ width: '100%' }}
-          />
-        </label>
-
         <h2>Datos del presupuesto</h2>
         <label>
           Obra
