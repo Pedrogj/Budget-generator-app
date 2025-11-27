@@ -31,10 +31,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   logoBox: {
-    width: 60,
-    height: 60,
-    borderWidth: 1,
-    borderColor: '#000',
+    width: 80,
+    height: 80,
     alignItems: 'center',
     justifyContent: 'center',
   },
