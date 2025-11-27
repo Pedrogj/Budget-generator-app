@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ChangeEvent } from 'react';
 import { useQuote } from '../../context/QuoteContext';
 import { useForm } from 'react-hook-form';
 
@@ -12,6 +12,7 @@ interface ProfileFormValues {
 export const ProfilePage = () => {
   const { company, updateCompany } = useQuote();
   const [saved, setSaved] = useState(false);
+  const [logoError, setLogoError] = useState<string | null>(null);
 
   const { register, handleSubmit, reset } = useForm<ProfileFormValues>({
     defaultValues: {
@@ -37,17 +38,39 @@ export const ProfilePage = () => {
     setTimeout(() => setSaved(false), 2000);
   };
 
-  const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    setLogoError(null); // we clean previous error
 
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = reader.result as string; // "data:image/png;base64,..."
-      updateCompany({
-        ...company,
-        logoUrl: dataUrl,
-      });
+
+      const img = new Image();
+      img.onload = () => {
+        const { naturalWidth, naturalHeight } = img;
+
+        if (naturalWidth > 600 || naturalHeight > 600) {
+          setLogoError(
+            `El logo es demasiado grande (${naturalWidth}x${naturalHeight}px). El máximo permitido es 600x600 px.`
+          );
+          return;
+        }
+        // Valid size → We've updated our company with the new logo
+        updateCompany({
+          ...company,
+          logoUrl: dataUrl,
+        });
+      };
+      img.onerror = () => {
+        setLogoError('No se pudo leer la imagen. Intenta con otro archivo.');
+      };
+      img.src = dataUrl;
+    };
+    reader.onerror = () => {
+      setLogoError('Error al leer el archivo. Intenta nuevamente.');
     };
     reader.readAsDataURL(file);
   };
@@ -87,15 +110,21 @@ export const ProfilePage = () => {
           </label>
           {/* Logo company */}
           <label style={{ display: 'block', marginBottom: 8 }}>
-            <span>Logo de Empresa</span>
+            <span>Logo de Empresa (máx. 600x600 px)</span>
             <input
               type="file"
-              accept="image/png,image/jpg"
+              accept="image/png,image/jpeg"
               onChange={handleLogoChange}
             />
           </label>
 
-          {company.logoUrl && (
+          {logoError && (
+            <p style={{ color: 'salmon', fontSize: 12, marginBottom: 8 }}>
+              {logoError}
+            </p>
+          )}
+
+          {company.logoUrl && !logoError && (
             <div style={{ marginTop: 8 }}>
               <span style={{ display: 'block', marginBottom: 4 }}>
                 Vista previa:
