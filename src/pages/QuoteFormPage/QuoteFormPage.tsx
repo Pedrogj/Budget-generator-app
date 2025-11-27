@@ -58,7 +58,7 @@ export const QuoteFormPage = () => {
     },
   });
 
-  const { fields, append } = useFieldArray({
+  const { fields, append, remove } = useFieldArray({
     control,
     name: 'items',
   });
@@ -131,7 +131,7 @@ export const QuoteFormPage = () => {
               key={field.id}
               style={{
                 display: 'grid',
-                gridTemplateColumns: '0.6fr 0.6fr 2fr 0.6fr 0.6fr 1fr',
+                gridTemplateColumns: '0.6fr 0.6fr 2fr 0.6fr 0.6fr 1fr auto',
                 gap: 4,
                 marginBottom: 6,
               }}
@@ -166,6 +166,17 @@ export const QuoteFormPage = () => {
                   valueAsNumber: true,
                 })}
               />
+              <button
+                type="button"
+                onClick={() => remove(index)}
+                disabled={fields.length === 1} // no permitir dejar 0 ítems
+                style={{
+                  padding: '0.2rem 0.5rem',
+                  fontSize: '0.75rem',
+                }}
+              >
+                ✕
+              </button>
             </div>
           ))}
           <button
