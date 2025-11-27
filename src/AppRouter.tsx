@@ -6,32 +6,34 @@ import { ProfilePage } from './pages/ProfilePage/ProfilePage';
 
 export const AppRouter = () => {
   return (
-    <>
+    <div className="app">
       <Navbar />
       {/* Router */}
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <Navigate
-              to="/quotes/new"
-              replace
-            />
-          }
-        />
-        <Route
-          path="/quotes/new"
-          element={<QuoteFormPage />}
-        />
-        <Route
-          path="/quotes/preview"
-          element={<QuotePreviewPage />}
-        />
-        <Route
-          path="/profile"
-          element={<ProfilePage />}
-        />
-      </Routes>
-    </>
+      <main className="app-main">
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <Navigate
+                to="/quotes/new"
+                replace
+              />
+            }
+          />
+          <Route
+            path="/quotes/new"
+            element={<QuoteFormPage />}
+          />
+          <Route
+            path="/quotes/preview"
+            element={<QuotePreviewPage />}
+          />
+          <Route
+            path="/profile"
+            element={<ProfilePage />}
+          />
+        </Routes>
+      </main>
+    </div>
   );
 };

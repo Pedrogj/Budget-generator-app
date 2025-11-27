@@ -79,114 +79,114 @@ export const QuoteFormPage = () => {
   };
 
   return (
-    <div>
+    <div className="page">
       <h1>Nuevo presupuesto</h1>
 
       <form onSubmit={handleSubmit(onSubmit)}>
-        <h2>Datos del presupuesto</h2>
-        <label>
-          Obra
-          <input
-            {...register('work')}
-            style={{ width: '100%' }}
-          />
-        </label>
-        <label>
-          Cliente
-          <input
-            {...register('client')}
-            style={{ width: '100%' }}
-          />
-        </label>
-        <label>
-          RIF Cliente
-          <input
-            {...register('clientRif')}
-            style={{ width: '100%' }}
-          />
-        </label>
-        <label>
-          Dirección Cliente
-          <input
-            {...register('clientAddress')}
-            style={{ width: '100%' }}
-          />
-        </label>
-        <label>
-          Fecha emisión
-          <input
-            type="date"
-            {...register('issueDate')}
-            style={{ width: '100%' }}
-          />
-        </label>
-        {errors.issueDate && (
-          <p style={{ color: 'red', fontSize: 12, marginTop: 4 }}>
-            {errors.issueDate.message}
-          </p>
-        )}
+        <div className="section">
+          <h2>Datos del presupuesto</h2>
+          <label>
+            <span>Obra</span>
+            <input
+              {...register('work')}
+              style={{ width: '100%' }}
+            />
+          </label>
+          <label>
+            <span>Cliente</span>
+            <input
+              {...register('client')}
+              style={{ width: '100%' }}
+            />
+          </label>
+          <label>
+            <span>RIF Cliente</span>
+            <input
+              {...register('clientRif')}
+              style={{ width: '100%' }}
+            />
+          </label>
+          <label>
+            <span>Dirección Cliente</span>
+            <input
+              {...register('clientAddress')}
+              style={{ width: '100%' }}
+            />
+          </label>
+          <label>
+            <span>Fecha emisión</span>
+            <input
+              type="date"
+              {...register('issueDate')}
+              style={{ width: '100%' }}
+            />
+          </label>
+          {errors.issueDate && (
+            <p className="form-error">{errors.issueDate.message}</p>
+          )}
 
-        <h2>Ítems</h2>
-        {fields.map((field, index) => (
-          <div
-            key={field.id}
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '0.6fr 0.6fr 2fr 0.6fr 0.6fr 1fr',
-              gap: 4,
-              marginBottom: 6,
-            }}
+          <p>Ítems</p>
+          {fields.map((field, index) => (
+            <div
+              key={field.id}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '0.6fr 0.6fr 2fr 0.6fr 0.6fr 1fr',
+                gap: 4,
+                marginBottom: 6,
+              }}
+            >
+              <input
+                placeholder="Código"
+                {...register(`items.${index}.code` as const)}
+              />
+              <input
+                placeholder="UND"
+                {...register(`items.${index}.unit` as const)}
+              />
+              <input
+                placeholder="Descripción"
+                {...register(`items.${index}.description` as const)}
+              />
+              <input
+                type="number"
+                placeholder="Cant."
+                {...register(`items.${index}.quantity` as const, {
+                  valueAsNumber: true,
+                })}
+              />
+              <input
+                placeholder="SG"
+                {...register(`items.${index}.sg` as const)}
+              />
+              <input
+                type="number"
+                placeholder="P/Unit."
+                {...register(`items.${index}.unitPrice` as const, {
+                  valueAsNumber: true,
+                })}
+              />
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() =>
+              append({
+                code: 'NA',
+                unit: 'NA',
+                description: '',
+                quantity: 1,
+                sg: '',
+                unitPrice: 0,
+              })
+            }
           >
-            <input
-              placeholder="Código"
-              {...register(`items.${index}.code` as const)}
-            />
-            <input
-              placeholder="UND"
-              {...register(`items.${index}.unit` as const)}
-            />
-            <input
-              placeholder="Descripción"
-              {...register(`items.${index}.description` as const)}
-            />
-            <input
-              type="number"
-              placeholder="Cant."
-              {...register(`items.${index}.quantity` as const, {
-                valueAsNumber: true,
-              })}
-            />
-            <input
-              placeholder="SG"
-              {...register(`items.${index}.sg` as const)}
-            />
-            <input
-              type="number"
-              placeholder="P/Unit."
-              {...register(`items.${index}.unitPrice` as const, {
-                valueAsNumber: true,
-              })}
-            />
-          </div>
-        ))}
-        <button
-          type="button"
-          onClick={() =>
-            append({
-              code: 'NA',
-              unit: 'NA',
-              description: '',
-              quantity: 1,
-              sg: '',
-              unitPrice: 0,
-            })
-          }
-        >
-          + Agregar ítem
-        </button>
+            + Agregar ítem
+          </button>
 
-        <div style={{ marginTop: 16 }}>
-          <button type="submit">Guardar y ver vista previa</button>
+          <div style={{ marginTop: 16 }}>
+            <button type="submit">Guardar y ver vista previa</button>
+          </div>
         </div>
       </form>
     </div>

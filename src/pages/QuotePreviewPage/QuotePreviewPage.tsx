@@ -6,7 +6,7 @@ export const QuotePreviewPage = () => {
   const { company, quote, items } = useQuote();
 
   return (
-    <div style={{ padding: 20, maxWidth: 1000, margin: '0 auto' }}>
+    <div className="page">
       <h1>Vista previa del presupuesto</h1>
 
       <PDFViewer

@@ -40,61 +40,62 @@ export const ProfilePage = () => {
   };
 
   return (
-    <div>
+    <div className="page">
       <h1>Datos de Empresa</h1>
       <p>
         Aquí puedes configurar los datos de la empresa que se usarán en los
         presupuestos.
       </p>
       <form onSubmit={handleSubmit(onSubmit)}>
-        {/* Name company */}
-        <label style={{ display: 'block', marginBottom: 8 }}>
-          Nombre de la Empresa
-          <input
-            {...register('name', { required: true })}
-            style={{ width: '100%' }}
-          />
-        </label>
-        {/* Rif company */}
-        <label style={{ display: 'block', marginBottom: 8 }}>
-          RIF
-          <input
-            {...register('rif', { required: true })}
-            style={{ width: '100%' }}
-          />
-        </label>
-        {/* Phone */}
-        <label style={{ display: 'block', marginBottom: 8 }}>
-          Teléfono
-          <input
-            {...register('phone', { required: true })}
-            style={{ width: '100%' }}
-          />
-        </label>
-        {/* Logo company */}
-        <label style={{ display: 'block', marginBottom: 8 }}>
-          Logo de Empresa
-          <input
-            {...register('logoUrl')}
-            style={{ width: '100%' }}
-          />
-        </label>
+        <div className="section">
+          {/* Name company */}
+          <label style={{ display: 'block', marginBottom: 8 }}>
+            <span>Nombre de la Empresa</span>
+            <input
+              {...register('name', { required: true })}
+              style={{ width: '100%' }}
+            />
+          </label>
+          {/* Rif company */}
+          <label style={{ display: 'block', marginBottom: 8 }}>
+            <span>RIF</span>
+            <input
+              {...register('rif', { required: true })}
+              style={{ width: '100%' }}
+            />
+          </label>
+          {/* Phone */}
+          <label style={{ display: 'block', marginBottom: 8 }}>
+            <span>Teléfono</span>
+            <input
+              {...register('phone', { required: true })}
+              style={{ width: '100%' }}
+            />
+          </label>
+          {/* Logo company */}
+          <label style={{ display: 'block', marginBottom: 8 }}>
+            <span>Logo de Empresa</span>
+            <input
+              {...register('logoUrl')}
+              style={{ width: '100%' }}
+            />
+          </label>
 
-        <h2>Dirección</h2>
-        <label style={{ display: 'block', marginBottom: 8 }}>
-          Nombre de la Empresa
-          <input
-            {...register('addressLines', { required: true })}
-            style={{ width: '100%' }}
-          />
-        </label>
+          <label style={{ display: 'block', marginBottom: 8 }}>
+            <span>Dirección</span>
+            <input
+              {...register('addressLines', { required: true })}
+              style={{ width: '100%' }}
+            />
+          </label>
 
-        <button type="submit">Guardar cambios</button>
-        {saved && (
-          <p style={{ color: 'green', marginTop: 8 }}>
-            Datos guardados correctamente ✅
-          </p>
-        )}
+          <button type="submit">Guardar cambios</button>
+          {saved && (
+            <p style={{ color: 'green', marginTop: 8 }}>
+              Datos guardados correctamente ✅
+            </p>
+          )}
+        </div>
       </form>
     </div>
   );
