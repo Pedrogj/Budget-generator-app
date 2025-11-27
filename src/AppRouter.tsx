@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { QuotePreviewPage } from './pages/QuotePreviewPage/QuotePreviewPage';
-import { Navbar } from './components/Navbar';
+import { Navbar } from './components';
 import { QuoteFormPage } from './pages/QuoteFormPage/QuoteFormPage';
 import { ProfilePage } from './pages/ProfilePage/ProfilePage';
 
