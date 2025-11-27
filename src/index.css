@@ -85,6 +85,14 @@ button[type='button'] {
   border: 1px solid #374151;
 }
 
+button:disabled {
+  opacity: 0.5;
+  cursor: pointer;
+  background: #4b5563; /* gris */
+  box-shadow: none;
+  transform: none;
+}
+
 .form-error {
   color: #f97373;
   font-size: 0.8rem;

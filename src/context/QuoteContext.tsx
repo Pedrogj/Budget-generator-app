@@ -91,7 +91,21 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateCompany: QuoteContextType['updateCompany'] = (newCompany) => {
-    setCompany(newCompany);
+    setCompany((prev) => {
+      const isSame =
+        prev.name === newCompany.name &&
+        prev.rif === newCompany.rif &&
+        prev.phone === newCompany.phone &&
+        prev.addressLines === newCompany.addressLines &&
+        prev.logoUrl === newCompany.logoUrl;
+
+      if (isSame) {
+        // If it's the same, we return the same object → React does NOT re-render
+        return prev;
+      }
+
+      return newCompany;
+    });
   };
 
   return (

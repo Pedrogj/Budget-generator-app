@@ -13,8 +13,14 @@ export const ProfilePage = () => {
   const { company, updateCompany } = useQuote();
   const [saved, setSaved] = useState(false);
   const [logoError, setLogoError] = useState<string | null>(null);
+  const [tempLogo, setTempLogo] = useState<string | undefined>(company.logoUrl);
 
-  const { register, handleSubmit, reset } = useForm<ProfileFormValues>({
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { isDirty },
+  } = useForm<ProfileFormValues>({
     defaultValues: {
       name: company.name,
       rif: company.rif,
@@ -28,7 +34,7 @@ export const ProfilePage = () => {
       name: data.name,
       rif: data.rif,
       phone: data.phone,
-      logoUrl: company.logoUrl || undefined,
+      logoUrl: tempLogo || undefined,
       addressLines: data.addressLines,
     });
 
@@ -59,10 +65,7 @@ export const ProfilePage = () => {
           return;
         }
         // Valid size → We've updated our company with the new logo
-        updateCompany({
-          ...company,
-          logoUrl: dataUrl,
-        });
+        setTempLogo(dataUrl);
       };
       img.onerror = () => {
         setLogoError('No se pudo leer la imagen. Intenta con otro archivo.');
@@ -74,6 +77,10 @@ export const ProfilePage = () => {
     };
     reader.readAsDataURL(file);
   };
+
+  // We detect if the logo has changed compared to the one in the context
+  const hasLogoChange = tempLogo !== company.logoUrl;
+  const isSubmitDisabled = !isDirty && !hasLogoChange;
 
   return (
     <div className="page">
@@ -124,15 +131,15 @@ export const ProfilePage = () => {
             </p>
           )}
 
-          {company.logoUrl && !logoError && (
+          {tempLogo && !logoError && (
             <div style={{ marginTop: 8 }}>
               <span style={{ display: 'block', marginBottom: 4 }}>
                 Vista previa:
               </span>
               <img
-                src={company.logoUrl}
+                src={tempLogo}
                 alt="Logo de la empresa"
-                style={{ height: 60, width: 'auto', borderRadius: 8 }}
+                style={{ height: 80, width: 'auto', borderRadius: 8 }}
               />
             </div>
           )}
@@ -145,7 +152,12 @@ export const ProfilePage = () => {
             />
           </label>
 
-          <button type="submit">Guardar cambios</button>
+          <button
+            type="submit"
+            disabled={isSubmitDisabled}
+          >
+            Guardar cambios
+          </button>
           {saved && (
             <p style={{ color: 'green', marginTop: 8 }}>
               Datos guardados correctamente ✅
