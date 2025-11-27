@@ -25,7 +25,7 @@ export const Navbar = () => {
             }
             to="/quotes/preview"
           >
-            Vista previa
+            Vista PDF
           </NavLink>
           <NavLink
             className={({ isActive }) =>
