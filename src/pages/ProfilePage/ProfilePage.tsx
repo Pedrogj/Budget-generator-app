@@ -6,7 +6,6 @@ interface ProfileFormValues {
   name: string;
   rif: string;
   phone: string;
-  logoUrl: string;
   addressLines: string;
 }
 
@@ -19,7 +18,6 @@ export const ProfilePage = () => {
       name: company.name,
       rif: company.rif,
       phone: company.phone,
-      logoUrl: company.logoUrl ?? '',
       addressLines: company.addressLines ?? '',
     },
   });
@@ -29,7 +27,7 @@ export const ProfilePage = () => {
       name: data.name,
       rif: data.rif,
       phone: data.phone,
-      logoUrl: data.logoUrl || undefined,
+      logoUrl: company.logoUrl || undefined,
       addressLines: data.addressLines,
     });
 
@@ -37,6 +35,21 @@ export const ProfilePage = () => {
     // We refresh values ​​with what has been saved
     reset(data);
     setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string; // "data:image/png;base64,..."
+      updateCompany({
+        ...company,
+        logoUrl: dataUrl,
+      });
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -76,14 +89,28 @@ export const ProfilePage = () => {
           <label style={{ display: 'block', marginBottom: 8 }}>
             <span>Logo de Empresa</span>
             <input
-              {...register('logoUrl')}
-              style={{ width: '100%' }}
+              type="file"
+              accept="image/png,image/jpg"
+              onChange={handleLogoChange}
             />
           </label>
 
+          {company.logoUrl && (
+            <div style={{ marginTop: 8 }}>
+              <span style={{ display: 'block', marginBottom: 4 }}>
+                Vista previa:
+              </span>
+              <img
+                src={company.logoUrl}
+                alt="Logo de la empresa"
+                style={{ height: 60, width: 'auto', borderRadius: 8 }}
+              />
+            </div>
+          )}
+
           <label style={{ display: 'block', marginBottom: 8 }}>
             <span>Dirección</span>
-            <input
+            <textarea
               {...register('addressLines', { required: true })}
               style={{ width: '100%' }}
             />
