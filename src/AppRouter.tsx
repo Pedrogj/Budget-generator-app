@@ -3,6 +3,7 @@ import { QuotePreviewPage } from './pages/QuotePreviewPage/QuotePreviewPage';
 import { Navbar } from './components';
 import { QuoteFormPage } from './pages/QuoteFormPage/QuoteFormPage';
 import { ProfilePage } from './pages/ProfilePage/ProfilePage';
+import { ClientsPage } from './pages/ClientsPage/ClientsPage';
 
 export const AppRouter = () => {
   return (
@@ -31,6 +32,10 @@ export const AppRouter = () => {
           <Route
             path="/profile"
             element={<ProfilePage />}
+          />
+          <Route
+            path="/clients"
+            element={<ClientsPage />}
           />
         </Routes>
       </main>

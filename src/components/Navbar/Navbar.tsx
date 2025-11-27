@@ -15,6 +15,14 @@ export const Navbar = () => {
             className={({ isActive }) =>
               `navbar-link ${isActive ? 'navbar-link-active' : ''} `
             }
+            to="/clients"
+          >
+            Clientes
+          </NavLink>
+          <NavLink
+            className={({ isActive }) =>
+              `navbar-link ${isActive ? 'navbar-link-active' : ''} `
+            }
             to="/quotes/new"
           >
             Nuevo presupuesto
