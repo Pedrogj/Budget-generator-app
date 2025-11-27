@@ -22,3 +22,10 @@ export interface QuoteInfo {
   clientAddress: string;
   issueDate: string;
 }
+
+export interface ClientInfo {
+  id: string;
+  name: string;
+  rif: string;
+  address: string;
+}

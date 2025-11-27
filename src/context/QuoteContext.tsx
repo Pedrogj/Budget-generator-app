@@ -5,19 +5,27 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import type { CompanyInfo, QuoteInfo, QuoteItem } from '../types/types';
+import type {
+  CompanyInfo,
+  QuoteInfo,
+  QuoteItem,
+  ClientInfo,
+} from '../types/types';
 
 interface QuoteContextType {
   company: CompanyInfo;
   quote: QuoteInfo;
   items: QuoteItem[];
+  clients: ClientInfo[];
   setFromForm: (data: { quote: QuoteInfo; items: QuoteItem[] }) => void;
   updateCompany: (company: CompanyInfo) => void;
+  addClient: (data: Omit<ClientInfo, 'id'>) => void;
 }
 
 const QuoteContext = createContext<QuoteContextType | undefined>(undefined);
 
 const COMPANY_STORAGE_KEY = 'budget-app:company';
+const CLIENTS_STORAGE_KEY = 'budget-app:clients';
 
 const initialCompany: CompanyInfo = {
   name: 'José Miguelangel Zavala Henriquez',
@@ -55,6 +63,15 @@ const initialItems: QuoteItem[] = [
   },
 ];
 
+const initialClients: ClientInfo[] = [
+  {
+    id: 'client-1',
+    name: 'Palmeras de Casigua',
+    rif: '--------------------',
+    address: '-----------------',
+  },
+];
+
 export const QuoteProvider = ({ children }: { children: ReactNode }) => {
   const [company, setCompany] = useState<CompanyInfo>(() => {
     if (typeof window === 'undefined') return initialCompany;
@@ -76,6 +93,20 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
   const [quote, setQuote] = useState<QuoteInfo>(initialQuote);
   const [items, setItems] = useState<QuoteItem[]>(initialItems);
 
+  const [clients, setClients] = useState<ClientInfo[]>(() => {
+    if (typeof window === 'undefined') return initialClients;
+
+    try {
+      const stored = window.localStorage.getItem(CLIENTS_STORAGE_KEY);
+      if (!stored) return initialClients;
+
+      const parsed = JSON.parse(stored) as ClientInfo[];
+      return parsed.length ? parsed : initialClients;
+    } catch {
+      return initialClients;
+    }
+  });
+
   // Every time the company changes, we save it to localStorage.
   useEffect(() => {
     try {
@@ -84,6 +115,14 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
       console.error('Error saving company to localStorage', error);
     }
   }, [company]);
+  // Save clients to localStorage
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(CLIENTS_STORAGE_KEY, JSON.stringify(clients));
+    } catch (error) {
+      console.error('Error saving clients to localStorage', error);
+    }
+  }, [clients]);
 
   const setFromForm: QuoteContextType['setFromForm'] = (data) => {
     setQuote(data.quote);
@@ -108,9 +147,28 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const addClient: QuoteContextType['addClient'] = (data) => {
+    const id =
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : String(Date.now());
+
+    const newClient: ClientInfo = { id, ...data };
+
+    setClients((prev) => [...prev, newClient]);
+  };
+
   return (
     <QuoteContext.Provider
-      value={{ company, quote, items, setFromForm, updateCompany }}
+      value={{
+        company,
+        quote,
+        items,
+        clients,
+        setFromForm,
+        updateCompany,
+        addClient,
+      }}
     >
       {children}
     </QuoteContext.Provider>
