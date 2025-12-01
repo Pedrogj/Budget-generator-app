@@ -106,3 +106,9 @@ button:disabled {
   cursor: pointer;
   border-color: #38bdf8;
 }
+
+.list-client-page {
+  border: 1px solid rgb(164, 164, 164);
+  border-radius: 5px;
+  padding: 5px;
+}

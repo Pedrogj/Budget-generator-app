@@ -178,9 +178,10 @@ export const ClientsPage = () => {
         {clients.length === 0 ? (
           <p>No hay clientes aún.</p>
         ) : (
-          <ul>
+          <>
             {clients.map((client: ClientInfo) => (
-              <li
+              <div
+                className="list-client-page"
                 key={client.id}
                 style={{
                   marginBottom: 8,
@@ -219,9 +220,9 @@ export const ClientsPage = () => {
                     Eliminar
                   </button>
                 </div>
-              </li>
+              </div>
             ))}
-          </ul>
+          </>
         )}
       </div>
     </div>
