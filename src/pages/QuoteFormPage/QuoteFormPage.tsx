@@ -100,7 +100,7 @@ export const QuoteFormPage = () => {
         <div className="section">
           <h2>Datos del presupuesto</h2>
           <label>
-            <span>Obra</span>
+            <span>Tipo de Obra</span>
             <input
               {...register('work')}
               style={{ width: '100%' }}
@@ -111,6 +111,7 @@ export const QuoteFormPage = () => {
           <label>
             <span>Seleccionar cliente guardado</span>
             <select
+              className="select-form"
               onChange={handleClientSelect}
               defaultValue=""
             >
@@ -130,6 +131,7 @@ export const QuoteFormPage = () => {
             <span>Cliente</span>
             <input
               {...register('client')}
+              readOnly
               style={{ width: '100%' }}
             />
           </label>
@@ -137,6 +139,7 @@ export const QuoteFormPage = () => {
             <span>RIF Cliente</span>
             <input
               {...register('clientRif')}
+              readOnly
               style={{ width: '100%' }}
             />
           </label>
@@ -144,6 +147,7 @@ export const QuoteFormPage = () => {
             <span>Dirección Cliente</span>
             <input
               {...register('clientAddress')}
+              readOnly
               style={{ width: '100%' }}
             />
           </label>

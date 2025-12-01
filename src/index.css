@@ -98,3 +98,11 @@ button:disabled {
   font-size: 0.8rem;
   margin-top: 0.25rem;
 }
+
+.select-form {
+  padding: 5px;
+  margin-left: 5px;
+  border-radius: 5px;
+  cursor: pointer;
+  border-color: #38bdf8;
+}
