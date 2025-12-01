@@ -8,6 +8,7 @@ import {
   type SubmitHandler,
 } from 'react-hook-form';
 import { useQuote } from '../../context/QuoteContext';
+import type { ChangeEvent } from 'react';
 
 const itemSchema = z.object({
   code: z.string().default('NA'),
@@ -35,7 +36,7 @@ type FormValues = z.infer<typeof formSchema>;
 export const QuoteFormPage = () => {
   const navigate = useNavigate();
 
-  const { quote, items, setFromForm } = useQuote();
+  const { quote, items, setFromForm, clients } = useQuote();
 
   const resolver: Resolver<FormValues> = zodResolver(
     formSchema
@@ -45,6 +46,7 @@ export const QuoteFormPage = () => {
     control,
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({
     resolver,
@@ -78,6 +80,18 @@ export const QuoteFormPage = () => {
     navigate('/quotes/preview');
   };
 
+  const handleClientSelect = (e: ChangeEvent<HTMLSelectElement>) => {
+    const clientId = e.target.value;
+    if (!clientId) return;
+
+    const selected = clients.find((c) => c.id === clientId);
+    if (!selected) return;
+
+    setValue('client', selected.name);
+    setValue('clientRif', selected.rif);
+    setValue('clientAddress', selected.address);
+  };
+
   return (
     <div className="page">
       <h1>Nuevo presupuesto</h1>
@@ -92,6 +106,26 @@ export const QuoteFormPage = () => {
               style={{ width: '100%' }}
             />
           </label>
+
+          {/* Selector de cliente guardado */}
+          <label>
+            <span>Seleccionar cliente guardado</span>
+            <select
+              onChange={handleClientSelect}
+              defaultValue=""
+            >
+              <option value="">-- Selecciona un cliente --</option>
+              {clients.map((client) => (
+                <option
+                  key={client.id}
+                  value={client.id}
+                >
+                  {client.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
           <label>
             <span>Cliente</span>
             <input
