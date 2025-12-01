@@ -20,6 +20,7 @@ interface QuoteContextType {
   setFromForm: (data: { quote: QuoteInfo; items: QuoteItem[] }) => void;
   updateCompany: (company: CompanyInfo) => void;
   addClient: (data: Omit<ClientInfo, 'id'>) => void;
+  removeClient: (id: string) => void;
 }
 
 const QuoteContext = createContext<QuoteContextType | undefined>(undefined);
@@ -158,6 +159,10 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
     setClients((prev) => [...prev, newClient]);
   };
 
+  const removeClient: QuoteContextType['removeClient'] = (id) => {
+    setClients((prev) => prev.filter((client) => client.id !== id));
+  };
+
   return (
     <QuoteContext.Provider
       value={{
@@ -168,6 +173,7 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
         setFromForm,
         updateCompany,
         addClient,
+        removeClient,
       }}
     >
       {children}
