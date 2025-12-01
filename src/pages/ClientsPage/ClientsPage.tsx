@@ -4,6 +4,7 @@ import Swal from 'sweetalert2';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuote } from '../../context/QuoteContext';
 import type { ClientInfo } from '../../types/types';
+import { useState } from 'react';
 
 const clientSchema = z.object({
   name: z.string().min(2, 'El nombre es requerido'),
@@ -14,7 +15,8 @@ const clientSchema = z.object({
 type ClientFormValues = z.infer<typeof clientSchema>;
 
 export const ClientsPage = () => {
-  const { clients, addClient, removeClient } = useQuote();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const { clients, addClient, removeClient, updateClient } = useQuote();
 
   const {
     register,
@@ -31,16 +33,39 @@ export const ClientsPage = () => {
   });
 
   const onSubmit = async (data: ClientFormValues) => {
-    addClient(data);
-    reset();
+    if (editingId) {
+      // Edit client mode
+      updateClient(editingId, data);
+      setEditingId(null);
+      reset({
+        name: '',
+        rif: '',
+        address: '',
+      });
+      await Swal.fire({
+        icon: 'success',
+        title: 'Cliente actualizado',
+        text: 'Los datos del cliente se actualizaron correctamente.',
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    } else {
+      // Add client mode
+      addClient(data);
+      reset({
+        name: '',
+        rif: '',
+        address: '',
+      });
 
-    await Swal.fire({
-      icon: 'success',
-      title: 'Cliente agregado',
-      text: 'El cliente se agregó correctamente.',
-      timer: 1500,
-      showConfirmButton: false,
-    });
+      await Swal.fire({
+        icon: 'success',
+        title: 'Cliente agregado',
+        text: 'El cliente se agregó correctamente.',
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    }
   };
 
   const handleDelete = async (id: string, name: string) => {
@@ -54,14 +79,45 @@ export const ClientsPage = () => {
       confirmButtonColor: '#ef4444',
       cancelButtonColor: '#6b7280',
     });
+
     if (!result.isConfirmed) return;
+
     removeClient(id);
+
     await Swal.fire({
       icon: 'success',
       title: 'Cliente eliminado',
       text: `El cliente "${name}" fue eliminado.`,
       timer: 1500,
       showConfirmButton: false,
+    });
+
+    // If you were editing that client, we reset
+    if (editingId === id) {
+      setEditingId(null);
+      reset({
+        name: '',
+        rif: '',
+        address: '',
+      });
+    }
+  };
+
+  const handleEditClick = (client: ClientInfo) => {
+    setEditingId(client.id);
+    reset({
+      name: client.name,
+      rif: client.rif,
+      address: client.address,
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    reset({
+      name: '',
+      rif: '',
+      address: '',
     });
   };
 
@@ -96,7 +152,24 @@ export const ClientsPage = () => {
             )}
           </label>
 
-          <button type="submit">Agregar cliente</button>
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            <button type="submit">
+              {editingId ? 'Guardar cambios' : 'Agregar cliente'}
+            </button>
+
+            {editingId && (
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                style={{
+                  backgroundColor: '#111827',
+                  border: '1px solid #374151',
+                }}
+              >
+                Cancelar edición
+              </button>
+            )}
+          </div>
         </div>
       </form>
 
@@ -124,16 +197,28 @@ export const ClientsPage = () => {
                     {client.address}
                   </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(client.id, client.name)}
-                  style={{
-                    padding: '0.2rem 0.6rem',
-                    fontSize: '0.75rem',
-                  }}
-                >
-                  Eliminar
-                </button>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button
+                    type="button"
+                    onClick={() => handleEditClick(client)}
+                    style={{
+                      padding: '0.2rem 0.6rem',
+                      fontSize: '0.75rem',
+                    }}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(client.id, client.name)}
+                    style={{
+                      padding: '0.2rem 0.6rem',
+                      fontSize: '0.75rem',
+                    }}
+                  >
+                    Eliminar
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
