@@ -21,6 +21,7 @@ interface QuoteContextType {
   updateCompany: (company: CompanyInfo) => void;
   addClient: (data: Omit<ClientInfo, 'id'>) => void;
   removeClient: (id: string) => void;
+  updateClient: (id: string, data: Omit<ClientInfo, 'id'>) => void;
 }
 
 const QuoteContext = createContext<QuoteContextType | undefined>(undefined);
@@ -163,6 +164,12 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
     setClients((prev) => prev.filter((client) => client.id !== id));
   };
 
+  const updateClient: QuoteContextType['updateClient'] = (id, data) => {
+    setClients((prev) =>
+      prev.map((client) => (client.id === id ? { ...client, ...data } : client))
+    );
+  };
+
   return (
     <QuoteContext.Provider
       value={{
@@ -174,6 +181,7 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
         updateCompany,
         addClient,
         removeClient,
+        updateClient,
       }}
     >
       {children}
