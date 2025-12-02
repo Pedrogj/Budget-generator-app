@@ -9,27 +9,33 @@ import {
 } from 'react-hook-form';
 import { useQuote } from '../../context/QuoteContext';
 import type { ChangeEvent } from 'react';
+import Swal from 'sweetalert2';
 
 const itemSchema = z.object({
   code: z.string().default('NA'),
   unit: z.string().default('NA'),
-  description: z.string().min(1, 'Descripción requerida'),
-  quantity: z.coerce.number().min(1),
+  description: z.string().min(1, 'La Descripción es requerida'),
+  quantity: z.coerce.number().min(1, 'La cantidad debe ser al menos 1'),
   sg: z.string().default(''),
-  unitPrice: z.coerce.number().min(0),
+  unitPrice: z.coerce.number().min(1, 'Campo de precio sin valor'),
 });
 
-const formSchema = z.object({
-  work: z.string().min(1),
-  client: z.string().min(1),
-  clientRif: z.string().min(1),
-  clientAddress: z.string().min(1),
-  issueDate: z
-    .string()
-    .min(1, 'La fecha es obligatoria')
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido'),
-  items: z.array(itemSchema).min(1),
-});
+const formSchema = z
+  .object({
+    work: z.string().min(1, 'Describe el tipo de Trabajo'),
+    client: z.string().min(1, 'Nombre de cliente obligatorio'),
+    clientRif: z.string().min(1, 'Número de razón social'),
+    clientAddress: z.string().min(1, 'Ingresa una dirección'),
+    issueDate: z
+      .string()
+      .min(1, 'La fecha es obligatoria')
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido'),
+    items: z.array(itemSchema).min(1, 'Debes agregar al menos un ítem'),
+  })
+  .refine((data) => data.items.some((i) => i.unitPrice > 0), {
+    message: 'Al menos un ítem debe tener precio mayor a 0',
+    path: ['items'],
+  });
 
 type FormValues = z.infer<typeof formSchema>;
 
@@ -65,7 +71,7 @@ export const QuoteFormPage = () => {
     name: 'items',
   });
 
-  const onSubmit: SubmitHandler<FormValues> = (data) => {
+  const onSubmit: SubmitHandler<FormValues> = async (data) => {
     setFromForm({
       quote: {
         work: data.work,
@@ -77,12 +83,26 @@ export const QuoteFormPage = () => {
       items: data.items,
     });
 
+    await Swal.fire({
+      icon: 'success',
+      title: 'Presupuesto listo',
+      text: 'Los datos se guardaron correctamente. Ahora verás la vista previa del PDF.',
+      timer: 1700,
+      showConfirmButton: false,
+    });
+
     navigate('/quotes/preview');
   };
 
   const handleClientSelect = (e: ChangeEvent<HTMLSelectElement>) => {
     const clientId = e.target.value;
-    if (!clientId) return;
+
+    if (!clientId) {
+      setValue('client', '');
+      setValue('clientRif', '');
+      setValue('clientAddress', '');
+      return;
+    }
 
     const selected = clients.find((c) => c.id === clientId);
     if (!selected) return;
@@ -105,6 +125,7 @@ export const QuoteFormPage = () => {
               {...register('work')}
               style={{ width: '100%' }}
             />
+            {errors.work && <p className="form-error">{errors.work.message}</p>}
           </label>
 
           {/* Selector de cliente guardado */}
@@ -134,6 +155,9 @@ export const QuoteFormPage = () => {
               readOnly
               style={{ width: '100%' }}
             />
+            {errors.client && (
+              <p className="form-error">{errors.client.message}</p>
+            )}
           </label>
           <label>
             <span>RIF Cliente</span>
@@ -142,6 +166,9 @@ export const QuoteFormPage = () => {
               readOnly
               style={{ width: '100%' }}
             />
+            {errors.clientRif && (
+              <p className="form-error">{errors.clientRif.message}</p>
+            )}
           </label>
           <label>
             <span>Dirección Cliente</span>
@@ -150,6 +177,9 @@ export const QuoteFormPage = () => {
               readOnly
               style={{ width: '100%' }}
             />
+            {errors.clientAddress && (
+              <p className="form-error">{errors.clientAddress.message}</p>
+            )}
           </label>
           <label>
             <span>Fecha emisión</span>
@@ -164,6 +194,7 @@ export const QuoteFormPage = () => {
           )}
 
           <p>Ítems</p>
+          {errors.items && <p className="form-error">{errors.items.message}</p>}
           {fields.map((field, index) => (
             <div
               key={field.id}
@@ -174,36 +205,65 @@ export const QuoteFormPage = () => {
                 marginBottom: 6,
               }}
             >
-              <input
-                placeholder="Código"
-                {...register(`items.${index}.code` as const)}
-              />
-              <input
-                placeholder="UND"
-                {...register(`items.${index}.unit` as const)}
-              />
-              <input
-                placeholder="Descripción"
-                {...register(`items.${index}.description` as const)}
-              />
-              <input
-                type="number"
-                placeholder="Cant."
-                {...register(`items.${index}.quantity` as const, {
-                  valueAsNumber: true,
-                })}
-              />
-              <input
-                placeholder="SG"
-                {...register(`items.${index}.sg` as const)}
-              />
-              <input
-                type="number"
-                placeholder="P/Unit."
-                {...register(`items.${index}.unitPrice` as const, {
-                  valueAsNumber: true,
-                })}
-              />
+              <div>
+                <input
+                  placeholder="Código"
+                  {...register(`items.${index}.code` as const)}
+                />
+              </div>
+
+              <div>
+                <input
+                  placeholder="UND"
+                  {...register(`items.${index}.unit` as const)}
+                />
+              </div>
+
+              <div>
+                <input
+                  placeholder="Descripción"
+                  {...register(`items.${index}.description` as const)}
+                />
+                {errors.items?.[index]?.description && (
+                  <p className="form-error">
+                    {errors.items[index]?.description?.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <input
+                  type="number"
+                  placeholder="Cant."
+                  {...register(`items.${index}.quantity` as const)}
+                />
+                {errors.items?.[index]?.quantity && (
+                  <p className="form-error">
+                    {errors.items[index]?.quantity?.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <input
+                  placeholder="SG"
+                  {...register(`items.${index}.sg` as const)}
+                />
+              </div>
+
+              <div>
+                <input
+                  type="number"
+                  placeholder="P/Unit."
+                  {...register(`items.${index}.unitPrice` as const)}
+                />
+                {errors.items?.[index]?.unitPrice && (
+                  <p className="form-error">
+                    {errors.items[index]?.unitPrice?.message}
+                  </p>
+                )}
+              </div>
+
               <button
                 type="button"
                 onClick={() => remove(index)}
