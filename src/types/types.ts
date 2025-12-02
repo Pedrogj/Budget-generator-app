@@ -22,6 +22,7 @@ export interface QuoteInfo {
   clientAddress: string;
   issueDate: string;
   clientId?: string;
+  currency: 'USD' | 'CLP';
 }
 
 export interface ClientInfo {

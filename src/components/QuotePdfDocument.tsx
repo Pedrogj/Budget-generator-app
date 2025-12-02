@@ -106,11 +106,14 @@ const styles = StyleSheet.create({
   },
 });
 
-const formatMoney = (value: number) =>
-  new Intl.NumberFormat('en-US', {
+const formatMoney = (value: number, currency: 'USD' | 'CLP' = 'USD') => {
+  const locale = currency === 'CLP' ? 'es-CL' : 'en-US';
+
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
-    currency: 'USD',
+    currency,
   }).format(value);
+};
 
 const formatIssueDate = (value: string) => {
   if (!value) return '';
@@ -217,10 +220,10 @@ export const QuotePdfDocument = ({ company, quote, items }: Props) => {
                 </Text>
                 <Text style={[styles.cell, styles.colSg]}>{item.sg}</Text>
                 <Text style={[styles.cell, styles.colUnitPrice]}>
-                  {formatMoney(item.unitPrice)}
+                  {formatMoney(item.unitPrice, quote.currency)}
                 </Text>
                 <Text style={[styles.cell, styles.colTotal]}>
-                  {formatMoney(lineTotal)}
+                  {formatMoney(lineTotal, quote.currency)}
                 </Text>
               </View>
             );
@@ -236,10 +239,10 @@ export const QuotePdfDocument = ({ company, quote, items }: Props) => {
         </View>
 
         <View style={styles.totals}>
-          <Text>SUB-TOTAL: {formatMoney(subtotal)}</Text>
-          <Text>I.V.A. 16%: {formatMoney(iva)}</Text>
+          <Text>SUB-TOTAL: {formatMoney(subtotal, quote.currency)}</Text>
+          <Text>I.V.A. 16%: {formatMoney(iva, quote.currency)}</Text>
           <Text style={{ fontWeight: 'bold' }}>
-            TOTAL: {formatMoney(total)}
+            TOTAL: {formatMoney(total, quote.currency)}
           </Text>
         </View>
       </Page>
