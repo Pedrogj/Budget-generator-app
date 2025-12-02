@@ -44,6 +44,7 @@ const initialQuote: QuoteInfo = {
   clientRif: '------------',
   clientAddress: '------------',
   issueDate: new Date().toISOString().slice(0, 10),
+  clientId: '',
 };
 
 const initialItems: QuoteItem[] = [

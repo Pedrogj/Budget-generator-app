@@ -21,6 +21,7 @@ export interface QuoteInfo {
   clientRif: string;
   clientAddress: string;
   issueDate: string;
+  clientId?: string;
 }
 
 export interface ClientInfo {

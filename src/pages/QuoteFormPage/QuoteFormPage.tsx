@@ -26,6 +26,7 @@ const formSchema = z
     client: z.string().min(1, 'Nombre de cliente obligatorio'),
     clientRif: z.string().min(1, 'Número de razón social'),
     clientAddress: z.string().min(1, 'Ingresa una dirección'),
+    clientId: z.string().optional(),
     issueDate: z
       .string()
       .min(1, 'La fecha es obligatoria')
@@ -62,6 +63,7 @@ export const QuoteFormPage = () => {
       clientRif: quote.clientRif,
       clientAddress: quote.clientAddress,
       issueDate: quote.issueDate,
+      clientId: quote.clientId ?? '',
       items: items,
     },
   });
@@ -79,6 +81,7 @@ export const QuoteFormPage = () => {
         clientRif: data.clientRif,
         clientAddress: data.clientAddress,
         issueDate: data.issueDate,
+        clientId: data.clientId,
       },
       items: data.items,
     });
@@ -101,6 +104,7 @@ export const QuoteFormPage = () => {
       setValue('client', '');
       setValue('clientRif', '');
       setValue('clientAddress', '');
+      setValue('clientId', '');
       return;
     }
 
@@ -110,6 +114,7 @@ export const QuoteFormPage = () => {
     setValue('client', selected.name);
     setValue('clientRif', selected.rif);
     setValue('clientAddress', selected.address);
+    setValue('clientId', clientId);
   };
 
   return (
@@ -117,6 +122,10 @@ export const QuoteFormPage = () => {
       <h1>Nuevo presupuesto</h1>
 
       <form onSubmit={handleSubmit(onSubmit)}>
+        <input
+          type="hidden"
+          {...register('clientId')}
+        />
         <div className="section">
           <h2>Datos del presupuesto</h2>
           <label>
@@ -134,7 +143,7 @@ export const QuoteFormPage = () => {
             <select
               className="select-form"
               onChange={handleClientSelect}
-              defaultValue=""
+              defaultValue={quote.clientId ?? ''}
             >
               <option value="">-- Selecciona un cliente --</option>
               {clients.map((client) => (
