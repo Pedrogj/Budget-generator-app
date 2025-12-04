@@ -73,8 +73,11 @@ export const QuoteFormPage = () => {
     name: 'items',
   });
 
+  const currencyLabel =
+    company.defaultCurrency === 'CLP' ? 'CLP - Pesos chilenos' : 'UDS - Dólar';
+
   const onSubmit: SubmitHandler<FormValues> = async (data) => {
-    const currency = quote.currency ?? company.defaultCurrency ?? 'USD';
+    const currency = company.defaultCurrency ?? 'USD';
 
     setFromForm({
       quote: {
@@ -171,6 +174,7 @@ export const QuoteFormPage = () => {
               <p className="form-error">{errors.client.message}</p>
             )}
           </label>
+
           <label>
             <span>RIF Cliente</span>
             <input
@@ -182,6 +186,7 @@ export const QuoteFormPage = () => {
               <p className="form-error">{errors.clientRif.message}</p>
             )}
           </label>
+
           <label>
             <span>Dirección Cliente</span>
             <input
@@ -193,11 +198,22 @@ export const QuoteFormPage = () => {
               <p className="form-error">{errors.clientAddress.message}</p>
             )}
           </label>
+
           <label>
             <span>Fecha emisión</span>
             <input
               type="date"
               {...register('issueDate')}
+              style={{ width: '100%' }}
+            />
+          </label>
+
+          <label>
+            <span>Tipo de moneda</span>
+            <input
+              type="text"
+              readOnly
+              value={currencyLabel}
               style={{ width: '100%' }}
             />
           </label>
