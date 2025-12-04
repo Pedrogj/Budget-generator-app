@@ -7,10 +7,12 @@ interface ProfileFormValues {
   rif: string;
   phone: string;
   addressLines: string;
+  defaultCurrency: 'USD' | 'CLP';
 }
 
 export const ProfilePage = () => {
   const { company, updateCompany } = useQuote();
+
   const [saved, setSaved] = useState(false);
   const [logoError, setLogoError] = useState<string | null>(null);
   const [tempLogo, setTempLogo] = useState<string | undefined>(company.logoUrl);
@@ -26,6 +28,7 @@ export const ProfilePage = () => {
       rif: company.rif,
       phone: company.phone,
       addressLines: company.addressLines ?? '',
+      defaultCurrency: company.defaultCurrency ?? 'USD',
     },
   });
 
@@ -36,6 +39,7 @@ export const ProfilePage = () => {
       phone: data.phone,
       logoUrl: tempLogo || undefined,
       addressLines: data.addressLines,
+      defaultCurrency: data.defaultCurrency,
     });
 
     setSaved(true);
@@ -114,6 +118,17 @@ export const ProfilePage = () => {
               {...register('phone', { required: true })}
               style={{ width: '100%' }}
             />
+          </label>
+          {/* Select Currency */}
+          <label style={{ display: 'block', marginBottom: 8 }}>
+            <span>Moneda por defecto</span>
+            <select
+              {...register('defaultCurrency')}
+              style={{ width: '100%' }}
+            >
+              <option value="USD">USD (Dólares)</option>
+              <option value="CLP">CLP (Pesos chilenos)</option>
+            </select>
           </label>
           {/* Logo company */}
           <label style={{ display: 'block', marginBottom: 8 }}>

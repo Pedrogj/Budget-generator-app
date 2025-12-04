@@ -13,6 +13,7 @@ export interface CompanyInfo {
   phone: string;
   addressLines: string;
   logoUrl?: string;
+  defaultCurrency?: 'USD' | 'CLP';
 }
 
 export interface QuoteInfo {

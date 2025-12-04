@@ -31,7 +31,6 @@ const formSchema = z
       .string()
       .min(1, 'La fecha es obligatoria')
       .regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido'),
-    currency: z.enum(['USD', 'CLP']),
     items: z.array(itemSchema).min(1, 'Debes agregar al menos un ítem'),
   })
   .refine((data) => data.items.some((i) => i.unitPrice > 0), {
@@ -44,7 +43,7 @@ type FormValues = z.infer<typeof formSchema>;
 export const QuoteFormPage = () => {
   const navigate = useNavigate();
 
-  const { quote, items, setFromForm, clients } = useQuote();
+  const { quote, items, setFromForm, clients, company } = useQuote();
 
   const resolver: Resolver<FormValues> = zodResolver(
     formSchema
@@ -65,7 +64,6 @@ export const QuoteFormPage = () => {
       clientAddress: quote.clientAddress,
       issueDate: quote.issueDate,
       clientId: quote.clientId ?? '',
-      currency: quote.currency ?? 'USD',
       items: items,
     },
   });
@@ -76,6 +74,8 @@ export const QuoteFormPage = () => {
   });
 
   const onSubmit: SubmitHandler<FormValues> = async (data) => {
+    const currency = quote.currency ?? company.defaultCurrency ?? 'USD';
+
     setFromForm({
       quote: {
         work: data.work,
@@ -84,7 +84,7 @@ export const QuoteFormPage = () => {
         clientAddress: data.clientAddress,
         issueDate: data.issueDate,
         clientId: data.clientId,
-        currency: data.currency,
+        currency,
       },
       items: data.items,
     });
@@ -204,17 +204,6 @@ export const QuoteFormPage = () => {
           {errors.issueDate && (
             <p className="form-error">{errors.issueDate.message}</p>
           )}
-
-          <label>
-            <span>Tipo de Moneda $</span>
-            <select
-              {...register}
-              className="select-form"
-            >
-              <option value="USD">USD Dolar</option>
-              <option value="CLP">CLP Pesos chilenos</option>
-            </select>
-          </label>
 
           <p>Ítems</p>
           {errors.items && <p className="form-error">{errors.items.message}</p>}
