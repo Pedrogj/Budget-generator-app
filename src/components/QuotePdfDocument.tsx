@@ -112,23 +112,33 @@ const formatMoney = (value: number, currency: 'USD' | 'CLP' = 'USD') => {
   return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,
+    minimumFractionDigits: currency === 'CLP' ? 0 : 2,
+    maximumFractionDigits: currency === 'CLP' ? 0 : 2,
   }).format(value);
 };
 
-const formatIssueDate = (value: string) => {
-  if (!value) return '';
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    const [year, month, day] = value.split('-');
-    return `${day}/${month}/${year}`;
-  }
-  return value;
-};
-
 export const QuotePdfDocument = ({ company, quote, items }: Props) => {
+  const currency: 'USD' | 'CLP' =
+    (quote.currency as 'USD' | 'CLP') ??
+    (company.defaultCurrency as 'USD' | 'CLP') ??
+    'USD';
+
   const subtotal = items.reduce(
     (acc, it) => acc + it.quantity * it.unitPrice,
     0
   );
+
+  const currencyLabel = currency === 'CLP' ? 'CLP' : 'USD';
+
+  const formatIssueDate = (value: string) => {
+    if (!value) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      const [year, month, day] = value.split('-');
+      return `${day}/${month}/${year}`;
+    }
+    return value;
+  };
+
   const ivaRate = 0.16;
   const iva = subtotal * ivaRate;
   const total = subtotal + iva;
@@ -159,6 +169,7 @@ export const QuotePdfDocument = ({ company, quote, items }: Props) => {
           <View style={styles.headerTitleBlock}>
             <Text style={styles.headerTitle}>PRESUPUESTO</Text>
             <Text>Fecha emisión: {formatIssueDate(quote.issueDate)}</Text>
+            <Text>Moneda: {currencyLabel}</Text>
           </View>
         </View>
         {/* Datos Empresa */}
@@ -220,10 +231,10 @@ export const QuotePdfDocument = ({ company, quote, items }: Props) => {
                 </Text>
                 <Text style={[styles.cell, styles.colSg]}>{item.sg}</Text>
                 <Text style={[styles.cell, styles.colUnitPrice]}>
-                  {formatMoney(item.unitPrice, quote.currency)}
+                  {formatMoney(item.unitPrice, currency)}
                 </Text>
                 <Text style={[styles.cell, styles.colTotal]}>
-                  {formatMoney(lineTotal, quote.currency)}
+                  {formatMoney(lineTotal, currency)}
                 </Text>
               </View>
             );
