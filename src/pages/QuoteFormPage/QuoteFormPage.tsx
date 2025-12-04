@@ -74,7 +74,7 @@ export const QuoteFormPage = () => {
   });
 
   const currencyLabel =
-    company.defaultCurrency === 'CLP' ? 'CLP - Pesos chilenos' : 'UDS - Dólar';
+    company.defaultCurrency === 'CLP' ? 'CLP - Pesos chilenos' : 'USD - Dólar';
 
   const onSubmit: SubmitHandler<FormValues> = async (data) => {
     const currency = company.defaultCurrency ?? 'USD';
