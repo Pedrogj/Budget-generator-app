@@ -8,6 +8,7 @@ interface ProfileFormValues {
   phone: string;
   addressLines: string;
   defaultCurrency: 'USD' | 'CLP';
+  ivaRate: number;
 }
 
 export const ProfilePage = () => {
@@ -29,6 +30,7 @@ export const ProfilePage = () => {
       phone: company.phone,
       addressLines: company.addressLines ?? '',
       defaultCurrency: company.defaultCurrency ?? 'USD',
+      ivaRate: company.ivaRate ?? 16,
     },
   });
 
@@ -40,6 +42,7 @@ export const ProfilePage = () => {
       logoUrl: tempLogo || undefined,
       addressLines: data.addressLines,
       defaultCurrency: data.defaultCurrency,
+      ivaRate: data.ivaRate,
     });
 
     setSaved(true);
@@ -129,6 +132,20 @@ export const ProfilePage = () => {
               <option value="USD">USD (Dólares)</option>
               <option value="CLP">CLP (Pesos chilenos)</option>
             </select>
+          </label>
+          {/* IvaRate */}
+          <label style={{ display: 'block', marginBottom: 8 }}>
+            <span>IVA (%)</span>
+            <input
+              type="number"
+              step="0.01"
+              {...register('ivaRate', {
+                valueAsNumber: true,
+                min: { value: 0, message: 'El IVA no puede ser negativo' },
+                max: { value: 50, message: 'El IVA es demasiado alto' },
+              })}
+              style={{ width: '100%' }}
+            />
           </label>
           {/* Logo company */}
           <label style={{ display: 'block', marginBottom: 8 }}>

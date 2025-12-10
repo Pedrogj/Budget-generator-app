@@ -139,7 +139,9 @@ export const QuotePdfDocument = ({ company, quote, items }: Props) => {
     return value;
   };
 
-  const ivaRate = 0.16;
+  const ivaRatePercent = company.ivaRate ?? 16;
+  const ivaRate = ivaRatePercent / 100;
+
   const iva = subtotal * ivaRate;
   const total = subtotal + iva;
 
@@ -251,7 +253,9 @@ export const QuotePdfDocument = ({ company, quote, items }: Props) => {
 
         <View style={styles.totals}>
           <Text>SUB-TOTAL: {formatMoney(subtotal, quote.currency)}</Text>
-          <Text>I.V.A. 16%: {formatMoney(iva, quote.currency)}</Text>
+          <Text>
+            I.V.A. {ivaRatePercent}%: {formatMoney(iva, quote.currency)}
+          </Text>
           <Text style={{ fontWeight: 'bold' }}>
             TOTAL: {formatMoney(total, quote.currency)}
           </Text>

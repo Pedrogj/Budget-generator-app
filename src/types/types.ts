@@ -14,6 +14,7 @@ export interface CompanyInfo {
   addressLines: string;
   logoUrl?: string;
   defaultCurrency?: 'USD' | 'CLP';
+  ivaRate?: number;
 }
 
 export interface QuoteInfo {

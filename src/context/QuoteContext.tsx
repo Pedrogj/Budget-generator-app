@@ -37,6 +37,7 @@ const initialCompany: CompanyInfo = {
     'Av. 91 La Limpia entre Calle 79F y 79G Edif Residencias Incumosa Piso PB Apt. Pb2. La Floresta Maracaibo, Edo. Zulia',
   logoUrl: '',
   defaultCurrency: 'USD',
+  ivaRate: 16,
 };
 
 const initialQuote: QuoteInfo = {
@@ -142,7 +143,8 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
         prev.phone === newCompany.phone &&
         prev.addressLines === newCompany.addressLines &&
         prev.logoUrl === newCompany.logoUrl &&
-        prev.defaultCurrency === newCompany.defaultCurrency;
+        prev.defaultCurrency === newCompany.defaultCurrency &&
+        prev.ivaRate === newCompany.ivaRate;
 
       if (isSame) {
         // If it's the same, we return the same object → React does NOT re-render
