@@ -27,14 +27,14 @@ export const Navbar = () => {
           >
             Nuevo presupuesto
           </NavLink>
-          <NavLink
+          {/* <NavLink
             className={({ isActive }) =>
               `navbar-link ${isActive ? 'navbar-link-active' : ''} `
             }
             to="/quotes/preview"
           >
             Vista PDF
-          </NavLink>
+          </NavLink> */}
           <NavLink
             className={({ isActive }) =>
               `navbar-link ${isActive ? 'navbar-link-active' : ''} `
