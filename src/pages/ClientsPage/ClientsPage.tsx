@@ -22,7 +22,7 @@ export const ClientsPage = () => {
     register,
     handleSubmit,
     reset,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<ClientFormValues>({
     resolver: zodResolver(clientSchema),
     defaultValues: {
@@ -42,6 +42,7 @@ export const ClientsPage = () => {
         rif: "",
         address: "",
       });
+
       await Swal.fire({
         icon: "success",
         title: "Cliente actualizado",
@@ -82,7 +83,7 @@ export const ClientsPage = () => {
 
     if (!result.isConfirmed) return;
 
-    removeClient(id);
+    await removeClient(id);
 
     await Swal.fire({
       icon: "success",
@@ -216,6 +217,7 @@ export const ClientsPage = () => {
                       padding: "0.2rem 0.6rem",
                       fontSize: "0.75rem",
                     }}
+                    disabled={isSubmitting}
                   >
                     Eliminar
                   </button>
