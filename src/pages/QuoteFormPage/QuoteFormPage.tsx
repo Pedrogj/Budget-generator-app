@@ -1,41 +1,41 @@
-import { z } from 'zod';
-import { useNavigate } from 'react-router-dom';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from "zod";
+import { useNavigate } from "react-router-dom";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   useFieldArray,
   useForm,
   type Resolver,
   type SubmitHandler,
-} from 'react-hook-form';
-import { useQuote } from '../../context/QuoteContext';
-import type { ChangeEvent } from 'react';
-import Swal from 'sweetalert2';
+} from "react-hook-form";
+import { useQuote } from "../../context/QuoteContext";
+import type { ChangeEvent } from "react";
+import Swal from "sweetalert2";
 
 const itemSchema = z.object({
-  code: z.string().default('NA'),
-  unit: z.string().default('NA'),
-  description: z.string().min(1, 'La Descripción es requerida'),
-  quantity: z.coerce.number().min(1, 'La cantidad debe ser al menos 1'),
-  sg: z.string().default(''),
-  unitPrice: z.coerce.number().min(1, 'Campo de precio sin valor'),
+  code: z.string().default("NA"),
+  unit: z.string().default("NA"),
+  description: z.string().min(1, "La Descripción es requerida"),
+  quantity: z.coerce.number().min(1, "La cantidad debe ser al menos 1"),
+  sg: z.string().default(""),
+  unitPrice: z.coerce.number().min(1, "Campo de precio sin valor"),
 });
 
 const formSchema = z
   .object({
-    work: z.string().min(1, 'Describe el tipo de Trabajo'),
-    client: z.string().min(1, 'Nombre de cliente obligatorio'),
-    clientRif: z.string().min(1, 'Número de razón social'),
-    clientAddress: z.string().min(1, 'Ingresa una dirección'),
+    work: z.string().min(1, "Describe el tipo de Trabajo"),
+    client: z.string().min(1, "Nombre de cliente obligatorio"),
+    clientRif: z.string().min(1, "Número de razón social"),
+    clientAddress: z.string().min(1, "Ingresa una dirección"),
     clientId: z.string().optional(),
     issueDate: z
       .string()
-      .min(1, 'La fecha es obligatoria')
-      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido'),
-    items: z.array(itemSchema).min(1, 'Debes agregar al menos un ítem'),
+      .min(1, "La fecha es obligatoria")
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Formato de fecha inválido"),
+    items: z.array(itemSchema).min(1, "Debes agregar al menos un ítem"),
   })
   .refine((data) => data.items.some((i) => i.unitPrice > 0), {
-    message: 'Al menos un ítem debe tener precio mayor a 0',
-    path: ['items'],
+    message: "Al menos un ítem debe tener precio mayor a 0",
+    path: ["items"],
   });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -43,7 +43,7 @@ type FormValues = z.infer<typeof formSchema>;
 export const QuoteFormPage = () => {
   const navigate = useNavigate();
 
-  const { quote, items, setFromForm, clients, company } = useQuote();
+  const { quote, items, setFromForm, clients, company, saveQuote } = useQuote();
 
   const resolver: Resolver<FormValues> = zodResolver(
     formSchema
@@ -63,23 +63,23 @@ export const QuoteFormPage = () => {
       clientRif: quote.clientRif,
       clientAddress: quote.clientAddress,
       issueDate: quote.issueDate,
-      clientId: quote.clientId ?? '',
+      clientId: quote.clientId ?? "",
       items: items,
     },
   });
 
   const { fields, append, remove } = useFieldArray({
     control,
-    name: 'items',
+    name: "items",
   });
 
   const currencyLabel =
-    company.defaultCurrency === 'CLP' ? 'CLP - Pesos chilenos' : 'USD - Dólar';
+    company.defaultCurrency === "CLP" ? "CLP - Pesos chilenos" : "USD - Dólar";
 
   const onSubmit: SubmitHandler<FormValues> = async (data) => {
-    const currency = company.defaultCurrency ?? 'USD';
+    const currency = company.defaultCurrency ?? "USD";
 
-    setFromForm({
+    const payload = {
       quote: {
         work: data.work,
         client: data.client,
@@ -90,37 +90,50 @@ export const QuoteFormPage = () => {
         currency,
       },
       items: data.items,
-    });
+    };
 
-    await Swal.fire({
-      icon: 'success',
-      title: 'Presupuesto listo',
-      text: 'Los datos se guardaron correctamente. Ahora verás la vista previa del PDF.',
-      timer: 1700,
-      showConfirmButton: false,
-    });
+    setFromForm(payload);
 
-    navigate('/quotes/preview');
+    try {
+      await saveQuote(payload);
+
+      await Swal.fire({
+        icon: "success",
+        title: "Presupuesto listo",
+        text: "Los datos se guardaron correctamente. Ahora verás la vista previa del PDF.",
+        timer: 1700,
+        showConfirmButton: false,
+      });
+
+      navigate("/quotes/preview");
+    } catch (err) {
+      console.error(err);
+      await Swal.fire({
+        icon: "error",
+        title: "Error al guardar",
+        text: "No se pudo guardar el presupuesto en la base de datos. Intenta nuevamente.",
+      });
+    }
   };
 
   const handleClientSelect = (e: ChangeEvent<HTMLSelectElement>) => {
     const clientId = e.target.value;
 
     if (!clientId) {
-      setValue('client', '');
-      setValue('clientRif', '');
-      setValue('clientAddress', '');
-      setValue('clientId', '');
+      setValue("client", "");
+      setValue("clientRif", "");
+      setValue("clientAddress", "");
+      setValue("clientId", "");
       return;
     }
 
     const selected = clients.find((c) => c.id === clientId);
     if (!selected) return;
 
-    setValue('client', selected.name);
-    setValue('clientRif', selected.rif);
-    setValue('clientAddress', selected.address);
-    setValue('clientId', clientId);
+    setValue("client", selected.name);
+    setValue("clientRif", selected.rif);
+    setValue("clientAddress", selected.address);
+    setValue("clientId", clientId);
   };
 
   return (
@@ -128,18 +141,12 @@ export const QuoteFormPage = () => {
       <h1>Nuevo presupuesto</h1>
 
       <form onSubmit={handleSubmit(onSubmit)}>
-        <input
-          type="hidden"
-          {...register('clientId')}
-        />
+        <input type="hidden" {...register("clientId")} />
         <div className="section">
           <h2>Datos del presupuesto</h2>
           <label>
             <span>Tipo de Obra</span>
-            <input
-              {...register('work')}
-              style={{ width: '100%' }}
-            />
+            <input {...register("work")} style={{ width: "100%" }} />
             {errors.work && <p className="form-error">{errors.work.message}</p>}
           </label>
 
@@ -149,14 +156,11 @@ export const QuoteFormPage = () => {
             <select
               className="select-form"
               onChange={handleClientSelect}
-              defaultValue={quote.clientId ?? ''}
+              defaultValue={quote.clientId ?? ""}
             >
               <option value="">-- Selecciona un cliente --</option>
               {clients.map((client) => (
-                <option
-                  key={client.id}
-                  value={client.id}
-                >
+                <option key={client.id} value={client.id}>
                   {client.name}
                 </option>
               ))}
@@ -165,11 +169,7 @@ export const QuoteFormPage = () => {
 
           <label>
             <span>Cliente</span>
-            <input
-              {...register('client')}
-              readOnly
-              style={{ width: '100%' }}
-            />
+            <input {...register("client")} readOnly style={{ width: "100%" }} />
             {errors.client && (
               <p className="form-error">{errors.client.message}</p>
             )}
@@ -178,9 +178,9 @@ export const QuoteFormPage = () => {
           <label>
             <span>RIF Cliente</span>
             <input
-              {...register('clientRif')}
+              {...register("clientRif")}
               readOnly
-              style={{ width: '100%' }}
+              style={{ width: "100%" }}
             />
             {errors.clientRif && (
               <p className="form-error">{errors.clientRif.message}</p>
@@ -190,9 +190,9 @@ export const QuoteFormPage = () => {
           <label>
             <span>Dirección Cliente</span>
             <input
-              {...register('clientAddress')}
+              {...register("clientAddress")}
               readOnly
-              style={{ width: '100%' }}
+              style={{ width: "100%" }}
             />
             {errors.clientAddress && (
               <p className="form-error">{errors.clientAddress.message}</p>
@@ -203,8 +203,8 @@ export const QuoteFormPage = () => {
             <span>Fecha emisión</span>
             <input
               type="date"
-              {...register('issueDate')}
-              style={{ width: '100%' }}
+              {...register("issueDate")}
+              style={{ width: "100%" }}
             />
           </label>
 
@@ -214,7 +214,7 @@ export const QuoteFormPage = () => {
               type="text"
               readOnly
               value={currencyLabel}
-              style={{ width: '100%' }}
+              style={{ width: "100%" }}
             />
           </label>
           {errors.issueDate && (
@@ -227,8 +227,8 @@ export const QuoteFormPage = () => {
             <div
               key={field.id}
               style={{
-                display: 'grid',
-                gridTemplateColumns: '0.6fr 0.6fr 2fr 0.6fr 0.6fr 1fr auto',
+                display: "grid",
+                gridTemplateColumns: "0.6fr 0.6fr 2fr 0.6fr 0.6fr 1fr auto",
                 gap: 4,
                 marginBottom: 6,
               }}
@@ -297,8 +297,8 @@ export const QuoteFormPage = () => {
                 onClick={() => remove(index)}
                 disabled={fields.length === 1} // no permitir dejar 0 ítems
                 style={{
-                  padding: '0.2rem 0.5rem',
-                  fontSize: '0.75rem',
+                  padding: "0.2rem 0.5rem",
+                  fontSize: "0.75rem",
                 }}
               >
                 ✕
@@ -309,11 +309,11 @@ export const QuoteFormPage = () => {
             type="button"
             onClick={() =>
               append({
-                code: 'NA',
-                unit: 'NA',
-                description: '',
+                code: "NA",
+                unit: "NA",
+                description: "",
                 quantity: 1,
-                sg: '',
+                sg: "",
                 unitPrice: 0,
               })
             }

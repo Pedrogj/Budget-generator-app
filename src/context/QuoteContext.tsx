@@ -18,13 +18,17 @@ interface QuoteContextType {
   quote: QuoteInfo;
   items: QuoteItem[];
   clients: ClientInfo[];
+
   setFromForm: (data: { quote: QuoteInfo; items: QuoteItem[] }) => void;
-
   updateCompany: (company: CompanyInfo) => Promise<void> | void;
-
   addClient: (data: Omit<ClientInfo, "id">) => Promise<void>;
   removeClient: (id: string) => Promise<void>;
   updateClient: (id: string, data: Omit<ClientInfo, "id">) => Promise<void>;
+
+  saveQuote: (data: {
+    quote: QuoteInfo;
+    items: QuoteItem[];
+  }) => Promise<string>;
 }
 
 const QuoteContext = createContext<QuoteContextType | undefined>(undefined);
@@ -317,6 +321,63 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const saveQuote: QuoteContextType["saveQuote"] = async ({ quote, items }) => {
+    if (!company.id) {
+      throw new Error(
+        "No hay company.id; aún no se cargó la empresa desde Supabase"
+      );
+    }
+
+    const { data: insertedQuote, error: quoteError } = await supabase
+      .from("quotes")
+      .insert({
+        company_id: company.id,
+        client_id: quote.clientId || null,
+        work: quote.work,
+        issue_date: quote.issueDate,
+        currency: quote.currency,
+        client_name: quote.client,
+        client_rif: quote.clientRif,
+        client_address: quote.clientAddress,
+      })
+      .select()
+      .single();
+
+    if (quoteError || !insertedQuote) {
+      console.error("Error inserting quote in Supabase", quoteError);
+      throw quoteError ?? new Error("No se pudo insertar el presupuesto");
+    }
+
+    const quoteId: string = insertedQuote.id;
+
+    const itemsToInsert = items.map((item) => ({
+      quote_id: quoteId,
+      code: item.code,
+      unit: item.unit,
+      description: item.description,
+      quantity: item.quantity,
+      sg: item.sg,
+      unit_price: item.unitPrice,
+    }));
+
+    const { error: itemsError } = await supabase
+      .from("quote_items")
+      .insert(itemsToInsert);
+
+    if (itemsError) {
+      console.error("Error inserting quote items in Supabase", itemsError);
+      throw itemsError;
+    }
+
+    setQuote((prev) => ({
+      ...prev,
+      ...quote,
+      id: quoteId,
+    }));
+
+    return quoteId;
+  };
+
   return (
     <QuoteContext.Provider
       value={{
@@ -329,6 +390,7 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
         addClient,
         removeClient,
         updateClient,
+        saveQuote,
       }}
     >
       {children}

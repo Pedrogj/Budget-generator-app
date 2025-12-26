@@ -19,6 +19,7 @@ export interface CompanyInfo {
 }
 
 export interface QuoteInfo {
+  id?: string;
   work: string;
   client: string;
   clientRif: string;
