@@ -1,15 +1,15 @@
-import { useForm } from 'react-hook-form';
-import z from 'zod';
-import Swal from 'sweetalert2';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useQuote } from '../../context/QuoteContext';
-import type { ClientInfo } from '../../types/types';
-import { useState } from 'react';
+import { useForm } from "react-hook-form";
+import z from "zod";
+import Swal from "sweetalert2";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useQuote } from "../../context/QuoteContext";
+import type { ClientInfo } from "../../types/types";
+import { useState } from "react";
 
 const clientSchema = z.object({
-  name: z.string().min(2, 'El nombre es requerido'),
-  rif: z.string().min(2, 'Número de razon social requerido'),
-  address: z.string().min(2, 'La dirección es requerido'),
+  name: z.string().min(2, "El nombre es requerido"),
+  rif: z.string().min(2, "Número de razon social requerido"),
+  address: z.string().min(2, "La dirección es requerido"),
 });
 
 type ClientFormValues = z.infer<typeof clientSchema>;
@@ -26,9 +26,9 @@ export const ClientsPage = () => {
   } = useForm<ClientFormValues>({
     resolver: zodResolver(clientSchema),
     defaultValues: {
-      name: '',
-      rif: '',
-      address: '',
+      name: "",
+      rif: "",
+      address: "",
     },
   });
 
@@ -38,14 +38,14 @@ export const ClientsPage = () => {
       updateClient(editingId, data);
       setEditingId(null);
       reset({
-        name: '',
-        rif: '',
-        address: '',
+        name: "",
+        rif: "",
+        address: "",
       });
       await Swal.fire({
-        icon: 'success',
-        title: 'Cliente actualizado',
-        text: 'Los datos del cliente se actualizaron correctamente.',
+        icon: "success",
+        title: "Cliente actualizado",
+        text: "Los datos del cliente se actualizaron correctamente.",
         timer: 1500,
         showConfirmButton: false,
       });
@@ -53,15 +53,15 @@ export const ClientsPage = () => {
       // Add client mode
       addClient(data);
       reset({
-        name: '',
-        rif: '',
-        address: '',
+        name: "",
+        rif: "",
+        address: "",
       });
 
       await Swal.fire({
-        icon: 'success',
-        title: 'Cliente agregado',
-        text: 'El cliente se agregó correctamente.',
+        icon: "success",
+        title: "Cliente agregado",
+        text: "El cliente se agregó correctamente.",
         timer: 1500,
         showConfirmButton: false,
       });
@@ -72,12 +72,12 @@ export const ClientsPage = () => {
     const result = await Swal.fire({
       title: `¿Eliminar cliente?`,
       text: `Se eliminará el cliente "${name}". Esta acción no se puede deshacer.`,
-      icon: 'warning',
+      icon: "warning",
       showCancelButton: true,
-      confirmButtonText: 'Sí, eliminar',
-      cancelButtonText: 'Cancelar',
-      confirmButtonColor: '#ef4444',
-      cancelButtonColor: '#6b7280',
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#ef4444",
+      cancelButtonColor: "#6b7280",
     });
 
     if (!result.isConfirmed) return;
@@ -85,8 +85,8 @@ export const ClientsPage = () => {
     removeClient(id);
 
     await Swal.fire({
-      icon: 'success',
-      title: 'Cliente eliminado',
+      icon: "success",
+      title: "Cliente eliminado",
       text: `El cliente "${name}" fue eliminado.`,
       timer: 1500,
       showConfirmButton: false,
@@ -96,9 +96,9 @@ export const ClientsPage = () => {
     if (editingId === id) {
       setEditingId(null);
       reset({
-        name: '',
-        rif: '',
-        address: '',
+        name: "",
+        rif: "",
+        address: "",
       });
     }
   };
@@ -115,9 +115,9 @@ export const ClientsPage = () => {
   const handleCancelEdit = () => {
     setEditingId(null);
     reset({
-      name: '',
-      rif: '',
-      address: '',
+      name: "",
+      rif: "",
+      address: "",
     });
   };
 
@@ -131,30 +131,30 @@ export const ClientsPage = () => {
 
           <label>
             <span>Nombre</span>
-            <input {...register('name')} />
+            <input {...register("name")} />
             {errors.name && <p className="form-error">{errors.name.message}</p>}
           </label>
 
           <label>
             <span>RIF</span>
-            <input {...register('rif')} />
+            <input {...register("rif")} />
             {errors.rif && <p className="form-error">{errors.rif.message}</p>}
           </label>
 
           <label>
             <span>Dirección</span>
             <textarea
-              {...register('address')}
-              style={{ width: '100%', minHeight: 60 }}
+              {...register("address")}
+              style={{ width: "100%", minHeight: 60 }}
             />
             {errors.address && (
               <p className="form-error">{errors.address.message}</p>
             )}
           </label>
 
-          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
             <button type="submit">
-              {editingId ? 'Guardar cambios' : 'Agregar cliente'}
+              {editingId ? "Guardar cambios" : "Agregar cliente"}
             </button>
 
             {editingId && (
@@ -162,8 +162,8 @@ export const ClientsPage = () => {
                 type="button"
                 onClick={handleCancelEdit}
                 style={{
-                  backgroundColor: '#111827',
-                  border: '1px solid #374151',
+                  backgroundColor: "#111827",
+                  border: "1px solid #374151",
                 }}
               >
                 Cancelar edición
@@ -185,26 +185,26 @@ export const ClientsPage = () => {
                 key={client.id}
                 style={{
                   marginBottom: 8,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
                   gap: 8,
                 }}
               >
                 <div>
                   <strong>{client.name}</strong> — {client.rif}
                   <br />
-                  <span style={{ fontSize: 12, color: '#9ca3af' }}>
+                  <span style={{ fontSize: 12, color: "#9ca3af" }}>
                     {client.address}
                   </span>
                 </div>
-                <div style={{ display: 'flex', gap: 6 }}>
+                <div style={{ display: "flex", gap: 6 }}>
                   <button
                     type="button"
                     onClick={() => handleEditClick(client)}
                     style={{
-                      padding: '0.2rem 0.6rem',
-                      fontSize: '0.75rem',
+                      padding: "0.2rem 0.6rem",
+                      fontSize: "0.75rem",
                     }}
                   >
                     Editar
@@ -213,8 +213,8 @@ export const ClientsPage = () => {
                     type="button"
                     onClick={() => handleDelete(client.id, client.name)}
                     style={{
-                      padding: '0.2rem 0.6rem',
-                      fontSize: '0.75rem',
+                      padding: "0.2rem 0.6rem",
+                      fontSize: "0.75rem",
                     }}
                   >
                     Eliminar

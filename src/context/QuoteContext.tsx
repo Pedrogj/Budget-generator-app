@@ -19,10 +19,12 @@ interface QuoteContextType {
   items: QuoteItem[];
   clients: ClientInfo[];
   setFromForm: (data: { quote: QuoteInfo; items: QuoteItem[] }) => void;
+
   updateCompany: (company: CompanyInfo) => void;
-  addClient: (data: Omit<ClientInfo, "id">) => void;
-  removeClient: (id: string) => void;
-  updateClient: (id: string, data: Omit<ClientInfo, "id">) => void;
+
+  addClient: (data: Omit<ClientInfo, "id">) => Promise<void>;
+  removeClient: (id: string) => Promise<void>;
+  updateClient: (id: string, data: Omit<ClientInfo, "id">) => Promise<void>;
 }
 
 const QuoteContext = createContext<QuoteContextType | undefined>(undefined);
@@ -246,93 +248,90 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const updateClient: QuoteContextType["updateClient"] = (id, data) => {
-    setClients((prev) =>
-      prev.map((client) => (client.id === id ? { ...client, ...data } : client))
-    );
+  const updateClient: QuoteContextType["updateClient"] = async (id, data) => {
+    try {
+      const { data: updated, error } = await supabase
+        .from("clients")
+        .update({
+          name: data.name,
+          rif: data.rif,
+          address: data.address,
+        })
+        .eq("id", id)
+        .select()
+        .single();
 
-    (async () => {
-      try {
-        const { error } = await supabase
-          .from("clients")
-          .update({
-            name: data.name,
-            rif: data.rif,
-            address: data.address,
-          })
-          .eq("id", id);
-
-        if (error) {
-          console.error("Error updating client in Supabase", error);
-        }
-      } catch (err) {
-        console.error("Unexpected error updating client in Supabase", err);
+      if (error) {
+        console.error("Error updating client in Supabase", error);
+        return;
       }
-    })();
+
+      setClients((prev) =>
+        prev.map((client) =>
+          client.id === id
+            ? {
+                id: updated.id,
+                name: updated.name,
+                rif: updated.rif,
+                address: updated.address,
+                email: updated.email ?? "",
+                phone: updated.phone ?? "",
+              }
+            : client
+        )
+      );
+    } catch (err) {
+      console.error("Unexpected error in updateClient", err);
+    }
   };
 
-  const addClient: QuoteContextType["addClient"] = (data) => {
-    const tempId =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : String(Date.now());
+  const addClient: QuoteContextType["addClient"] = async (data) => {
+    try {
+      const { data: inserted, error } = await supabase
+        .from("clients")
+        .insert({
+          name: data.name,
+          rif: data.rif,
+          address: data.address,
+        })
+        .select()
+        .single();
 
-    const newClient: ClientInfo = { id: tempId, ...data };
-    setClients((prev) => [...prev, newClient]);
-
-    (async () => {
-      try {
-        const { data: inserted, error } = await supabase
-          .from("clients")
-          .insert({
-            name: data.name,
-            rif: data.rif,
-            address: data.address,
-          })
-          .select()
-          .single();
-
-        if (error) {
-          console.error("Error inserting client in Supabase", error);
-          return;
-        }
-
-        if (inserted) {
-          setClients((prev) =>
-            prev.map((client) =>
-              client.id === tempId
-                ? {
-                    id: inserted.id,
-                    name: inserted.name,
-                    rif: inserted.rif,
-                    address: inserted.address,
-                    email: inserted.email ?? "",
-                    phone: inserted.phone ?? "",
-                  }
-                : client
-            )
-          );
-        }
-      } catch (err) {
-        console.error("Unexpected error inserting client in Supabase", err);
+      if (error) {
+        console.error("Error inserting client in Supabase", error);
+        return;
       }
-    })();
+
+      // Actualizamos el estado local con el registro insertado
+      setClients((prev) => [
+        ...prev,
+        {
+          id: inserted.id,
+          name: inserted.name,
+          rif: inserted.rif,
+          address: inserted.address,
+          email: inserted.email ?? "",
+          phone: inserted.phone ?? "",
+        },
+      ]);
+    } catch (err) {
+      console.error("Unexpected error in addClient", err);
+    }
   };
 
-  const removeClient: QuoteContextType["removeClient"] = (id) => {
-    setClients((prev) => prev.filter((client) => client.id !== id));
+  const removeClient: QuoteContextType["removeClient"] = async (id) => {
+    try {
+      const { error } = await supabase.from("clients").delete().eq("id", id);
 
-    (async () => {
-      try {
-        const { error } = await supabase.from("clients").delete().eq("id", id);
-
-        if (error) {
-          console.error("Error deleting client in Supabase", error);
-        }
-      } catch (err) {
-        console.error("Unexpected error deleting client in Supabase", err);
+      if (error) {
+        console.error("Error deleting client in Supabase", error);
+        return;
       }
-    })();
+
+      setClients((prev) => prev.filter((client) => client.id !== id));
+    } catch (err) {
+      console.error("Unexpected error in removeClient", err);
+    }
   };
 
   return (
