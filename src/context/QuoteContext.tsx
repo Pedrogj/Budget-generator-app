@@ -4,13 +4,14 @@ import {
   useEffect,
   useState,
   type ReactNode,
-} from 'react';
+} from "react";
 import type {
   CompanyInfo,
   QuoteInfo,
   QuoteItem,
   ClientInfo,
-} from '../types/types';
+} from "../types/types";
+import { supabase } from "../lib/supabaseClient";
 
 interface QuoteContextType {
   company: CompanyInfo;
@@ -19,161 +20,319 @@ interface QuoteContextType {
   clients: ClientInfo[];
   setFromForm: (data: { quote: QuoteInfo; items: QuoteItem[] }) => void;
   updateCompany: (company: CompanyInfo) => void;
-  addClient: (data: Omit<ClientInfo, 'id'>) => void;
+  addClient: (data: Omit<ClientInfo, "id">) => void;
   removeClient: (id: string) => void;
-  updateClient: (id: string, data: Omit<ClientInfo, 'id'>) => void;
+  updateClient: (id: string, data: Omit<ClientInfo, "id">) => void;
 }
 
 const QuoteContext = createContext<QuoteContextType | undefined>(undefined);
 
-const COMPANY_STORAGE_KEY = 'budget-app:company';
-const CLIENTS_STORAGE_KEY = 'budget-app:clients';
-
 const initialCompany: CompanyInfo = {
-  name: 'José Miguelangel Zavala Henriquez',
-  rif: 'V145627512',
-  phone: '0414-068.30.70',
+  name: "José Miguelangel Zavala Henriquez",
+  rif: "V145627512",
+  phone: "0414-068.30.70",
   addressLines:
-    'Av. 91 La Limpia entre Calle 79F y 79G Edif Residencias Incumosa Piso PB Apt. Pb2. La Floresta Maracaibo, Edo. Zulia',
-  logoUrl: '',
-  defaultCurrency: 'USD',
+    "Av. 91 La Limpia entre Calle 79F y 79G Edif Residencias Incumosa Piso PB Apt. Pb2. La Floresta Maracaibo, Edo. Zulia",
+  logoUrl: "",
+  defaultCurrency: "USD",
   ivaRate: 16,
 };
 
 const initialQuote: QuoteInfo = {
-  work: 'SERVICIO E INSTALACIÓN',
-  client: 'Palmeras de Casigua',
-  clientRif: '------------',
-  clientAddress: '------------',
+  work: "SERVICIO E INSTALACIÓN",
+  client: "Palmeras de Casigua",
+  clientRif: "------------",
+  clientAddress: "------------",
   issueDate: new Date().toISOString().slice(0, 10),
-  clientId: '',
-  currency: 'USD',
+  clientId: "",
+  currency: "USD",
 };
 
 const initialItems: QuoteItem[] = [
   {
-    code: 'NA',
-    unit: 'NA',
-    description: 'Servicio de ajuste y calibración',
+    code: "NA",
+    unit: "NA",
+    description: "Servicio de ajuste y calibración",
     quantity: 1,
-    sg: '',
+    sg: "",
     unitPrice: 1500,
   },
   {
-    code: 'NA',
-    unit: 'NA',
-    description: 'Instalación y configuración de indicador de peso',
+    code: "NA",
+    unit: "NA",
+    description: "Instalación y configuración de indicador de peso",
     quantity: 1,
-    sg: '',
+    sg: "",
     unitPrice: 200,
   },
 ];
 
 const initialClients: ClientInfo[] = [
   {
-    id: 'client-1',
-    name: 'Palmeras de Casigua',
-    rif: '--------------------',
-    address: '-----------------',
+    id: "client-1",
+    name: "Palmeras de Casigua",
+    rif: "--------------------",
+    address: "-----------------",
   },
 ];
 
 export const QuoteProvider = ({ children }: { children: ReactNode }) => {
-  const [company, setCompany] = useState<CompanyInfo>(() => {
-    if (typeof window === 'undefined') return initialCompany;
-
-    try {
-      const stored = window.localStorage.getItem(COMPANY_STORAGE_KEY);
-      if (!stored) return initialCompany;
-
-      const parsed = JSON.parse(stored) as CompanyInfo;
-
-      if (!parsed.name || !parsed.rif) return initialCompany;
-
-      return parsed;
-    } catch {
-      return initialCompany;
-    }
-  });
-
+  const [company, setCompany] = useState<CompanyInfo>(initialCompany);
   const [quote, setQuote] = useState<QuoteInfo>(initialQuote);
   const [items, setItems] = useState<QuoteItem[]>(initialItems);
+  const [clients, setClients] = useState<ClientInfo[]>(initialClients);
 
-  const [clients, setClients] = useState<ClientInfo[]>(() => {
-    if (typeof window === 'undefined') return initialClients;
-
-    try {
-      const stored = window.localStorage.getItem(CLIENTS_STORAGE_KEY);
-      if (!stored) return initialClients;
-
-      const parsed = JSON.parse(stored) as ClientInfo[];
-      return parsed.length ? parsed : initialClients;
-    } catch {
-      return initialClients;
-    }
-  });
-
-  // Every time the company changes, we save it to localStorage.
   useEffect(() => {
-    try {
-      window.localStorage.setItem(COMPANY_STORAGE_KEY, JSON.stringify(company));
-    } catch (error) {
-      console.error('Error saving company to localStorage', error);
-    }
-  }, [company]);
-  // Save clients to localStorage
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(CLIENTS_STORAGE_KEY, JSON.stringify(clients));
-    } catch (error) {
-      console.error('Error saving clients to localStorage', error);
-    }
-  }, [clients]);
+    const loadFromSupabase = async () => {
+      try {
+        const { data: companyRow, error: companyError } = await supabase
+          .from("companies")
+          .select("*")
+          .limit(1)
+          .maybeSingle();
 
-  const setFromForm: QuoteContextType['setFromForm'] = (data) => {
+        if (companyError) {
+          console.error("Error loading company from Supabase", companyError);
+        }
+
+        if (companyRow) {
+          setCompany({
+            id: companyRow.id,
+            name: companyRow.name,
+            rif: companyRow.rif,
+            phone: companyRow.phone,
+            addressLines: companyRow.address_lines,
+            logoUrl: companyRow.logo_url ?? undefined,
+            defaultCurrency: companyRow.default_currency ?? "USD",
+            ivaRate: companyRow.iva_rate ?? 16,
+          });
+        } else {
+          const { data: inserted, error: insertError } = await supabase
+            .from("companies")
+            .insert({
+              name: initialCompany.name,
+              rif: initialCompany.rif,
+              phone: initialCompany.phone,
+              address_lines: initialCompany.addressLines,
+              logo_url: initialCompany.logoUrl ?? null,
+              default_currency: initialCompany.defaultCurrency ?? "USD",
+              iva_rate: initialCompany.ivaRate ?? 16,
+            })
+            .select()
+            .single();
+
+          if (insertError) {
+            console.error("Error inserting initial company", insertError);
+          } else if (inserted) {
+            setCompany({
+              id: inserted.id,
+              name: inserted.name,
+              rif: inserted.rif,
+              phone: inserted.phone,
+              addressLines: inserted.address_lines,
+              logoUrl: inserted.logo_url ?? undefined,
+              defaultCurrency: inserted.default_currency ?? "USD",
+              ivaRate: inserted.iva_rate ?? 16,
+            });
+          }
+        }
+
+        // clients
+        const { data: clientsRows, error: clientsError } = await supabase
+          .from("clients")
+          .select("*");
+
+        if (clientsError) {
+          console.error("Error loading clients", clientsError);
+        } else if (clientsRows) {
+          setClients(
+            clientsRows.map((client) => ({
+              id: client.id,
+              name: client.name,
+              rif: client.rif,
+              address: client.address,
+              email: client.email ?? "",
+              phone: client.phone ?? "",
+            }))
+          );
+        }
+      } catch (err) {
+        console.error("Unexpected error loading data from Supabase", err);
+      }
+    };
+
+    loadFromSupabase();
+  }, []);
+
+  const setFromForm: QuoteContextType["setFromForm"] = (data) => {
     setQuote(data.quote);
     setItems(data.items);
   };
 
-  const updateCompany: QuoteContextType['updateCompany'] = (newCompany) => {
+  const updateCompany: QuoteContextType["updateCompany"] = (newCompany) => {
     setCompany((prev) => {
+      const merged: CompanyInfo = {
+        ...prev,
+        ...newCompany,
+        id: prev.id,
+      };
+
       const isSame =
-        prev.name === newCompany.name &&
-        prev.rif === newCompany.rif &&
-        prev.phone === newCompany.phone &&
-        prev.addressLines === newCompany.addressLines &&
-        prev.logoUrl === newCompany.logoUrl &&
-        prev.defaultCurrency === newCompany.defaultCurrency &&
-        prev.ivaRate === newCompany.ivaRate;
+        prev.name === merged.name &&
+        prev.rif === merged.rif &&
+        prev.phone === merged.phone &&
+        prev.addressLines === merged.addressLines &&
+        prev.logoUrl === merged.logoUrl &&
+        prev.defaultCurrency === merged.defaultCurrency &&
+        prev.ivaRate === merged.ivaRate;
 
-      if (isSame) {
-        // If it's the same, we return the same object → React does NOT re-render
-        return prev;
-      }
+      if (isSame) return prev;
 
-      return newCompany;
+      (async () => {
+        try {
+          if (prev.id) {
+            const { error } = await supabase
+              .from("companies")
+              .update({
+                name: merged.name,
+                rif: merged.rif,
+                phone: merged.phone,
+                address_lines: merged.addressLines,
+                logo_url: merged.logoUrl ?? null,
+                default_currency: merged.defaultCurrency ?? "USD",
+                iva_rate: merged.ivaRate ?? 16,
+              })
+              .eq("id", prev.id);
+
+            if (error) {
+              console.error("Error updating company in Supabase", error);
+            }
+          } else {
+            const { data: inserted, error } = await supabase
+              .from("companies")
+              .insert({
+                name: merged.name,
+                rif: merged.rif,
+                phone: merged.phone,
+                address_lines: merged.addressLines,
+                logo_url: merged.logoUrl ?? null,
+                default_currency: merged.defaultCurrency ?? "USD",
+                iva_rate: merged.ivaRate ?? 16,
+              })
+              .select()
+              .single();
+
+            if (error) {
+              console.error("Error inserting company in Supabase", error);
+            } else if (inserted) {
+              setCompany({
+                id: inserted.id,
+                name: inserted.name,
+                rif: inserted.rif,
+                phone: inserted.phone,
+                addressLines: inserted.address_lines,
+                logoUrl: inserted.logo_url ?? undefined,
+                defaultCurrency: inserted.default_currency ?? "USD",
+                ivaRate: inserted.iva_rate ?? 16,
+              });
+            }
+          }
+        } catch (err) {
+          console.error("Unexpected error updating company in Supabase", err);
+        }
+      })();
+
+      return merged;
     });
   };
 
-  const addClient: QuoteContextType['addClient'] = (data) => {
-    const id =
-      typeof crypto !== 'undefined' && 'randomUUID' in crypto
-        ? crypto.randomUUID()
-        : String(Date.now());
-
-    const newClient: ClientInfo = { id, ...data };
-
-    setClients((prev) => [...prev, newClient]);
-  };
-
-  const removeClient: QuoteContextType['removeClient'] = (id) => {
-    setClients((prev) => prev.filter((client) => client.id !== id));
-  };
-
-  const updateClient: QuoteContextType['updateClient'] = (id, data) => {
+  const updateClient: QuoteContextType["updateClient"] = (id, data) => {
     setClients((prev) =>
       prev.map((client) => (client.id === id ? { ...client, ...data } : client))
     );
+
+    (async () => {
+      try {
+        const { error } = await supabase
+          .from("clients")
+          .update({
+            name: data.name,
+            rif: data.rif,
+            address: data.address,
+          })
+          .eq("id", id);
+
+        if (error) {
+          console.error("Error updating client in Supabase", error);
+        }
+      } catch (err) {
+        console.error("Unexpected error updating client in Supabase", err);
+      }
+    })();
+  };
+
+  const addClient: QuoteContextType["addClient"] = (data) => {
+    const tempId =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : String(Date.now());
+
+    const newClient: ClientInfo = { id: tempId, ...data };
+    setClients((prev) => [...prev, newClient]);
+
+    (async () => {
+      try {
+        const { data: inserted, error } = await supabase
+          .from("clients")
+          .insert({
+            name: data.name,
+            rif: data.rif,
+            address: data.address,
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error("Error inserting client in Supabase", error);
+          return;
+        }
+
+        if (inserted) {
+          setClients((prev) =>
+            prev.map((client) =>
+              client.id === tempId
+                ? {
+                    id: inserted.id,
+                    name: inserted.name,
+                    rif: inserted.rif,
+                    address: inserted.address,
+                    email: inserted.email ?? "",
+                    phone: inserted.phone ?? "",
+                  }
+                : client
+            )
+          );
+        }
+      } catch (err) {
+        console.error("Unexpected error inserting client in Supabase", err);
+      }
+    })();
+  };
+
+  const removeClient: QuoteContextType["removeClient"] = (id) => {
+    setClients((prev) => prev.filter((client) => client.id !== id));
+
+    (async () => {
+      try {
+        const { error } = await supabase.from("clients").delete().eq("id", id);
+
+        if (error) {
+          console.error("Error deleting client in Supabase", error);
+        }
+      } catch (err) {
+        console.error("Unexpected error deleting client in Supabase", err);
+      }
+    })();
   };
 
   return (
@@ -197,6 +356,6 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
 
 export const useQuote = () => {
   const context = useContext(QuoteContext);
-  if (!context) throw new Error('useQuote must be used within QuoteProvider');
+  if (!context) throw new Error("useQuote must be used within QuoteProvider");
   return context;
 };

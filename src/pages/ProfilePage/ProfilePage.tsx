@@ -1,13 +1,13 @@
-import { useState, type ChangeEvent } from 'react';
-import { useQuote } from '../../context/QuoteContext';
-import { useForm } from 'react-hook-form';
+import { useState, type ChangeEvent } from "react";
+import { useQuote } from "../../context/QuoteContext";
+import { useForm } from "react-hook-form";
 
 interface ProfileFormValues {
   name: string;
   rif: string;
   phone: string;
   addressLines: string;
-  defaultCurrency: 'USD' | 'CLP';
+  defaultCurrency: "USD" | "CLP";
   ivaRate: number;
 }
 
@@ -28,8 +28,8 @@ export const ProfilePage = () => {
       name: company.name,
       rif: company.rif,
       phone: company.phone,
-      addressLines: company.addressLines ?? '',
-      defaultCurrency: company.defaultCurrency ?? 'USD',
+      addressLines: company.addressLines ?? "",
+      defaultCurrency: company.defaultCurrency ?? "USD",
       ivaRate: company.ivaRate ?? 16,
     },
   });
@@ -75,12 +75,12 @@ export const ProfilePage = () => {
         setTempLogo(dataUrl);
       };
       img.onerror = () => {
-        setLogoError('No se pudo leer la imagen. Intenta con otro archivo.');
+        setLogoError("No se pudo leer la imagen. Intenta con otro archivo.");
       };
       img.src = dataUrl;
     };
     reader.onerror = () => {
-      setLogoError('Error al leer el archivo. Intenta nuevamente.');
+      setLogoError("Error al leer el archivo. Intenta nuevamente.");
     };
     reader.readAsDataURL(file);
   };
@@ -99,56 +99,53 @@ export const ProfilePage = () => {
       <form onSubmit={handleSubmit(onSubmit)}>
         <div className="section">
           {/* Name company */}
-          <label style={{ display: 'block', marginBottom: 8 }}>
+          <label style={{ display: "block", marginBottom: 8 }}>
             <span>Nombre de la Empresa</span>
             <input
-              {...register('name', { required: true })}
-              style={{ width: '100%' }}
+              {...register("name", { required: true })}
+              style={{ width: "100%" }}
             />
           </label>
           {/* Rif company */}
-          <label style={{ display: 'block', marginBottom: 8 }}>
+          <label style={{ display: "block", marginBottom: 8 }}>
             <span>RIF</span>
             <input
-              {...register('rif', { required: true })}
-              style={{ width: '100%' }}
+              {...register("rif", { required: true })}
+              style={{ width: "100%" }}
             />
           </label>
           {/* Phone */}
-          <label style={{ display: 'block', marginBottom: 8 }}>
+          <label style={{ display: "block", marginBottom: 8 }}>
             <span>Teléfono</span>
             <input
-              {...register('phone', { required: true })}
-              style={{ width: '100%' }}
+              {...register("phone", { required: true })}
+              style={{ width: "100%" }}
             />
           </label>
           {/* Select Currency */}
-          <label style={{ display: 'block', marginBottom: 8 }}>
+          <label style={{ display: "block", marginBottom: 8 }}>
             <span>Moneda por defecto</span>
-            <select
-              {...register('defaultCurrency')}
-              style={{ width: '100%' }}
-            >
+            <select {...register("defaultCurrency")} style={{ width: "100%" }}>
               <option value="USD">USD (Dólares)</option>
               <option value="CLP">CLP (Pesos chilenos)</option>
             </select>
           </label>
           {/* IvaRate */}
-          <label style={{ display: 'block', marginBottom: 8 }}>
+          <label style={{ display: "block", marginBottom: 8 }}>
             <span>IVA (%)</span>
             <input
               type="number"
               step="0.01"
-              {...register('ivaRate', {
+              {...register("ivaRate", {
                 valueAsNumber: true,
-                min: { value: 0, message: 'El IVA no puede ser negativo' },
-                max: { value: 50, message: 'El IVA es demasiado alto' },
+                min: { value: 0, message: "El IVA no puede ser negativo" },
+                max: { value: 50, message: "El IVA es demasiado alto" },
               })}
-              style={{ width: '100%' }}
+              style={{ width: "100%" }}
             />
           </label>
           {/* Logo company */}
-          <label style={{ display: 'block', marginBottom: 8 }}>
+          <label style={{ display: "block", marginBottom: 8 }}>
             <span>Logo de Empresa (máx. 600x600 px)</span>
             <input
               type="file"
@@ -158,40 +155,37 @@ export const ProfilePage = () => {
           </label>
 
           {logoError && (
-            <p style={{ color: 'salmon', fontSize: 12, marginBottom: 8 }}>
+            <p style={{ color: "salmon", fontSize: 12, marginBottom: 8 }}>
               {logoError}
             </p>
           )}
 
           {tempLogo && !logoError && (
             <div style={{ marginTop: 8 }}>
-              <span style={{ display: 'block', marginBottom: 4 }}>
+              <span style={{ display: "block", marginBottom: 4 }}>
                 Vista previa:
               </span>
               <img
                 src={tempLogo}
                 alt="Logo de la empresa"
-                style={{ height: 80, width: 'auto', borderRadius: 8 }}
+                style={{ height: 80, width: "auto", borderRadius: 8 }}
               />
             </div>
           )}
 
-          <label style={{ display: 'block', marginBottom: 8 }}>
+          <label style={{ display: "block", marginBottom: 8 }}>
             <span>Dirección</span>
             <textarea
-              {...register('addressLines', { required: true })}
-              style={{ width: '100%' }}
+              {...register("addressLines", { required: true })}
+              style={{ width: "100%" }}
             />
           </label>
 
-          <button
-            type="submit"
-            disabled={isSubmitDisabled}
-          >
+          <button type="submit" disabled={isSubmitDisabled}>
             Guardar cambios
           </button>
           {saved && (
-            <p style={{ color: 'green', marginTop: 8 }}>
+            <p style={{ color: "green", marginTop: 8 }}>
               Datos guardados correctamente ✅
             </p>
           )}
