@@ -30,21 +30,20 @@ interface QuoteContextType {
 const QuoteContext = createContext<QuoteContextType | undefined>(undefined);
 
 const initialCompany: CompanyInfo = {
-  name: "José Miguelangel Zavala Henriquez",
-  rif: "V145627512",
-  phone: "0414-068.30.70",
-  addressLines:
-    "Av. 91 La Limpia entre Calle 79F y 79G Edif Residencias Incumosa Piso PB Apt. Pb2. La Floresta Maracaibo, Edo. Zulia",
+  name: "",
+  rif: "",
+  phone: "",
+  addressLines: "",
   logoUrl: "",
   defaultCurrency: "USD",
   ivaRate: 16,
 };
 
 const initialQuote: QuoteInfo = {
-  work: "SERVICIO E INSTALACIÓN",
-  client: "Palmeras de Casigua",
-  clientRif: "------------",
-  clientAddress: "------------",
+  work: "",
+  client: "",
+  clientRif: "",
+  clientAddress: "",
   issueDate: new Date().toISOString().slice(0, 10),
   clientId: "",
   currency: "USD",
@@ -54,29 +53,14 @@ const initialItems: QuoteItem[] = [
   {
     code: "NA",
     unit: "NA",
-    description: "Servicio de ajuste y calibración",
+    description: "",
     quantity: 1,
     sg: "",
-    unitPrice: 1500,
-  },
-  {
-    code: "NA",
-    unit: "NA",
-    description: "Instalación y configuración de indicador de peso",
-    quantity: 1,
-    sg: "",
-    unitPrice: 200,
+    unitPrice: 0,
   },
 ];
 
-const initialClients: ClientInfo[] = [
-  {
-    id: "client-1",
-    name: "Palmeras de Casigua",
-    rif: "--------------------",
-    address: "-----------------",
-  },
-];
+const initialClients: ClientInfo[] = [];
 
 export const QuoteProvider = ({ children }: { children: ReactNode }) => {
   const [company, setCompany] = useState<CompanyInfo>(initialCompany);
