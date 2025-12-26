@@ -8,12 +8,13 @@ export interface QuoteItem {
 }
 
 export interface CompanyInfo {
+  id?: string;
   name: string;
   rif: string;
   phone: string;
   addressLines: string;
   logoUrl?: string;
-  defaultCurrency?: 'USD' | 'CLP';
+  defaultCurrency?: "USD" | "CLP";
   ivaRate?: number;
 }
 
@@ -24,7 +25,7 @@ export interface QuoteInfo {
   clientAddress: string;
   issueDate: string;
   clientId?: string;
-  currency: 'USD' | 'CLP';
+  currency: "USD" | "CLP";
 }
 
 export interface ClientInfo {
