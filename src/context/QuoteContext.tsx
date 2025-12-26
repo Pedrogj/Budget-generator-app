@@ -20,7 +20,7 @@ interface QuoteContextType {
   clients: ClientInfo[];
   setFromForm: (data: { quote: QuoteInfo; items: QuoteItem[] }) => void;
 
-  updateCompany: (company: CompanyInfo) => void;
+  updateCompany: (company: CompanyInfo) => Promise<void> | void;
 
   addClient: (data: Omit<ClientInfo, "id">) => Promise<void>;
   removeClient: (id: string) => Promise<void>;
@@ -290,6 +290,7 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
       const { data: inserted, error } = await supabase
         .from("clients")
         .insert({
+          company_id: company.id,
           name: data.name,
           rif: data.rif,
           address: data.address,
@@ -310,8 +311,6 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
           name: inserted.name,
           rif: inserted.rif,
           address: inserted.address,
-          email: inserted.email ?? "",
-          phone: inserted.phone ?? "",
         },
       ]);
     } catch (err) {
