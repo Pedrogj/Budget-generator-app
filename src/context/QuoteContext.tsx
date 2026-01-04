@@ -12,6 +12,7 @@ import type {
   ClientInfo,
 } from "../types/types";
 import { supabase } from "../lib/supabaseClient";
+import { useAuth } from "./AuthContext";
 
 interface QuoteContextType {
   company: CompanyInfo;
@@ -67,23 +68,41 @@ const initialItems: QuoteItem[] = [
 const initialClients: ClientInfo[] = [];
 
 export const QuoteProvider = ({ children }: { children: ReactNode }) => {
+  const { user, loading: authLoading } = useAuth();
+
   const [company, setCompany] = useState<CompanyInfo>(initialCompany);
   const [quote, setQuote] = useState<QuoteInfo>(initialQuote);
   const [items, setItems] = useState<QuoteItem[]>(initialItems);
   const [clients, setClients] = useState<ClientInfo[]>(initialClients);
 
   useEffect(() => {
+    // 1) Esperamos a saber si hay usuario
+    if (authLoading) return;
+
+    // 2) Si NO hay usuario, reseteamos estado y no llamamos a Supabase
+    if (!user) {
+      setCompany(initialCompany);
+      setClients(initialClients);
+      setQuote(initialQuote);
+      setItems(initialItems);
+      return;
+    }
+
     const loadFromSupabase = async () => {
       try {
+        // 3) Cargar (o crear) la company del usuario actual
         const { data: companyRow, error: companyError } = await supabase
           .from("companies")
           .select("*")
+          .eq("profile_id", user.id)
           .limit(1)
           .maybeSingle();
 
         if (companyError) {
           console.error("Error loading company from Supabase", companyError);
         }
+
+        let currentCompanyId: string | undefined;
 
         if (companyRow) {
           setCompany({
@@ -96,17 +115,20 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
             defaultCurrency: companyRow.default_currency ?? "USD",
             ivaRate: companyRow.iva_rate ?? 16,
           });
+          currentCompanyId = companyRow.id;
         } else {
+          // Si el usuario no tiene empresa, creamos una vacía ligada a su profile
           const { data: inserted, error: insertError } = await supabase
             .from("companies")
             .insert({
-              name: initialCompany.name,
-              rif: initialCompany.rif,
-              phone: initialCompany.phone,
-              address_lines: initialCompany.addressLines,
-              logo_url: initialCompany.logoUrl ?? null,
-              default_currency: initialCompany.defaultCurrency ?? "USD",
-              iva_rate: initialCompany.ivaRate ?? 16,
+              profile_id: user.id,
+              name: "",
+              rif: "",
+              phone: "",
+              address_lines: "",
+              logo_url: null,
+              default_currency: "USD",
+              iva_rate: 16,
             })
             .select()
             .single();
@@ -124,13 +146,18 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
               defaultCurrency: inserted.default_currency ?? "USD",
               ivaRate: inserted.iva_rate ?? 16,
             });
+            currentCompanyId = inserted.id;
           }
         }
 
-        // clients
+        // 4) Si no tenemos companyId, no seguimos
+        if (!currentCompanyId) return;
+
+        // 5) Cargar clientes SOLO de esa company
         const { data: clientsRows, error: clientsError } = await supabase
           .from("clients")
-          .select("*");
+          .select("*")
+          .eq("company_id", currentCompanyId);
 
         if (clientsError) {
           console.error("Error loading clients", clientsError);
@@ -152,88 +179,82 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
     };
 
     loadFromSupabase();
-  }, []);
+  }, [authLoading, user]);
 
   const setFromForm: QuoteContextType["setFromForm"] = (data) => {
     setQuote(data.quote);
     setItems(data.items);
   };
 
-  const updateCompany: QuoteContextType["updateCompany"] = (newCompany) => {
-    setCompany((prev) => {
-      const merged: CompanyInfo = {
-        ...prev,
-        ...newCompany,
-        id: prev.id,
-      };
+  const updateCompany: QuoteContextType["updateCompany"] = async (
+    newCompany
+  ) => {
+    // 1. Merge con el estado actual
+    const merged: CompanyInfo = {
+      ...company,
+      ...newCompany,
+      id: company.id, // preservamos el id actual, si existe
+    };
 
-      const isSame =
-        prev.name === merged.name &&
-        prev.rif === merged.rif &&
-        prev.phone === merged.phone &&
-        prev.addressLines === merged.addressLines &&
-        prev.logoUrl === merged.logoUrl &&
-        prev.defaultCurrency === merged.defaultCurrency &&
-        prev.ivaRate === merged.ivaRate;
+    // 2. Si no cambió nada, no hacemos nada
+    const isSame =
+      company.name === merged.name &&
+      company.rif === merged.rif &&
+      company.phone === merged.phone &&
+      company.addressLines === merged.addressLines &&
+      company.logoUrl === merged.logoUrl &&
+      company.defaultCurrency === merged.defaultCurrency &&
+      company.ivaRate === merged.ivaRate;
 
-      if (isSame) return prev;
+    if (isSame) return;
 
-      (async () => {
-        try {
-          if (prev.id) {
-            const { error } = await supabase
-              .from("companies")
-              .update({
-                name: merged.name,
-                rif: merged.rif,
-                phone: merged.phone,
-                address_lines: merged.addressLines,
-                logo_url: merged.logoUrl ?? null,
-                default_currency: merged.defaultCurrency ?? "USD",
-                iva_rate: merged.ivaRate ?? 16,
-              })
-              .eq("id", prev.id);
+    try {
+      if (company.id) {
+        // UPDATE
+        const { error } = await supabase
+          .from("companies")
+          .update({
+            name: merged.name,
+            rif: merged.rif,
+            phone: merged.phone,
+            address_lines: merged.addressLines,
+            logo_url: merged.logoUrl ?? null,
+            default_currency: merged.defaultCurrency ?? "USD",
+            iva_rate: merged.ivaRate ?? 16,
+          })
+          .eq("id", company.id);
 
-            if (error) {
-              console.error("Error updating company in Supabase", error);
-            }
-          } else {
-            const { data: inserted, error } = await supabase
-              .from("companies")
-              .insert({
-                name: merged.name,
-                rif: merged.rif,
-                phone: merged.phone,
-                address_lines: merged.addressLines,
-                logo_url: merged.logoUrl ?? null,
-                default_currency: merged.defaultCurrency ?? "USD",
-                iva_rate: merged.ivaRate ?? 16,
-              })
-              .select()
-              .single();
-
-            if (error) {
-              console.error("Error inserting company in Supabase", error);
-            } else if (inserted) {
-              setCompany({
-                id: inserted.id,
-                name: inserted.name,
-                rif: inserted.rif,
-                phone: inserted.phone,
-                addressLines: inserted.address_lines,
-                logoUrl: inserted.logo_url ?? undefined,
-                defaultCurrency: inserted.default_currency ?? "USD",
-                ivaRate: inserted.iva_rate ?? 16,
-              });
-            }
-          }
-        } catch (err) {
-          console.error("Unexpected error updating company in Supabase", err);
+        if (error) {
+          console.error("Error updating company in Supabase", error);
         }
-      })();
+      } else {
+        // INSERT si por alguna razón aún no había company
+        const { data: inserted, error } = await supabase
+          .from("companies")
+          .insert({
+            name: merged.name,
+            rif: merged.rif,
+            phone: merged.phone,
+            address_lines: merged.addressLines,
+            logo_url: merged.logoUrl ?? null,
+            default_currency: merged.defaultCurrency ?? "USD",
+            iva_rate: merged.ivaRate ?? 16,
+          })
+          .select()
+          .single();
 
-      return merged;
-    });
+        if (error) {
+          console.error("Error inserting company in Supabase", error);
+        } else if (inserted) {
+          merged.id = inserted.id;
+        }
+      }
+    } catch (err) {
+      console.error("Unexpected error updating company in Supabase", err);
+    }
+
+    // 3. Actualizamos el estado con la versión merged
+    setCompany(merged);
   };
 
   const updateClient: QuoteContextType["updateClient"] = async (id, data) => {
@@ -274,6 +295,11 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const addClient: QuoteContextType["addClient"] = async (data) => {
+    if (!company.id) {
+      console.warn("No hay company.id aún, no se puede agregar cliente");
+      return;
+    }
+
     try {
       const { data: inserted, error } = await supabase
         .from("clients")
@@ -291,7 +317,6 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Actualizamos el estado local con el registro insertado
       setClients((prev) => [
         ...prev,
         {
@@ -299,10 +324,13 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
           name: inserted.name,
           rif: inserted.rif,
           address: inserted.address,
+          email: inserted.email ?? "",
+          phone: inserted.phone ?? "",
         },
       ]);
     } catch (err) {
       console.error("Unexpected error in addClient", err);
+      throw err;
     }
   };
 

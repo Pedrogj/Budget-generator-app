@@ -2,10 +2,10 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
 interface Props {
-  childen: React.ReactNode;
+  children: React.ReactNode;
 }
 
-export const RequiredAuth = ({ childen }: Props) => {
+export const RequiredAuth = ({ children }: Props) => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
@@ -17,5 +17,5 @@ export const RequiredAuth = ({ childen }: Props) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  return <>{childen}</>;
+  return <>{children}</>;
 };

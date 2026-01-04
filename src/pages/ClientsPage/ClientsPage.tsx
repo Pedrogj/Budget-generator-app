@@ -16,7 +16,10 @@ type ClientFormValues = z.infer<typeof clientSchema>;
 
 export const ClientsPage = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
-  const { clients, addClient, removeClient, updateClient } = useQuote();
+  const { clients, addClient, removeClient, updateClient, company } =
+    useQuote();
+
+  const isCompanyReady = !!company.id;
 
   const {
     register,
@@ -33,38 +36,49 @@ export const ClientsPage = () => {
   });
 
   const onSubmit = async (data: ClientFormValues) => {
-    if (editingId) {
+    try {
       // Edit client mode
-      updateClient(editingId, data);
-      setEditingId(null);
-      reset({
-        name: "",
-        rif: "",
-        address: "",
-      });
+      if (editingId) {
+        updateClient(editingId, data);
+        setEditingId(null);
+        reset({
+          name: "",
+          rif: "",
+          address: "",
+        });
 
-      await Swal.fire({
-        icon: "success",
-        title: "Cliente actualizado",
-        text: "Los datos del cliente se actualizaron correctamente.",
-        timer: 1500,
-        showConfirmButton: false,
-      });
-    } else {
-      // Add client mode
-      addClient(data);
-      reset({
-        name: "",
-        rif: "",
-        address: "",
-      });
+        await Swal.fire({
+          icon: "success",
+          title: "Cliente actualizado",
+          text: "Los datos del cliente se actualizaron correctamente.",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      } else {
+        // Add client mode
+        addClient(data);
+        reset({
+          name: "",
+          rif: "",
+          address: "",
+        });
 
+        await Swal.fire({
+          icon: "success",
+          title: "Cliente agregado",
+          text: "El cliente se agregó correctamente.",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      }
+    } catch (err: any) {
+      console.error("Error al guardar cliente", err);
       await Swal.fire({
-        icon: "success",
-        title: "Cliente agregado",
-        text: "El cliente se agregó correctamente.",
-        timer: 1500,
-        showConfirmButton: false,
+        icon: "error",
+        title: "No se pudo guardar el cliente",
+        text:
+          err?.message ??
+          "Ocurrió un problema al guardar el cliente. Intenta nuevamente.",
       });
     }
   };
@@ -157,6 +171,11 @@ export const ClientsPage = () => {
             <button type="submit">
               {editingId ? "Guardar cambios" : "Agregar cliente"}
             </button>
+            {!isCompanyReady && (
+              <p className="form-error">
+                Espera un momento mientras cargamos la empresa
+              </p>
+            )}
 
             {editingId && (
               <button

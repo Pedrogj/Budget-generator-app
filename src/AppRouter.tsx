@@ -1,42 +1,66 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
-import { QuotePreviewPage } from './pages/QuotePreviewPage/QuotePreviewPage';
-import { Navbar } from './components';
-import { QuoteFormPage } from './pages/QuoteFormPage/QuoteFormPage';
-import { ProfilePage } from './pages/ProfilePage/ProfilePage';
-import { ClientsPage } from './pages/ClientsPage/ClientsPage';
+import { Route, Routes } from "react-router-dom";
+import { QuotePreviewPage } from "./pages/QuotePreviewPage/QuotePreviewPage";
+import { Navbar } from "./components";
+import { QuoteFormPage } from "./pages/QuoteFormPage/QuoteFormPage";
+import { ProfilePage } from "./pages/ProfilePage/ProfilePage";
+import { ClientsPage } from "./pages/ClientsPage/ClientsPage";
+import { RequiredAuth } from "./components/RequiredAuth/RequiredAuth";
+import { LoginPage } from "./pages/LoginPage/LoginPage";
+import { RegisterPage } from "./pages/RegisterPage/RegisterPage";
 
 export const AppRouter = () => {
   return (
     <div className="app">
       <Navbar />
-      {/* Router */}
       <main className="app-main">
         <Routes>
+          {/* Public */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+
           <Route
             path="/"
             element={
-              <Navigate
-                to="/quotes/new"
-                replace
-              />
+              <RequiredAuth>
+                <QuoteFormPage />
+              </RequiredAuth>
             }
           />
           <Route
             path="/quotes/new"
-            element={<QuoteFormPage />}
+            element={
+              <RequiredAuth>
+                <QuoteFormPage />
+              </RequiredAuth>
+            }
           />
           <Route
             path="/quotes/preview"
-            element={<QuotePreviewPage />}
+            element={
+              <RequiredAuth>
+                <QuotePreviewPage />
+              </RequiredAuth>
+            }
           />
           <Route
             path="/profile"
-            element={<ProfilePage />}
+            element={
+              <RequiredAuth>
+                <ProfilePage />
+              </RequiredAuth>
+            }
           />
           <Route
             path="/clients"
-            element={<ClientsPage />}
+            element={
+              <RequiredAuth>
+                <ClientsPage />
+              </RequiredAuth>
+            }
           />
+
+          {/* 404 */}
+          <Route path="*" element={<p>Página no encontrada</p>} />
         </Routes>
       </main>
     </div>

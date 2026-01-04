@@ -6,10 +6,12 @@ import {
   type ReactNode,
 } from "react";
 import { supabase } from "../lib/supabaseClient";
+// Si tienes @supabase/supabase-js instalado, puedes tipar el user:
+import type { User as SupabaseUser } from "@supabase/supabase-js";
 
-interface AuthUser {
+export interface AuthUser {
   id: string;
-  email: string;
+  email?: string;
 }
 
 interface AuthContextType {
@@ -22,47 +24,44 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function mapSupabaseUser(user: SupabaseUser | null): AuthUser | null {
+  if (!user) return null;
+  return {
+    id: user.id,
+    email: user.email ?? undefined, // <- evita el error de string | null
+  };
+}
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Cargar sesión al inicio
+  // Sesión inicial + listener de cambios de auth
   useEffect(() => {
-    const initAuth = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (session?.user) {
-        setUser({
-          id: session.user.id,
-          email: session.user.email ?? "",
-        });
-      } else {
+    const init = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) {
+        console.error("Error getting session", error);
         setUser(null);
+      } else {
+        const sessionUser = data.session?.user ?? null;
+        setUser(mapSupabaseUser(sessionUser));
       }
-
       setLoading(false);
     };
 
-    void initAuth();
+    void init();
 
-    // Escuchar cambios de sesión (login, logout, refresh)
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setUser({
-          id: session.user.id,
-          email: session.user.email ?? "",
-        });
-      } else {
-        setUser(null);
+    const { data: subscription } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        const sessionUser = session?.user ?? null;
+        setUser(mapSupabaseUser(sessionUser));
+        setLoading(false);
       }
-    });
+    );
 
     return () => {
-      subscription.unsubscribe();
+      subscription.subscription.unsubscribe();
     };
   }, []);
 
@@ -73,15 +72,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     if (error) {
+      console.error("Error in login", error);
       throw error;
     }
 
-    if (data.user) {
-      setUser({
-        id: data.user.id,
-        email: data.user.email ?? "",
-      });
-    }
+    setUser(mapSupabaseUser(data.user));
   };
 
   const register = async (email: string, password: string) => {
@@ -91,38 +86,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     if (error) {
+      console.error("Error in register", error);
       throw error;
     }
 
+    // Dependiendo de tu configuración, puede requerir confirmación por email
+    // Por simplicidad, no hacemos setUser aquí; el usuario hará login luego.
     if (data.user) {
-      setUser({
-        id: data.user.id,
-        email: data.user.email ?? "",
-      });
+      console.log("User registered, email may need confirmation");
     }
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error("Error in logout", error);
+      throw error;
+    }
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        login,
-        register,
-        logout,
-      }}
-    >
+    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = (): AuthContextType => {
+export const useAuth = () => {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
