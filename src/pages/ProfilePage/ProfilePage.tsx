@@ -1,20 +1,28 @@
-import { useState, type ChangeEvent } from "react";
-import { useQuote } from "../../context/QuoteContext";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { useForm } from "react-hook-form";
+import z from "zod";
+import { useQuote } from "../../context/QuoteContext";
+import { zodResolver } from "@hookform/resolvers/zod";
+import Swal from "sweetalert2";
 
-interface ProfileFormValues {
-  name: string;
-  rif: string;
-  phone: string;
-  addressLines: string;
-  defaultCurrency: "USD" | "CLP";
-  ivaRate: number;
-}
+const profileSchema = z.object({
+  name: z.string().min(1, "El nombre de la empresa es requerido"),
+  rif: z.string().min(1, "El número de razón social es requerido"),
+  phone: z.string().min(1, "El número de telefono es requerido"),
+  addressLines: z.string().min(1, "La dirección es requerida"),
+  defaultCurrency: z.enum(["USD", "CLP"]),
+  ivaRate: z
+    .number({
+      error: "El IVA debe ser un número",
+    })
+    .min(0, "El IVA no puede ser negativo")
+    .max(20, "El IVA es demasiado alto"),
+});
+
+type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export const ProfilePage = () => {
   const { company, updateCompany } = useQuote();
-
-  const [saved, setSaved] = useState(false);
   const [logoError, setLogoError] = useState<string | null>(null);
   const [tempLogo, setTempLogo] = useState<string | undefined>(company.logoUrl);
 
@@ -22,8 +30,9 @@ export const ProfilePage = () => {
     register,
     handleSubmit,
     reset,
-    formState: { isDirty },
+    formState: { isDirty, errors },
   } = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileSchema),
     defaultValues: {
       name: company.name,
       rif: company.rif,
@@ -33,6 +42,20 @@ export const ProfilePage = () => {
       ivaRate: company.ivaRate ?? 16,
     },
   });
+
+  // If company changes
+  useEffect(() => {
+    reset({
+      name: company.name,
+      rif: company.rif,
+      phone: company.phone,
+      addressLines: company.addressLines ?? "",
+      defaultCurrency: company.defaultCurrency ?? "USD",
+      ivaRate: company.ivaRate ?? 16,
+    });
+
+    setTempLogo(company.logoUrl);
+  }, [company, reset]);
 
   const onSubmit = (data: ProfileFormValues) => {
     updateCompany({
@@ -45,10 +68,15 @@ export const ProfilePage = () => {
       ivaRate: data.ivaRate,
     });
 
-    setSaved(true);
-    // We refresh values ​​with what has been saved
     reset(data);
-    setTimeout(() => setSaved(false), 2000);
+
+    Swal.fire({
+      icon: "success",
+      title: "Datos guardados",
+      text: "La información de tu empresa se actualizo correctamente",
+      timer: 1700,
+      showConfirmButton: false,
+    });
   };
 
   const handleLogoChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -101,26 +129,22 @@ export const ProfilePage = () => {
           {/* Name company */}
           <label style={{ display: "block", marginBottom: 8 }}>
             <span>Nombre de la Empresa</span>
-            <input
-              {...register("name", { required: true })}
-              style={{ width: "100%" }}
-            />
+            <input {...register("name")} style={{ width: "100%" }} />
+            {errors.name && <p className="form-error">{errors.name.message}</p>}
           </label>
           {/* Rif company */}
           <label style={{ display: "block", marginBottom: 8 }}>
-            <span>RIF</span>
-            <input
-              {...register("rif", { required: true })}
-              style={{ width: "100%" }}
-            />
+            <span>RIF/RUT</span>
+            <input {...register("rif")} style={{ width: "100%" }} />
+            {errors.rif && <p className="form-error">{errors.rif.message}</p>}
           </label>
           {/* Phone */}
           <label style={{ display: "block", marginBottom: 8 }}>
             <span>Teléfono</span>
-            <input
-              {...register("phone", { required: true })}
-              style={{ width: "100%" }}
-            />
+            <input {...register("phone")} style={{ width: "100%" }} />
+            {errors.phone && (
+              <p className="form-error">{errors.phone.message}</p>
+            )}
           </label>
           {/* Select Currency */}
           <label style={{ display: "block", marginBottom: 8 }}>
@@ -129,6 +153,9 @@ export const ProfilePage = () => {
               <option value="USD">USD (Dólares)</option>
               <option value="CLP">CLP (Pesos chilenos)</option>
             </select>
+            {errors.defaultCurrency && (
+              <p className="form-error">{errors.defaultCurrency.message}</p>
+            )}
           </label>
           {/* IvaRate */}
           <label style={{ display: "block", marginBottom: 8 }}>
@@ -138,11 +165,12 @@ export const ProfilePage = () => {
               step="0.01"
               {...register("ivaRate", {
                 valueAsNumber: true,
-                min: { value: 0, message: "El IVA no puede ser negativo" },
-                max: { value: 50, message: "El IVA es demasiado alto" },
               })}
               style={{ width: "100%" }}
             />
+            {errors.ivaRate && (
+              <p className="form-error">{errors.ivaRate.message}</p>
+            )}
           </label>
           {/* Logo company */}
           <label style={{ display: "block", marginBottom: 8 }}>
@@ -175,20 +203,15 @@ export const ProfilePage = () => {
 
           <label style={{ display: "block", marginBottom: 8 }}>
             <span>Dirección</span>
-            <textarea
-              {...register("addressLines", { required: true })}
-              style={{ width: "100%" }}
-            />
+            <textarea {...register("addressLines")} style={{ width: "100%" }} />
+            {errors.addressLines && (
+              <p className="form-error">{errors.addressLines.message}</p>
+            )}
           </label>
 
           <button type="submit" disabled={isSubmitDisabled}>
-            Guardar cambios
+            Guardar Cambios
           </button>
-          {saved && (
-            <p style={{ color: "green", marginTop: 8 }}>
-              Datos guardados correctamente ✅
-            </p>
-          )}
         </div>
       </form>
     </div>
