@@ -14,46 +14,47 @@ export const Navbar = () => {
         </div>
 
         <nav className="navbar-nav">
-          <NavLink
-            className={({ isActive }) =>
-              `navbar-link ${isActive ? "navbar-link-active" : ""} `
-            }
-            to="/clients"
-          >
-            Clientes
-          </NavLink>
-          <NavLink
-            className={({ isActive }) =>
-              `navbar-link ${isActive ? "navbar-link-active" : ""} `
-            }
-            to="/quotes/new"
-          >
-            Nuevo presupuesto
-          </NavLink>
-          <NavLink
-            className={({ isActive }) =>
-              `navbar-link ${isActive ? "navbar-link-active" : ""} `
-            }
-            to="/profile"
-          >
-            Perfil Empresa
-          </NavLink>
-          <div>
-            {user ? (
-              <>
-                <button type="button" onClick={logout}>
-                  Cerrar sesión
-                </button>
-              </>
-            ) : (
-              <>
-                <Link to="/login">Login</Link>
-                <Link to="/register" style={{ marginLeft: 12 }}>
-                  Registro
-                </Link>
-              </>
-            )}
-          </div>
+          {user && (
+            <>
+              <NavLink
+                className={({ isActive }) =>
+                  `navbar-link ${isActive ? "navbar-link-active" : ""} `
+                }
+                to="/clients"
+              >
+                Clientes
+              </NavLink>
+              <NavLink
+                className={({ isActive }) =>
+                  `navbar-link ${isActive ? "navbar-link-active" : ""} `
+                }
+                to="/quotes/new"
+              >
+                Nuevo presupuesto
+              </NavLink>
+              <NavLink
+                className={({ isActive }) =>
+                  `navbar-link ${isActive ? "navbar-link-active" : ""} `
+                }
+                to="/profile"
+              >
+                Perfil Empresa
+              </NavLink>
+            </>
+          )}
+
+          {user ? (
+            <button type="button" onClick={logout}>
+              Cerrar sesión
+            </button>
+          ) : (
+            <>
+              <Link to="/login">Login</Link>
+              <Link to="/register" style={{ marginLeft: 12 }}>
+                Registro
+              </Link>
+            </>
+          )}
         </nav>
       </div>
     </header>

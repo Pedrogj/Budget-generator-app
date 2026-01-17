@@ -6,7 +6,6 @@ import {
   type ReactNode,
 } from "react";
 import { supabase } from "../lib/supabaseClient";
-// Si tienes @supabase/supabase-js instalado, puedes tipar el user:
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 export interface AuthUser {
@@ -28,7 +27,7 @@ function mapSupabaseUser(user: SupabaseUser | null): AuthUser | null {
   if (!user) return null;
   return {
     id: user.id,
-    email: user.email ?? undefined, // <- evita el error de string | null
+    email: user.email ?? undefined,
   };
 }
 
@@ -36,7 +35,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Sesión inicial + listener de cambios de auth
   useEffect(() => {
     const init = async () => {
       const { data, error } = await supabase.auth.getSession();
@@ -57,7 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const sessionUser = session?.user ?? null;
         setUser(mapSupabaseUser(sessionUser));
         setLoading(false);
-      }
+      },
     );
 
     return () => {
@@ -90,8 +88,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       throw error;
     }
 
-    // Dependiendo de tu configuración, puede requerir confirmación por email
-    // Por simplicidad, no hacemos setUser aquí; el usuario hará login luego.
     if (data.user) {
       console.log("User registered, email may need confirmation");
     }
