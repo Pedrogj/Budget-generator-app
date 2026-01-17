@@ -1,4 +1,4 @@
-import { Link, NavLink } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import "./Navbar.css";
 
@@ -49,10 +49,22 @@ export const Navbar = () => {
             </button>
           ) : (
             <>
-              <Link to="/login">Login</Link>
-              <Link to="/register" style={{ marginLeft: 12 }}>
+              <NavLink
+                className={({ isActive }) =>
+                  `navbar-link ${isActive ? "navbar-link-active" : ""} `
+                }
+                to="/login"
+              >
+                Login
+              </NavLink>
+              <NavLink
+                className={({ isActive }) =>
+                  `navbar-link ${isActive ? "navbar-link-active" : ""} `
+                }
+                to="/register"
+              >
                 Registro
-              </Link>
+              </NavLink>
             </>
           )}
         </nav>
