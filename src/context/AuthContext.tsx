@@ -88,8 +88,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       throw error;
     }
 
-    if (data.user) {
-      console.log("User registered, email may need confirmation");
+    const { error: loginError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (loginError) {
+      console.log("Error auto-login after register", loginError);
+      throw loginError;
     }
   };
 

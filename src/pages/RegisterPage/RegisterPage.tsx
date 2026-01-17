@@ -28,15 +28,7 @@ export const RegisterPage = () => {
     try {
       await registerUser(data.email, data.password);
 
-      await Swal.fire({
-        icon: "success",
-        title: "Cuenta creada",
-        text: "Tu cuenta se creó correctamente. Ahora puedes iniciar sesión.",
-        timer: 1500,
-        showConfirmButton: false,
-      });
-
-      navigate("/login");
+      navigate("/profile");
     } catch (error: any) {
       await Swal.fire({
         icon: "error",
