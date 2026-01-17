@@ -170,7 +170,7 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
               address: client.address,
               email: client.email ?? "",
               phone: client.phone ?? "",
-            }))
+            })),
           );
         }
       } catch (err) {
@@ -187,16 +187,18 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateCompany: QuoteContextType["updateCompany"] = async (
-    newCompany
+    newCompany,
   ) => {
-    // 1. Merge con el estado actual
+    if (!user) {
+      return;
+    }
+
     const merged: CompanyInfo = {
       ...company,
       ...newCompany,
-      id: company.id, // preservamos el id actual, si existe
+      id: company.id,
     };
 
-    // 2. Si no cambió nada, no hacemos nada
     const isSame =
       company.name === merged.name &&
       company.rif === merged.rif &&
@@ -222,16 +224,17 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
             default_currency: merged.defaultCurrency ?? "USD",
             iva_rate: merged.ivaRate ?? 16,
           })
-          .eq("id", company.id);
+          .eq("id", company.id)
+          .eq("profile_id", user.id);
 
         if (error) {
           console.error("Error updating company in Supabase", error);
         }
       } else {
-        // INSERT si por alguna razón aún no había company
         const { data: inserted, error } = await supabase
           .from("companies")
           .insert({
+            profile_id: user.id,
             name: merged.name,
             rif: merged.rif,
             phone: merged.phone,
@@ -253,7 +256,6 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
       console.error("Unexpected error updating company in Supabase", err);
     }
 
-    // 3. Actualizamos el estado con la versión merged
     setCompany(merged);
   };
 
@@ -286,8 +288,8 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
                 email: updated.email ?? "",
                 phone: updated.phone ?? "",
               }
-            : client
-        )
+            : client,
+        ),
       );
     } catch (err) {
       console.error("Unexpected error in updateClient", err);
@@ -352,7 +354,7 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
   const saveQuote: QuoteContextType["saveQuote"] = async ({ quote, items }) => {
     if (!company.id) {
       throw new Error(
-        "No hay company.id; aún no se cargó la empresa desde Supabase"
+        "No hay company.id; aún no se cargó la empresa desde Supabase",
       );
     }
 
