@@ -78,7 +78,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const register = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email,
       password,
     });
@@ -88,15 +88,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       throw error;
     }
 
-    const { error: loginError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { data: loginData, error: loginError } =
+      await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
     if (loginError) {
       console.log("Error auto-login after register", loginError);
       throw loginError;
     }
+
+    setUser(mapSupabaseUser(loginData.user));
   };
 
   const logout = async () => {
