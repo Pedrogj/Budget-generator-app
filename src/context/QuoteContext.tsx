@@ -21,7 +21,7 @@ interface QuoteContextType {
   clients: ClientInfo[];
 
   setFromForm: (data: { quote: QuoteInfo; items: QuoteItem[] }) => void;
-  updateCompany: (company: CompanyInfo) => Promise<void> | void;
+  updateCompany: (company: CompanyInfo) => Promise<void>;
   addClient: (data: Omit<ClientInfo, "id">) => Promise<void>;
   removeClient: (id: string) => Promise<void>;
   updateClient: (id: string, data: Omit<ClientInfo, "id">) => Promise<void>;
@@ -190,7 +190,7 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
     newCompany,
   ) => {
     if (!user) {
-      return;
+      throw new Error("Debes iniciar sesión para actualizar la empresa");
     }
 
     const merged: CompanyInfo = {
@@ -229,6 +229,7 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
 
         if (error) {
           console.error("Error updating company in Supabase", error);
+          throw error;
         }
       } else {
         const { data: inserted, error } = await supabase
@@ -248,12 +249,14 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
 
         if (error) {
           console.error("Error inserting company in Supabase", error);
+          throw error;
         } else if (inserted) {
           merged.id = inserted.id;
         }
       }
     } catch (err) {
       console.error("Unexpected error updating company in Supabase", err);
+      throw err;
     }
 
     setCompany(merged);

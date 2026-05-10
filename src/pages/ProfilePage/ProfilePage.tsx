@@ -1,38 +1,59 @@
 import { useEffect, useState, type ChangeEvent } from "react";
-import { useForm } from "react-hook-form";
-import z from "zod";
-import { useQuote } from "../../context/QuoteContext";
+import { useForm, type Resolver, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import z from "zod";
 import Swal from "sweetalert2";
+import { useQuote } from "../../context/QuoteContext";
+
+const MAX_LOGO_DIMENSION = 600;
+const MAX_LOGO_SIZE_BYTES = 1024 * 1024;
 
 const profileSchema = z.object({
-  name: z.string().min(1, "El nombre de la empresa es requerido"),
-  rif: z.string().min(1, "El número de razón social es requerido"),
-  phone: z.string().min(1, "El número de telefono es requerido"),
-  addressLines: z.string().min(1, "La dirección es requerida"),
+  name: z.string().trim().min(1, "El nombre de la empresa es requerido"),
+  rif: z.string().trim().min(1, "El RIF/RUT es requerido"),
+  phone: z.string().trim().min(1, "El teléfono es requerido"),
+  addressLines: z.string().trim().min(1, "La dirección es requerida"),
   defaultCurrency: z.enum(["USD", "CLP"]),
-  ivaRate: z
-    .number({
-      error: "El IVA debe ser un número",
-    })
+  ivaRate: z.coerce
+    .number({ error: "El IVA debe ser un número" })
     .min(0, "El IVA no puede ser negativo")
-    .max(20, "El IVA es demasiado alto"),
+    .max(20, "El IVA no puede superar 20%"),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return "No se pudo guardar la información de la empresa. Intenta nuevamente.";
+}
+
 export const ProfilePage = () => {
   const { company, updateCompany } = useQuote();
   const [logoError, setLogoError] = useState<string | null>(null);
-  const [tempLogo, setTempLogo] = useState<string | undefined>(company.logoUrl);
+  const [logoDraft, setLogoDraft] = useState<{
+    sourceLogo?: string;
+    value?: string;
+  }>({
+    sourceLogo: company.logoUrl,
+    value: company.logoUrl,
+  });
+  const tempLogo =
+    logoDraft.sourceLogo === company.logoUrl ? logoDraft.value : company.logoUrl;
+
+  const resolver: Resolver<ProfileFormValues> = zodResolver(
+    profileSchema,
+  ) as Resolver<ProfileFormValues>;
 
   const {
     register,
     handleSubmit,
     reset,
-    formState: { isDirty, errors },
+    formState: { isDirty, errors, isSubmitting },
   } = useForm<ProfileFormValues>({
-    resolver: zodResolver(profileSchema),
+    resolver,
     defaultValues: {
       name: company.name,
       rif: company.rif,
@@ -43,7 +64,6 @@ export const ProfilePage = () => {
     },
   });
 
-  // If company changes
   useEffect(() => {
     reset({
       name: company.name,
@@ -54,53 +74,81 @@ export const ProfilePage = () => {
       ivaRate: company.ivaRate ?? 16,
     });
 
-    setTempLogo(company.logoUrl);
   }, [company, reset]);
 
-  const onSubmit = (data: ProfileFormValues) => {
-    updateCompany({
-      name: data.name,
-      rif: data.rif,
-      phone: data.phone,
-      logoUrl: tempLogo || undefined,
-      addressLines: data.addressLines,
-      defaultCurrency: data.defaultCurrency,
-      ivaRate: data.ivaRate,
-    });
+  const onSubmit: SubmitHandler<ProfileFormValues> = async (data) => {
+    try {
+      await updateCompany({
+        name: data.name,
+        rif: data.rif,
+        phone: data.phone,
+        logoUrl: tempLogo || undefined,
+        addressLines: data.addressLines,
+        defaultCurrency: data.defaultCurrency,
+        ivaRate: data.ivaRate,
+      });
 
-    reset(data);
+      reset(data);
 
-    Swal.fire({
-      icon: "success",
-      title: "Datos guardados",
-      text: "La información de tu empresa se actualizo correctamente",
-      timer: 1700,
-      showConfirmButton: false,
-    });
+      await Swal.fire({
+        icon: "success",
+        title: "Datos guardados",
+        text: "La información de tu empresa se actualizó correctamente.",
+        timer: 1700,
+        showConfirmButton: false,
+      });
+    } catch (err) {
+      console.error("Error al guardar empresa", err);
+      await Swal.fire({
+        icon: "error",
+        title: "No se pudo guardar",
+        text: getErrorMessage(err),
+      });
+    }
   };
 
   const handleLogoChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setLogoError(null); // we clean previous error
+    setLogoError(null);
+
+    if (!["image/png", "image/jpeg"].includes(file.type)) {
+      setLogoError("Usa una imagen PNG o JPG.");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > MAX_LOGO_SIZE_BYTES) {
+      setLogoError("El logo no debe superar 1 MB.");
+      event.target.value = "";
+      return;
+    }
 
     const reader = new FileReader();
     reader.onload = () => {
-      const dataUrl = reader.result as string; // "data:image/png;base64,..."
+      const dataUrl = reader.result as string;
 
       const img = new Image();
       img.onload = () => {
         const { naturalWidth, naturalHeight } = img;
 
-        if (naturalWidth > 600 || naturalHeight > 600) {
+        if (
+          naturalWidth > MAX_LOGO_DIMENSION ||
+          naturalHeight > MAX_LOGO_DIMENSION
+        ) {
           setLogoError(
-            `El logo es demasiado grande (${naturalWidth}x${naturalHeight}px). El máximo permitido es 600x600 px.`
+            `El logo es demasiado grande (${naturalWidth}x${naturalHeight}px). El máximo permitido es 600x600 px.`,
           );
+          event.target.value = "";
           return;
         }
-        // Valid size → We've updated our company with the new logo
-        setTempLogo(dataUrl);
+
+        setLogoDraft({
+          sourceLogo: company.logoUrl,
+          value: dataUrl,
+        });
+        event.target.value = "";
       };
       img.onerror = () => {
         setLogoError("No se pudo leer la imagen. Intenta con otro archivo.");
@@ -113,104 +161,141 @@ export const ProfilePage = () => {
     reader.readAsDataURL(file);
   };
 
-  // We detect if the logo has changed compared to the one in the context
+  const handleRemoveLogo = () => {
+    setLogoError(null);
+    setLogoDraft({
+      sourceLogo: company.logoUrl,
+      value: undefined,
+    });
+  };
+
   const hasLogoChange = tempLogo !== company.logoUrl;
-  const isSubmitDisabled = !isDirty && !hasLogoChange;
+  const isCompanyReady = !!company.id;
+  const isSubmitDisabled =
+    (!isDirty && !hasLogoChange) || isSubmitting || !isCompanyReady;
 
   return (
-    <div className="page">
-      <h1>Datos de Empresa</h1>
-      <p>
-        Aquí puedes configurar los datos de la empresa que se usarán en los
-        presupuestos.
-      </p>
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="section">
-          {/* Name company */}
-          <label style={{ display: "block", marginBottom: 8 }}>
-            <span>Nombre de la Empresa</span>
-            <input {...register("name")} style={{ width: "100%" }} />
-            {errors.name && <p className="form-error">{errors.name.message}</p>}
-          </label>
-          {/* Rif company */}
-          <label style={{ display: "block", marginBottom: 8 }}>
-            <span>RIF/RUT</span>
-            <input {...register("rif")} style={{ width: "100%" }} />
-            {errors.rif && <p className="form-error">{errors.rif.message}</p>}
-          </label>
-          {/* Phone */}
-          <label style={{ display: "block", marginBottom: 8 }}>
-            <span>Teléfono</span>
-            <input {...register("phone")} style={{ width: "100%" }} />
-            {errors.phone && (
-              <p className="form-error">{errors.phone.message}</p>
-            )}
-          </label>
-          {/* Select Currency */}
-          <label style={{ display: "block", marginBottom: 8 }}>
-            <span>Moneda por defecto</span>
-            <select {...register("defaultCurrency")} style={{ width: "100%" }}>
-              <option value="USD">USD (Dólares)</option>
-              <option value="CLP">CLP (Pesos chilenos)</option>
-            </select>
-            {errors.defaultCurrency && (
-              <p className="form-error">{errors.defaultCurrency.message}</p>
-            )}
-          </label>
-          {/* IvaRate */}
-          <label style={{ display: "block", marginBottom: 8 }}>
-            <span>IVA (%)</span>
-            <input
-              type="number"
-              step="0.01"
-              {...register("ivaRate", {
-                valueAsNumber: true,
-              })}
-              style={{ width: "100%" }}
-            />
-            {errors.ivaRate && (
-              <p className="form-error">{errors.ivaRate.message}</p>
-            )}
-          </label>
-          {/* Logo company */}
-          <label style={{ display: "block", marginBottom: 8 }}>
-            <span>Logo de Empresa (máx. 600x600 px)</span>
-            <input
-              type="file"
-              accept="image/png,image/jpeg"
-              onChange={handleLogoChange}
-            />
-          </label>
+    <div className="page profile-page">
+      <div className="profile-header">
+        <div>
+          <h1>Datos de empresa</h1>
+          <p className="profile-subtitle">
+            Esta información aparecerá en tus presupuestos y documentos PDF.
+          </p>
+        </div>
+      </div>
 
-          {logoError && (
-            <p style={{ color: "salmon", fontSize: 12, marginBottom: 8 }}>
-              {logoError}
-            </p>
-          )}
+      <form className="profile-form" noValidate onSubmit={handleSubmit(onSubmit)}>
+        <section className="profile-panel">
+          <h2>Información fiscal</h2>
+          <div className="profile-grid">
+            <label>
+              <span>Nombre de la empresa</span>
+              <input autoComplete="organization" {...register("name")} />
+              {errors.name && (
+                <p className="form-error">{errors.name.message}</p>
+              )}
+            </label>
 
-          {tempLogo && !logoError && (
-            <div style={{ marginTop: 8 }}>
-              <span style={{ display: "block", marginBottom: 4 }}>
-                Vista previa:
-              </span>
-              <img
-                src={tempLogo}
-                alt="Logo de la empresa"
-                style={{ height: 80, width: "auto", borderRadius: 8 }}
+            <label>
+              <span>RIF/RUT</span>
+              <input autoComplete="off" {...register("rif")} />
+              {errors.rif && <p className="form-error">{errors.rif.message}</p>}
+            </label>
+
+            <label>
+              <span>Teléfono</span>
+              <input type="tel" autoComplete="tel" {...register("phone")} />
+              {errors.phone && (
+                <p className="form-error">{errors.phone.message}</p>
+              )}
+            </label>
+
+            <label>
+              <span>Moneda por defecto</span>
+              <select {...register("defaultCurrency")}>
+                <option value="USD">USD (Dólares)</option>
+                <option value="CLP">CLP (Pesos chilenos)</option>
+              </select>
+              {errors.defaultCurrency && (
+                <p className="form-error">{errors.defaultCurrency.message}</p>
+              )}
+            </label>
+
+            <label>
+              <span>IVA (%)</span>
+              <input
+                type="number"
+                min="0"
+                max="20"
+                step="0.01"
+                inputMode="decimal"
+                {...register("ivaRate")}
               />
-            </div>
-          )}
+              {errors.ivaRate && (
+                <p className="form-error">{errors.ivaRate.message}</p>
+              )}
+            </label>
+          </div>
 
-          <label style={{ display: "block", marginBottom: 8 }}>
+          <label>
             <span>Dirección</span>
-            <textarea {...register("addressLines")} style={{ width: "100%" }} />
+            <textarea className="profile-address" {...register("addressLines")} />
             {errors.addressLines && (
               <p className="form-error">{errors.addressLines.message}</p>
             )}
           </label>
+        </section>
 
+        <section className="profile-panel">
+          <div className="profile-logo-layout">
+            <div>
+              <h2>Logo</h2>
+              <p className="profile-help">
+                Usa una imagen PNG o JPG de máximo 1 MB y 600x600 px.
+              </p>
+
+              <label className="profile-file-field">
+                <span>Subir logo</span>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg"
+                  onChange={handleLogoChange}
+                />
+              </label>
+
+          {logoError && (
+                <p className="form-error profile-logo-error">{logoError}</p>
+          )}
+
+              {tempLogo && (
+                <button type="button" onClick={handleRemoveLogo}>
+                  Quitar logo
+                </button>
+              )}
+            </div>
+
+            <div className="profile-logo-preview">
+              {tempLogo && !logoError ? (
+              <img
+                src={tempLogo}
+                alt="Logo de la empresa"
+              />
+              ) : (
+                <span>Sin logo</span>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <div className="profile-submit-row">
+          {!isCompanyReady && (
+            <p className="form-error">
+              Espera un momento mientras cargamos la empresa.
+            </p>
+          )}
           <button type="submit" disabled={isSubmitDisabled}>
-            Guardar Cambios
+            {isSubmitting ? "Guardando..." : "Guardar cambios"}
           </button>
         </div>
       </form>
