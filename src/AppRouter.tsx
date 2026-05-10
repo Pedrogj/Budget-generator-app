@@ -7,6 +7,7 @@ import { ClientsPage } from "./pages/ClientsPage/ClientsPage";
 import { RequiredAuth } from "./components/RequiredAuth/RequiredAuth";
 import { LoginPage } from "./pages/LoginPage/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage/RegisterPage";
+import { HistoryPage } from "./pages/HistoryPage/HistoryPage";
 
 export const AppRouter = () => {
   return (
@@ -39,6 +40,14 @@ export const AppRouter = () => {
             element={
               <RequiredAuth>
                 <QuotePreviewPage />
+              </RequiredAuth>
+            }
+          />
+          <Route
+            path="/quotes/history"
+            element={
+              <RequiredAuth>
+                <HistoryPage />
               </RequiredAuth>
             }
           />

@@ -14,6 +14,7 @@ Aplicación web para generar presupuestos profesionales en PDF. Permite a usuari
   - [3. Gestión de Clientes](#3-gestión-de-clientes)
   - [4. Creación de Presupuesto](#4-creación-de-presupuesto)
   - [5. Vista Previa y Descarga de PDF](#5-vista-previa-y-descarga-de-pdf)
+  - [6. Historial de Presupuestos](#6-historial-de-presupuestos)
 - [Estructura del Proyecto](#estructura-del-proyecto)
 - [Base de Datos (Supabase)](#base-de-datos-supabase)
 - [Rutas de la Aplicación](#rutas-de-la-aplicación)
@@ -142,7 +143,8 @@ Usuario no autenticado
 │    ├─ RIF del cliente (solo lectura)
 │    ├─ Dirección del cliente (solo lectura)
 │    ├─ Fecha de emisión (date picker)
-│    └─ Moneda (solo lectura, viene del perfil de empresa)
+│    ├─ Moneda (solo lectura, viene del perfil de empresa)
+│    └─ Nota del presupuesto (opcional)
 │
 ├─ Ítems del presupuesto (tabla dinámica):
 │    │  Cada ítem tiene:
@@ -167,6 +169,8 @@ Usuario no autenticado
 - Se usa **`useFieldArray`** de React Hook Form para manejar la lista dinámica de ítems.
 - Validación: cada ítem requiere descripción, cantidad válida y precio mayor a 0.
 - Al guardar, se persisten los datos en dos tablas: `quotes` (cabecera) y `quote_items` (líneas).
+- La nota es opcional: si se deja vacía se guarda como `null`; si se completa, se imprime en el PDF y queda persistida en `quotes.notes`.
+- La cabecera guarda también `subtotal`, `iva`, `total` e `iva_rate` para acelerar el historial.
 - El formulario permite seleccionar un cliente guardado, lo que auto-completa los campos de cliente.
 - Muestra subtotal, IVA y total estimado en vivo antes de guardar.
 
@@ -177,18 +181,18 @@ Usuario no autenticado
 │
 ├─ PDFViewer (iframe embebido)
 │    └─ Renderiza el presupuesto en tiempo real:
-│         ├─ Cabecera: Logo + datos de empresa + título "PRESUPUESTO"
+│         ├─ Cabecera profesional con logo, datos de empresa y título
 │         ├─ Fecha de emisión + moneda
-│         ├─ Datos del cliente (nombre, RIF, dirección)
+│         ├─ Paneles de cliente y detalle del trabajo
 │         ├─ Tabla de ítems con columnas:
 │         │    CÓDIGO | UND | DESCRIPCIÓN | CANT. | SG | P/UNITARIO | PRECIO TOTAL
-│         ├─ Notas predefinidas sobre pagos
-│         └─ Totales:
+│         ├─ Notas opcionales
+│         └─ Totales destacados:
 │              ├─ SUB-TOTAL
 │              ├─ I.V.A. (según tasa configurada)
 │              └─ TOTAL
 │
-└─ [Descargar PDF] → Descarga el archivo como "presupuesto.pdf"
+└─ [Descargar PDF] → Descarga el archivo con nombre basado en cliente y fecha
 ```
 
 - Se usa **@react-pdf/renderer** (`Document`, `Page`, `View`, `Text`, `Image`, `StyleSheet`).
@@ -196,6 +200,34 @@ Usuario no autenticado
 - Los montos se formatean según la moneda seleccionada (`Intl.NumberFormat`).
 - La fecha se reformatea de `YYYY-MM-DD` a `DD/MM/YYYY` para el documento.
 - El componente `PDFViewer` muestra una vista previa embebida; `PDFDownloadLink` permite la descarga.
+- Si se entra a `/quotes/preview` sin presupuesto cargado, la página muestra un estado vacío con link para crear uno nuevo.
+
+### 6. Historial de Presupuestos
+
+```
+/quotes/history
+│
+├─ Lista presupuestos guardados desde Supabase:
+│    ├─ Cliente
+│    ├─ Obra
+│    ├─ Fecha
+│    ├─ Estado de ítems
+│    ├─ Moneda
+│    └─ Total estimado
+│
+└─ Acciones por presupuesto:
+     ├─ Previsualizar → carga el presupuesto en modo solo lectura y navega a /quotes/preview
+     ├─ Exportar PDF → descarga el PDF sin abrir la vista previa
+     └─ Eliminar → confirmación con SweetAlert2
+```
+
+- Carga `quotes` con sus `quote_items` mediante Supabase.
+- La carga inicial trae solo cabeceras de `quotes` para que la lista aparezca rápido.
+- Los `quote_items` se consultan bajo demanda al previsualizar o exportar.
+- Los presupuestos del historial no se editan: la vista previa oculta la acción de edición y el formulario de nuevo presupuesto se abre limpio si el estado venía del historial.
+- Permite reexportar presupuestos guardados con la misma plantilla PDF; la generación del PDF también ocurre bajo demanda.
+- Para eliminar, intenta borrar primero la cabecera `quotes`; si la FK lo impide, borra `quote_items` y reintenta.
+- La ruta está protegida con `RequiredAuth`.
 
 ---
 
@@ -215,8 +247,9 @@ src/
 ├── components/
 │   ├── index.ts                       # Barrel export
 │   ├── Navbar/
-│   │   ├── Navbar.tsx                 # Barra de navegación
-│   │   └── Navbar.css                 # Estilos del navbar
+│   │   ├── Navbar.tsx                 # Barra de navegación responsive
+│   │   ├── Navbar.css                 # Estilos del navbar
+│   │   └── Navbar.test.tsx            # Tests de navegación
 │   ├── RequiredAuth/
 │   │   └── RequiredAuth.tsx           # Guardia de rutas protegidas
 │   └── QuotePdfDocument.tsx           # Plantilla del documento PDF
@@ -232,8 +265,10 @@ src/
 │   │   └── ClientsPage.tsx            # CRUD de clientes
 │   ├── QuoteFormPage/
 │   │   └── QuoteFormPage.tsx          # Formulario de presupuesto
-│   └── QuotePreviewPage/
-│       └── QuotePreviewPage.tsx       # Vista previa + descarga PDF
+│   ├── QuotePreviewPage/
+│   │   └── QuotePreviewPage.tsx       # Vista previa + descarga PDF
+│   └── HistoryPage/
+│       └── HistoryPage.tsx            # Historial + previsualizar/exportar/eliminar
 │
 ├── lib/
 │   └── supabaseClient.ts             # Instancia del cliente Supabase
@@ -244,7 +279,8 @@ src/
 supabase/
 └── migrations/
     ├── 20260510120000_optimize_security_rls_indexes.sql
-    └── 20260510121500_finish_quote_items_and_disable_graphql.sql
+    ├── 20260510121500_finish_quote_items_and_disable_graphql.sql
+    └── 20260510163000_add_quote_notes.sql
 ```
 
 ---
@@ -259,7 +295,7 @@ La aplicación utiliza las siguientes tablas en PostgreSQL (vía Supabase):
 |---|---|
 | `companies` | Datos de la empresa del usuario (nombre, RIF, teléfono, dirección, logo, moneda, IVA) |
 | `clients` | Clientes vinculados a una empresa |
-| `quotes` | Cabecera de cada presupuesto generado |
+| `quotes` | Cabecera de cada presupuesto generado, incluyendo nota opcional y totales |
 | `quote_items` | Ítems/líneas de cada presupuesto |
 
 ### Migraciones y Seguridad
@@ -273,6 +309,8 @@ El esquema de Supabase se versiona en `supabase/migrations/`.
   `quotes.client_id` y `quote_items.quote_id`.
 - Las funciones internas `handle_new_user()` y `set_current_timestamp_updated_at()` tienen `search_path` fijo y no son ejecutables por `anon` ni `authenticated`.
 - `pg_graphql` está desinstalado porque la app usa Supabase REST (`.from(...)`) y no el endpoint GraphQL.
+- `quotes.notes` es nullable y guarda la nota opcional del presupuesto.
+- `quotes.subtotal`, `quotes.iva`, `quotes.total` y `quotes.iva_rate` se usan para listar el historial sin cargar ítems.
 
 Nota: Supabase puede marcar los índices recién creados como `unused_index` hasta que haya tráfico suficiente. No deben eliminarse solo por esa advertencia inicial.
 
@@ -322,6 +360,7 @@ interface QuoteInfo {
   issueDate: string;
   clientId?: string;
   currency: "USD" | "CLP";
+  notes?: string;
 }
 
 interface QuoteItem {
@@ -345,6 +384,7 @@ interface QuoteItem {
 | `/` | Protegido | QuoteFormPage | Formulario de nuevo presupuesto |
 | `/quotes/new` | Protegido | QuoteFormPage | Formulario de nuevo presupuesto |
 | `/quotes/preview` | Protegido | QuotePreviewPage | Vista previa y descarga de PDF |
+| `/quotes/history` | Protegido | HistoryPage | Historial, previsualización, exportación y eliminación |
 | `/profile` | Protegido | ProfilePage | Configuración de datos de empresa |
 | `/clients` | Protegido | ClientsPage | Gestión de clientes (CRUD) |
 | `*` | — | 404 | Página no encontrada |
@@ -398,7 +438,10 @@ Cobertura actual:
 - `RegisterPage`: render, validación, confirmación de contraseña, registro con/sin confirmación de email y redirección con sesión activa.
 - `ClientsPage`: render, validación, agregar, editar, eliminar con confirmación y búsqueda.
 - `QuoteFormPage`: render, totales en vivo, selección de cliente, validación, agregar/eliminar ítems, guardado exitoso/error y link a clientes.
+- `QuotePreviewPage`: resumen, nombre de descarga y estado vacío.
+- `HistoryPage`: carga rápida de cabeceras, carga bajo demanda de ítems, exportación, previsualización y eliminación con fallback de FK.
 - `ProfilePage`: render, validación, guardado exitoso/error, quitar logo y validación de tipo de logo.
+- `Navbar`: navegación autenticada/pública, menú móvil y logout.
 
 ---
 

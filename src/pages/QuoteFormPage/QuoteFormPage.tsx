@@ -38,10 +38,20 @@ const formSchema = z.object({
     .string()
     .min(1, "La fecha es obligatoria")
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Formato de fecha inválido"),
+  notes: z.string().trim().max(500, "La nota no puede superar 500 caracteres"),
   items: z.array(itemSchema).min(1, "Debes agregar al menos un ítem"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
+
+const emptyItem = {
+  code: "NA",
+  unit: "NA",
+  description: "",
+  quantity: 1,
+  sg: "",
+  unitPrice: 0,
+};
 
 function formatMoney(value: number, currency: "USD" | "CLP") {
   return new Intl.NumberFormat("es-CL", {
@@ -63,6 +73,7 @@ export const QuoteFormPage = () => {
   const navigate = useNavigate();
 
   const { quote, items, setFromForm, clients, company, saveQuote } = useQuote();
+  const shouldIgnoreCurrentQuote = quote.readOnly === true;
 
   const resolver: Resolver<FormValues> = zodResolver(
     formSchema
@@ -77,13 +88,16 @@ export const QuoteFormPage = () => {
   } = useForm<FormValues>({
     resolver,
     defaultValues: {
-      work: quote.work,
-      client: quote.client,
-      clientRif: quote.clientRif,
-      clientAddress: quote.clientAddress,
-      issueDate: quote.issueDate,
-      clientId: quote.clientId ?? "",
-      items: items,
+      work: shouldIgnoreCurrentQuote ? "" : quote.work,
+      client: shouldIgnoreCurrentQuote ? "" : quote.client,
+      clientRif: shouldIgnoreCurrentQuote ? "" : quote.clientRif,
+      clientAddress: shouldIgnoreCurrentQuote ? "" : quote.clientAddress,
+      issueDate: shouldIgnoreCurrentQuote
+        ? new Date().toISOString().slice(0, 10)
+        : quote.issueDate,
+      clientId: shouldIgnoreCurrentQuote ? "" : quote.clientId ?? "",
+      notes: shouldIgnoreCurrentQuote ? "" : quote.notes ?? "",
+      items: shouldIgnoreCurrentQuote ? [emptyItem] : items,
     },
   });
 
@@ -119,6 +133,8 @@ export const QuoteFormPage = () => {
         issueDate: data.issueDate,
         clientId: data.clientId,
         currency,
+        notes: data.notes,
+        readOnly: false,
       },
       items: data.items,
     };
@@ -253,6 +269,18 @@ export const QuoteFormPage = () => {
               <input type="text" readOnly value={currencyLabel} />
             </label>
           </div>
+
+          <label className="quote-notes-field">
+            <span>Nota del presupuesto</span>
+            <textarea
+              rows={3}
+              placeholder="Agrega condiciones de pago, vigencia o cualquier aclaración para el PDF"
+              {...register("notes")}
+            />
+            {errors.notes && (
+              <p className="form-error">{errors.notes.message}</p>
+            )}
+          </label>
         </section>
 
         <section className="quote-panel">

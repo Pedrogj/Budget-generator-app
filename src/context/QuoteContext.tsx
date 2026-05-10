@@ -14,6 +14,10 @@ import type {
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "./AuthContext";
 
+const companySelect =
+  "id,name,rif,phone,address_lines,logo_url,default_currency,iva_rate";
+const clientSelect = "id,name,rif,address,email,phone";
+
 interface QuoteContextType {
   company: CompanyInfo;
   quote: QuoteInfo;
@@ -52,6 +56,8 @@ const initialQuote: QuoteInfo = {
   issueDate: new Date().toISOString().slice(0, 10),
   clientId: "",
   currency: "USD",
+  notes: "",
+  readOnly: false,
 };
 
 const initialItems: QuoteItem[] = [
@@ -93,7 +99,7 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
         // 3) Cargar (o crear) la company del usuario actual
         const { data: companyRow, error: companyError } = await supabase
           .from("companies")
-          .select("*")
+          .select(companySelect)
           .eq("profile_id", user.id)
           .limit(1)
           .maybeSingle();
@@ -130,7 +136,7 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
               default_currency: "USD",
               iva_rate: 16,
             })
-            .select()
+            .select(companySelect)
             .single();
 
           if (insertError) {
@@ -156,7 +162,7 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
         // 5) Cargar clientes SOLO de esa company
         const { data: clientsRows, error: clientsError } = await supabase
           .from("clients")
-          .select("*")
+          .select(clientSelect)
           .eq("company_id", currentCompanyId);
 
         if (clientsError) {
@@ -244,7 +250,7 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
             default_currency: merged.defaultCurrency ?? "USD",
             iva_rate: merged.ivaRate ?? 16,
           })
-          .select()
+          .select(companySelect)
           .single();
 
         if (error) {
@@ -274,7 +280,7 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
           phone: data.phone || null,
         })
         .eq("id", id)
-        .select()
+        .select(clientSelect)
         .single();
 
       if (error) {
@@ -318,7 +324,7 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
           email: data.email || null,
           phone: data.phone || null,
         })
-        .select()
+        .select(clientSelect)
         .single();
 
       if (error) {
@@ -365,6 +371,14 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
       );
     }
 
+    const subtotal = items.reduce(
+      (sum, item) => sum + Number(item.quantity || 0) * Number(item.unitPrice || 0),
+      0,
+    );
+    const ivaRate = Number(company.ivaRate ?? 16);
+    const iva = subtotal * (ivaRate / 100);
+    const total = subtotal + iva;
+
     const { data: insertedQuote, error: quoteError } = await supabase
       .from("quotes")
       .insert({
@@ -373,11 +387,16 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
         work: quote.work,
         issue_date: quote.issueDate,
         currency: quote.currency,
+        notes: quote.notes?.trim() || null,
+        iva_rate: ivaRate,
+        subtotal,
+        iva,
+        total,
         client_name: quote.client,
         client_rif: quote.clientRif,
         client_address: quote.clientAddress,
       })
-      .select()
+      .select("id")
       .single();
 
     if (quoteError || !insertedQuote) {

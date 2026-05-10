@@ -1,36 +1,122 @@
-import { PDFDownloadLink, PDFViewer } from '@react-pdf/renderer';
-import { useQuote } from '../../context/QuoteContext';
-import { QuotePdfDocument } from '../../components/QuotePdfDocument';
+import { PDFDownloadLink, PDFViewer } from "@react-pdf/renderer";
+import { Link } from "react-router-dom";
+import { useMemo } from "react";
+import { useQuote } from "../../context/QuoteContext";
+import { QuotePdfDocument } from "../../components/QuotePdfDocument";
+
+function formatMoney(value: number, currency: "USD" | "CLP") {
+  return new Intl.NumberFormat("es-CL", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: currency === "CLP" ? 0 : 2,
+  }).format(value);
+}
+
+function toFileSlug(value: string) {
+  const normalized = value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return normalized || "cliente";
+}
 
 export const QuotePreviewPage = () => {
   const { company, quote, items } = useQuote();
+  const currency = quote.currency ?? company.defaultCurrency ?? "USD";
+  const isReadOnly = quote.readOnly === true;
+  const subtotal = items.reduce((sum, item) => {
+    return sum + Number(item.quantity || 0) * Number(item.unitPrice || 0);
+  }, 0);
+  const ivaRate = Number(company.ivaRate ?? 16);
+  const iva = subtotal * (ivaRate / 100);
+  const total = subtotal + iva;
+  const hasQuoteData =
+    quote.work.trim() && quote.client.trim() && items.some((item) => item.description.trim());
+  const fileName = `presupuesto-${toFileSlug(quote.client)}-${quote.issueDate || "sin-fecha"}.pdf`;
+  const pdfDocument = useMemo(
+    () => <QuotePdfDocument company={company} quote={quote} items={items} />,
+    [company, items, quote],
+  );
+
+  if (!hasQuoteData) {
+    return (
+      <div className="page quote-preview-page">
+        <section className="quote-preview-empty">
+          <h1>Vista previa del presupuesto</h1>
+          <p>
+            Aún no hay un presupuesto listo para previsualizar. Completa los
+            datos del presupuesto y guárdalo para generar el PDF.
+          </p>
+          <Link className="quote-preview-action" to="/quotes/new">
+            Crear presupuesto
+          </Link>
+        </section>
+      </div>
+    );
+  }
 
   return (
-    <div className="page">
-      <h1>Vista previa del presupuesto</h1>
+    <div className="page quote-preview-page">
+      <div className="quote-preview-header">
+        <div>
+          <h1>Vista previa del presupuesto</h1>
+          <p className="quote-preview-subtitle">
+            {isReadOnly
+              ? "Este presupuesto pertenece al historial y solo está disponible para consulta o descarga."
+              : "Revisa el documento antes de descargarlo o vuelve al formulario para ajustar datos."}
+          </p>
+        </div>
 
-      <PDFViewer
-        style={{ width: '100%', height: '700px', border: '1px solid #ccc' }}
-      >
-        <QuotePdfDocument
-          company={company}
-          quote={quote}
-          items={items}
-        />
-      </PDFViewer>
+        <div className="quote-preview-actions">
+          {!isReadOnly && (
+            <Link className="quote-preview-secondary" to="/quotes/new">
+              Editar
+            </Link>
+          )}
+          <PDFDownloadLink
+            className="quote-preview-action"
+            document={pdfDocument}
+            fileName={fileName}
+          >
+            {({ loading }) => (loading ? "Generando PDF..." : "Descargar PDF")}
+          </PDFDownloadLink>
+        </div>
+      </div>
 
-      <div style={{ marginTop: 10 }}>
+      <section className="quote-preview-summary" aria-label="Resumen del presupuesto">
+        <div>
+          <span>Cliente</span>
+          <strong>{quote.client}</strong>
+        </div>
+        <div>
+          <span>Obra</span>
+          <strong>{quote.work}</strong>
+        </div>
+        <div>
+          <span>Ítems</span>
+          <strong>{items.length}</strong>
+        </div>
+        <div>
+          <span>Total</span>
+          <strong>{formatMoney(total, currency)}</strong>
+        </div>
+      </section>
+
+      <section className="quote-preview-panel">
+        <PDFViewer className="quote-preview-viewer">{pdfDocument}</PDFViewer>
+      </section>
+
+      <div className="quote-preview-mobile-actions">
         <PDFDownloadLink
-          document={
-            <QuotePdfDocument
-              company={company}
-              quote={quote}
-              items={items}
-            />
-          }
-          fileName="presupuesto.pdf"
+          className="quote-preview-action"
+          document={pdfDocument}
+          fileName={fileName}
         >
-          {({ loading }) => (loading ? 'Generando PDF...' : 'Descargar PDF')}
+          {({ loading }) => (loading ? "Generando PDF..." : "Descargar PDF")}
         </PDFDownloadLink>
       </div>
     </div>

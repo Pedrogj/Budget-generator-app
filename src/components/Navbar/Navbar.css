@@ -27,14 +27,14 @@
   gap: 1.5rem;
 }
 
-/* Brand: logo + título */
 .navbar-brand {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  color: var(--navbar-text);
+  text-decoration: none;
 }
 
-/* Logo tipo “iniciales” redondeado */
 .navbar-logo {
   width: 32px;
   height: 32px;
@@ -48,21 +48,18 @@
   color: white;
 }
 
-/* Título de la app */
 .navbar-title {
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--navbar-text);
 }
 
-/* Contenedor de links */
 .navbar-nav {
   display: flex;
   align-items: center;
   gap: 0.75rem;
 }
 
-/* Link base */
 .navbar-link {
   position: relative;
   display: inline-flex;
@@ -75,37 +72,93 @@
   transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
 }
 
-/* Hover */
 .navbar-link:hover {
   background-color: var(--navbar-bg-hover);
   color: var(--navbar-text);
   transform: translateY(-1px);
 }
 
-/* Estado activo */
 .navbar-link-active {
   color: var(--navbar-text);
   background-color: rgba(56, 189, 248, 0.12);
 }
 
-/* Responsive: en pantallas pequeñas, apilamos si hace falta */
+.navbar-logout {
+  border-color: rgba(148, 163, 184, 0.35);
+  border-radius: 999px;
+  padding: 0.38rem 0.75rem;
+  background: transparent;
+  color: var(--navbar-muted);
+  font-size: 0.86rem;
+}
+
+.navbar-logout:hover {
+  background: rgba(239, 68, 68, 0.12);
+  color: #fecaca;
+  box-shadow: none;
+}
+
+.navbar-menu-button {
+  display: none;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-color: rgba(148, 163, 184, 0.35);
+  border-radius: 6px;
+  padding: 0;
+  background: transparent;
+}
+
+.navbar-menu-button span {
+  display: block;
+  width: 1rem;
+  height: 2px;
+  margin: 0.18rem auto;
+  border-radius: 999px;
+  background: var(--navbar-text);
+}
+
+.navbar-menu-button:hover {
+  background: var(--navbar-bg-hover);
+  box-shadow: none;
+}
+
 @media (max-width: 640px) {
   .navbar-content {
-    flex-direction: column;
-    align-items: flex-start;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 0.75rem;
   }
 
   .navbar-brand {
-    width: 100%;
-    justify-content: space-between;
+    min-width: 0;
+  }
+
+  .navbar-menu-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
   }
 
   .navbar-nav {
+    display: none;
+    grid-column: 1 / -1;
     width: 100%;
-    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 0.35rem;
+    padding-top: 0.35rem;
   }
 
-  .navbar-link {
-    padding-inline: 0.6rem;
+  .navbar-nav-open {
+    display: grid;
+  }
+
+  .navbar-link,
+  .navbar-logout {
+    width: 100%;
+    justify-content: flex-start;
+    border-radius: 6px;
+    padding: 0.55rem 0.65rem;
   }
 }

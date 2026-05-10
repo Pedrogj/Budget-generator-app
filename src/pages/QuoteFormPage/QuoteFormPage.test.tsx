@@ -36,6 +36,7 @@ const baseQuoteContext = {
     issueDate: "2026-05-10",
     clientId: "",
     currency: "USD" as const,
+    notes: "",
   },
   items: [
     {
@@ -181,11 +182,36 @@ describe("QuoteFormPage", () => {
           clientAddress: "Calle 1",
           clientId: "client-1",
           currency: "USD",
+          notes: "",
         }),
       })
     );
     expect(setFromForm).toHaveBeenCalledAfter(saveQuote);
     expect(await screen.findByText("Preview route")).toBeInTheDocument();
+  });
+
+  it("saves a custom optional note when provided", async () => {
+    const user = userEvent.setup();
+    const saveQuote = vi.fn().mockResolvedValue("quote-1");
+
+    renderQuoteFormPage({ saveQuote });
+
+    await fillValidQuote(user);
+    await user.type(
+      screen.getByLabelText(/nota del presupuesto/i),
+      "Pago 50% inicial y 50% contra entrega."
+    );
+    await user.click(
+      screen.getByRole("button", { name: /guardar y ver vista previa/i })
+    );
+
+    expect(saveQuote).toHaveBeenCalledWith(
+      expect.objectContaining({
+        quote: expect.objectContaining({
+          notes: "Pago 50% inicial y 50% contra entrega.",
+        }),
+      })
+    );
   });
 
   it("shows an error and does not update state when saving fails", async () => {

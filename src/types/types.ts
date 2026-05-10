@@ -27,6 +27,8 @@ export interface QuoteInfo {
   issueDate: string;
   clientId?: string;
   currency: "USD" | "CLP";
+  notes?: string;
+  readOnly?: boolean;
 }
 
 export interface ClientInfo {
