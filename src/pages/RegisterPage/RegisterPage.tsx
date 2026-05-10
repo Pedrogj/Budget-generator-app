@@ -93,7 +93,7 @@ export const RegisterPage = () => {
           </p>
         </div>
 
-        <form className="auth-form" onSubmit={handleSubmit(onSubmit)}>
+        <form className="auth-form" noValidate onSubmit={handleSubmit(onSubmit)}>
           <label>
             <span>Correo electrónico</span>
             <input
