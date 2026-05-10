@@ -4,22 +4,57 @@ import Swal from "sweetalert2";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuote } from "../../context/QuoteContext";
 import type { ClientInfo } from "../../types/types";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 const clientSchema = z.object({
-  name: z.string().min(2, "El nombre es requerido"),
-  rif: z.string().min(2, "Número de razon social requerido"),
-  address: z.string().min(2, "La dirección es requerido"),
+  name: z.string().trim().min(2, "Ingresa al menos 2 caracteres"),
+  rif: z.string().trim().min(2, "Ingresa el RIF/RUT del cliente"),
+  address: z.string().trim().min(2, "Ingresa la dirección del cliente"),
+  email: z
+    .string()
+    .trim()
+    .email("Ingresa un correo válido")
+    .or(z.literal(""))
+    .optional(),
+  phone: z.string().trim().optional(),
 });
 
 type ClientFormValues = z.infer<typeof clientSchema>;
 
+const emptyClientForm: ClientFormValues = {
+  name: "",
+  rif: "",
+  address: "",
+  email: "",
+  phone: "",
+};
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return "Ocurrió un problema al guardar el cliente. Intenta nuevamente.";
+}
+
 export const ClientsPage = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const { clients, addClient, removeClient, updateClient, company } =
     useQuote();
 
   const isCompanyReady = !!company.id;
+  const editingClient = clients.find((client) => client.id === editingId);
+  const trimmedSearch = searchTerm.trim().toLowerCase();
+  const filteredClients = useMemo(() => {
+    if (!trimmedSearch) return clients;
+
+    return clients.filter((client) =>
+      [client.name, client.rif, client.address, client.email, client.phone]
+        .filter(Boolean)
+        .some((value) => value!.toLowerCase().includes(trimmedSearch)),
+    );
+  }, [clients, trimmedSearch]);
 
   const {
     register,
@@ -29,23 +64,16 @@ export const ClientsPage = () => {
   } = useForm<ClientFormValues>({
     resolver: zodResolver(clientSchema),
     defaultValues: {
-      name: "",
-      rif: "",
-      address: "",
+      ...emptyClientForm,
     },
   });
 
   const onSubmit = async (data: ClientFormValues) => {
     try {
-      // Edit client mode
       if (editingId) {
-        updateClient(editingId, data);
+        await updateClient(editingId, data);
         setEditingId(null);
-        reset({
-          name: "",
-          rif: "",
-          address: "",
-        });
+        reset(emptyClientForm);
 
         await Swal.fire({
           icon: "success",
@@ -55,13 +83,8 @@ export const ClientsPage = () => {
           showConfirmButton: false,
         });
       } else {
-        // Add client mode
-        addClient(data);
-        reset({
-          name: "",
-          rif: "",
-          address: "",
-        });
+        await addClient(data);
+        reset(emptyClientForm);
 
         await Swal.fire({
           icon: "success",
@@ -71,14 +94,12 @@ export const ClientsPage = () => {
           showConfirmButton: false,
         });
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error al guardar cliente", err);
       await Swal.fire({
         icon: "error",
         title: "No se pudo guardar el cliente",
-        text:
-          err?.message ??
-          "Ocurrió un problema al guardar el cliente. Intenta nuevamente.",
+        text: getErrorMessage(err),
       });
     }
   };
@@ -97,7 +118,17 @@ export const ClientsPage = () => {
 
     if (!result.isConfirmed) return;
 
-    await removeClient(id);
+    try {
+      await removeClient(id);
+    } catch (err) {
+      console.error("Error al eliminar cliente", err);
+      await Swal.fire({
+        icon: "error",
+        title: "No se pudo eliminar el cliente",
+        text: getErrorMessage(err),
+      });
+      return;
+    }
 
     await Swal.fire({
       icon: "success",
@@ -110,11 +141,7 @@ export const ClientsPage = () => {
     // If you were editing that client, we reset
     if (editingId === id) {
       setEditingId(null);
-      reset({
-        name: "",
-        rif: "",
-        address: "",
-      });
+      reset(emptyClientForm);
     }
   };
 
@@ -124,128 +151,163 @@ export const ClientsPage = () => {
       name: client.name,
       rif: client.rif,
       address: client.address,
+      email: client.email ?? "",
+      phone: client.phone ?? "",
     });
   };
 
   const handleCancelEdit = () => {
     setEditingId(null);
-    reset({
-      name: "",
-      rif: "",
-      address: "",
-    });
+    reset(emptyClientForm);
   };
 
   return (
-    <div className="page">
-      <h1>Clientes</h1>
+    <div className="page clients-page">
+      <div className="clients-header">
+        <div>
+          <h1>Clientes</h1>
+          <p className="clients-subtitle">
+            Mantén a mano los datos que se reutilizan al crear presupuestos.
+          </p>
+        </div>
+        <span className="clients-count">
+          {clients.length} {clients.length === 1 ? "cliente" : "clientes"}
+        </span>
+      </div>
 
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="section">
-          <h2>Nuevo cliente</h2>
+      <section className="clients-panel">
+        <form className="client-form" noValidate onSubmit={handleSubmit(onSubmit)}>
+          <div className="client-form-heading">
+            <h2>{editingId ? "Editar cliente" : "Nuevo cliente"}</h2>
+            {editingClient && (
+              <span className="editing-pill">Editando {editingClient.name}</span>
+            )}
+          </div>
 
           <label>
             <span>Nombre</span>
-            <input {...register("name")} />
+            <input autoComplete="organization" {...register("name")} />
             {errors.name && <p className="form-error">{errors.name.message}</p>}
           </label>
 
           <label>
-            <span>RIF</span>
-            <input {...register("rif")} />
+            <span>RIF/RUT</span>
+            <input autoComplete="off" {...register("rif")} />
             {errors.rif && <p className="form-error">{errors.rif.message}</p>}
           </label>
 
+          <div className="client-form-grid">
+            <label>
+              <span>Correo</span>
+              <input
+                type="email"
+                autoComplete="email"
+                inputMode="email"
+                {...register("email")}
+              />
+              {errors.email && (
+                <p className="form-error">{errors.email.message}</p>
+              )}
+            </label>
+
+            <label>
+              <span>Teléfono</span>
+              <input type="tel" autoComplete="tel" {...register("phone")} />
+              {errors.phone && (
+                <p className="form-error">{errors.phone.message}</p>
+              )}
+            </label>
+          </div>
+
           <label>
             <span>Dirección</span>
-            <textarea
-              {...register("address")}
-              style={{ width: "100%", minHeight: 60 }}
-            />
+            <textarea className="client-address" {...register("address")} />
             {errors.address && (
               <p className="form-error">{errors.address.message}</p>
             )}
           </label>
 
-          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-            <button type="submit">
+          <div className="client-form-actions">
+            <button type="submit" disabled={isSubmitting || !isCompanyReady}>
               {editingId ? "Guardar cambios" : "Agregar cliente"}
             </button>
+
             {!isCompanyReady && (
-              <p className="form-error">
+              <p className="form-error client-form-status">
                 Espera un momento mientras cargamos la empresa
               </p>
             )}
 
             {editingId && (
-              <button
-                type="button"
-                onClick={handleCancelEdit}
-                style={{
-                  backgroundColor: "#111827",
-                  border: "1px solid #374151",
-                }}
-              >
+              <button type="button" onClick={handleCancelEdit}>
                 Cancelar edición
               </button>
             )}
           </div>
-        </div>
-      </form>
+        </form>
+      </section>
 
-      <div className="section">
-        <h2>Listado de clientes</h2>
+      <section className="clients-panel">
+        <div className="clients-list-header">
+          <h2>Listado de clientes</h2>
+          <label className="client-search">
+            <span>Buscar cliente</span>
+            <input
+              type="search"
+              placeholder="Nombre, RIF, correo o teléfono"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+            />
+          </label>
+        </div>
+
         {clients.length === 0 ? (
-          <p>No hay clientes aún.</p>
+          <div className="clients-empty">
+            <strong>No hay clientes aún.</strong>
+            <p>Agrega tu primer cliente para reutilizarlo en presupuestos.</p>
+          </div>
+        ) : filteredClients.length === 0 ? (
+          <div className="clients-empty">
+            <strong>No encontramos coincidencias.</strong>
+            <p>Prueba con otro nombre, RIF, correo o teléfono.</p>
+          </div>
         ) : (
-          <>
-            {clients.map((client: ClientInfo) => (
-              <div
-                className="list-client-page"
-                key={client.id}
-                style={{
-                  marginBottom: 8,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <div>
-                  <strong>{client.name}</strong> — {client.rif}
-                  <br />
-                  <span style={{ fontSize: 12, color: "#9ca3af" }}>
-                    {client.address}
-                  </span>
+          <div className="clients-list">
+            {filteredClients.map((client: ClientInfo) => (
+              <article className="client-list-item" key={client.id}>
+                <div className="client-summary">
+                  <div className="client-title-row">
+                    <strong>{client.name}</strong>
+                    <span>{client.rif}</span>
+                  </div>
+                  <p>{client.address}</p>
+                  {(client.email || client.phone) && (
+                    <div className="client-meta">
+                      {client.email && <span>{client.email}</span>}
+                      {client.phone && <span>{client.phone}</span>}
+                    </div>
+                  )}
                 </div>
-                <div style={{ display: "flex", gap: 6 }}>
+                <div className="client-actions">
                   <button
                     type="button"
                     onClick={() => handleEditClick(client)}
-                    style={{
-                      padding: "0.2rem 0.6rem",
-                      fontSize: "0.75rem",
-                    }}
                   >
                     Editar
                   </button>
                   <button
                     type="button"
                     onClick={() => handleDelete(client.id, client.name)}
-                    style={{
-                      padding: "0.2rem 0.6rem",
-                      fontSize: "0.75rem",
-                    }}
                     disabled={isSubmitting}
                   >
                     Eliminar
                   </button>
                 </div>
-              </div>
+              </article>
             ))}
-          </>
+          </div>
         )}
-      </div>
+      </section>
     </div>
   );
 };

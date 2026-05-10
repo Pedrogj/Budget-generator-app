@@ -267,6 +267,8 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
           name: data.name,
           rif: data.rif,
           address: data.address,
+          email: data.email || null,
+          phone: data.phone || null,
         })
         .eq("id", id)
         .select()
@@ -274,7 +276,7 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         console.error("Error updating client in Supabase", error);
-        return;
+        throw error;
       }
 
       setClients((prev) =>
@@ -299,7 +301,7 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
   const addClient: QuoteContextType["addClient"] = async (data) => {
     if (!company.id) {
       console.warn("No hay company.id aún, no se puede agregar cliente");
-      return;
+      throw new Error("La empresa aún no está lista para agregar clientes");
     }
 
     try {
@@ -310,13 +312,15 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
           name: data.name,
           rif: data.rif,
           address: data.address,
+          email: data.email || null,
+          phone: data.phone || null,
         })
         .select()
         .single();
 
       if (error) {
         console.error("Error inserting client in Supabase", error);
-        return;
+        throw error;
       }
 
       setClients((prev) => [
@@ -342,7 +346,7 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         console.error("Error deleting client in Supabase", error);
-        return;
+        throw error;
       }
 
       setClients((prev) => prev.filter((client) => client.id !== id));

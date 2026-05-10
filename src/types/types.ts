@@ -34,4 +34,6 @@ export interface ClientInfo {
   name: string;
   rif: string;
   address: string;
+  email?: string;
+  phone?: string;
 }

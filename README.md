@@ -111,10 +111,13 @@ Usuario no autenticado
 │
 ├─ Formulario para agregar / editar cliente:
 │    ├─ Nombre
-│    ├─ RIF
+│    ├─ RIF / RUT
+│    ├─ Correo
+│    ├─ Teléfono
 │    └─ Dirección
 │
 └─ Lista de clientes guardados:
+     ├─ Buscar por nombre, RIF, correo o teléfono
      ├─ Editar → Carga datos en el formulario
      └─ Eliminar → Confirmación con SweetAlert2
 ```
@@ -122,7 +125,7 @@ Usuario no autenticado
 - Los clientes están vinculados a la **empresa** del usuario (`company_id`).
 - CRUD completo contra Supabase (`insert`, `update`, `delete`).
 - Los clientes guardados aparecen como opciones seleccionables en el formulario de presupuesto.
-- Validación con **Zod** (mínimo 2 caracteres en cada campo).
+- Validación con **Zod** (campos principales requeridos y correo opcional con formato válido).
 
 ### 4. Creación de Presupuesto
 
@@ -302,6 +305,8 @@ interface ClientInfo {
   name: string;
   rif: string;
   address: string;
+  email?: string;
+  phone?: string;
 }
 
 interface QuoteInfo {
@@ -377,6 +382,17 @@ npm run dev
 | `npm run build` | Compila TypeScript y genera build de producción |
 | `npm run preview` | Sirve el build de producción localmente |
 | `npm run lint` | Ejecuta ESLint sobre el proyecto |
+| `npm test` | Ejecuta la suite de Vitest + Testing Library |
+
+### Testing
+
+El proyecto usa **Vitest**, **jsdom** y **React Testing Library** para pruebas de componentes.
+
+Cobertura actual:
+
+- `LoginPage`: render, validación, submit, error de login y redirección con sesión activa.
+- `RegisterPage`: render, validación, confirmación de contraseña, registro con/sin confirmación de email y redirección con sesión activa.
+- `ClientsPage`: render, validación, agregar, editar, eliminar con confirmación y búsqueda.
 
 ---
 

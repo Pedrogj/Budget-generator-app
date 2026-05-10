@@ -12,6 +12,7 @@ Aplicación web SPA para generar presupuestos profesionales en PDF. Los usuarios
 - **React Hook Form** + **Zod** — formularios con validación de esquemas
 - **@react-pdf/renderer** — generación de PDFs en el cliente
 - **SweetAlert2** — alertas y confirmaciones
+- **Vitest** + **React Testing Library** + **jsdom** — pruebas de componentes
 - **Vanilla CSS** — sin frameworks CSS, se usa la fuente Roboto (Google Fonts)
 
 ## Estructura del Proyecto
@@ -44,7 +45,7 @@ src/
 │   ├── LoginPage/LoginPage.tsx          # Login con email/password
 │   ├── RegisterPage/RegisterPage.tsx    # Registro + auto-login → redirige a /profile
 │   ├── ProfilePage/ProfilePage.tsx      # Config empresa: nombre, RIF, teléfono, dirección, logo, moneda, IVA
-│   ├── ClientsPage/ClientsPage.tsx      # CRUD de clientes (agregar, editar, eliminar)
+│   ├── ClientsPage/ClientsPage.tsx      # CRUD de clientes + búsqueda
 │   ├── QuoteFormPage/QuoteFormPage.tsx  # Formulario de presupuesto con ítems dinámicos (useFieldArray)
 │   └── QuotePreviewPage/QuotePreviewPage.tsx  # Vista previa PDF (PDFViewer) + descarga (PDFDownloadLink)
 │
@@ -101,6 +102,10 @@ auth.users (Supabase Auth)
 **quotes**: id, company_id, client_id, work, issue_date, currency, client_name, client_rif, client_address
 **quote_items**: id, quote_id, code, unit, description, quantity, sg, unit_price
 
+### Clientes
+
+`ClientsPage` permite crear, editar, eliminar y buscar clientes. El formulario persiste `name`, `rif`, `address`, `email` y `phone`; `email` y `phone` son opcionales para la UI, pero si hay correo debe tener formato válido. Las operaciones de clientes en `QuoteContext` deben propagar errores de Supabase para que la página no muestre éxito ante fallos remotos.
+
 ### Migraciones aplicadas
 
 Las migraciones viven en `supabase/migrations/`.
@@ -133,6 +138,17 @@ Estado verificado después de aplicar:
 - **Estilos**: CSS vanilla. Clases globales en `index.css` (`.page`, `.section`, `.form-error`, `.select-form`). Estilos específicos en archivos `.css` junto al componente.
 - **Estado**: React Context API (no Redux/Zustand). Dos providers anidados.
 - **Supabase**: llamadas directas desde los contexts, no hay service layer separado.
+
+## Testing
+
+- Script: `npm test`
+- Stack: Vitest + jsdom + React Testing Library.
+- Setup global: `src/test/setup.ts`.
+- Tests actuales:
+  - `LoginPage.test.tsx`
+  - `RegisterPage.test.tsx`
+  - `ClientsPage.test.tsx`
+- Los tests de páginas mockean `useAuth`, `useQuote` y `sweetalert2` para enfocarse en comportamiento de UI sin depender de Supabase real.
 
 ## Variables de Entorno
 
