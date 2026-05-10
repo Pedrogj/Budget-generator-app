@@ -13,11 +13,15 @@ export interface AuthUser {
   email?: string;
 }
 
+interface RegisterResult {
+  needsEmailConfirmation: boolean;
+}
+
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string) => Promise<RegisterResult>;
   logout: () => Promise<void>;
 }
 
@@ -78,7 +82,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const register = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
     });
@@ -88,18 +92,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       throw error;
     }
 
-    const { data: loginData, error: loginError } =
-      await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+    const sessionUser = data.session?.user ?? null;
+    setUser(mapSupabaseUser(sessionUser));
 
-    if (loginError) {
-      console.log("Error auto-login after register", loginError);
-      throw loginError;
-    }
-
-    setUser(mapSupabaseUser(loginData.user));
+    return {
+      needsEmailConfirmation: !data.session,
+    };
   };
 
   const logout = async () => {
