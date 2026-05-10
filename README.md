@@ -221,8 +221,7 @@ Usuario no autenticado
      └─ Eliminar → confirmación con SweetAlert2
 ```
 
-- Carga `quotes` con sus `quote_items` mediante Supabase.
-- La carga inicial trae solo cabeceras de `quotes` para que la lista aparezca rápido.
+- Carga inicialmente solo cabeceras de `quotes` mediante Supabase para que la lista aparezca rápido y reducir egress de PostgREST.
 - Los `quote_items` se consultan bajo demanda al previsualizar o exportar.
 - Los presupuestos del historial no se editan: la vista previa oculta la acción de edición y el formulario de nuevo presupuesto se abre limpio si el estado venía del historial.
 - Permite reexportar presupuestos guardados con la misma plantilla PDF; la generación del PDF también ocurre bajo demanda.
@@ -311,6 +310,8 @@ El esquema de Supabase se versiona en `supabase/migrations/`.
 - `pg_graphql` está desinstalado porque la app usa Supabase REST (`.from(...)`) y no el endpoint GraphQL.
 - `quotes.notes` es nullable y guarda la nota opcional del presupuesto.
 - `quotes.subtotal`, `quotes.iva`, `quotes.total` y `quotes.iva_rate` se usan para listar el historial sin cargar ítems.
+- Las consultas desde el frontend deben pedir columnas explícitas en vez de `select("*")` para bajar egress y evitar transferir datos que la UI no usa.
+- En desarrollo, React `StrictMode` puede duplicar efectos y hacer que algunas lecturas aparezcan repetidas en los logs de Supabase; validar egress real con build/producción.
 
 Nota: Supabase puede marcar los índices recién creados como `unused_index` hasta que haya tráfico suficiente. No deben eliminarse solo por esa advertencia inicial.
 

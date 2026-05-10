@@ -114,7 +114,7 @@ auth.users (Supabase Auth)
 
 `QuoteFormPage` usa `useFieldArray` para ítems y `useWatch` para calcular subtotal, IVA y total en vivo. La nota del presupuesto es opcional; si se ingresa, se persiste en `quotes.notes` y se imprime en el PDF. `saveQuote()` también persiste `iva_rate`, `subtotal`, `iva` y `total` en `quotes` para acelerar el historial. `setFromForm()` solo debe ejecutarse después de `saveQuote()` exitoso. Si falla la inserción de `quote_items`, `saveQuote()` borra la cabecera `quotes` recién creada como rollback manual.
 
-`HistoryPage` carga inicialmente solo cabeceras desde `quotes` para pintar rápido. Los `quote_items` se consultan bajo demanda al previsualizar o exportar. Al previsualizar desde historial, el presupuesto se marca `readOnly` para ocultar edición y evitar reutilizar esos datos en `/quotes/new`. La generación de PDF también se monta bajo demanda, después de pedir exportar. La eliminación intenta borrar `quotes`; si la FK bloquea por ítems dependientes, borra `quote_items` y reintenta.
+`HistoryPage` carga inicialmente solo cabeceras desde `quotes` para pintar rápido y reducir egress de PostgREST. Los `quote_items` se consultan bajo demanda al previsualizar o exportar. Al previsualizar desde historial, el presupuesto se marca `readOnly` para ocultar edición y evitar reutilizar esos datos en `/quotes/new`. La generación de PDF también se monta bajo demanda, después de pedir exportar. La eliminación intenta borrar `quotes`; si la FK bloquea por ítems dependientes, borra `quote_items` y reintenta.
 
 `QuotePdfDocument` usa una plantilla PDF rediseñada: cabecera con banda superior, logo/datos de empresa, paneles para cliente y trabajo, tabla liviana, notas opcionales y totales destacados.
 
@@ -151,7 +151,8 @@ Estado verificado después de aplicar:
 - **Alertas**: SweetAlert2 para feedback al usuario (éxito, error, confirmación de eliminación).
 - **Estilos**: CSS vanilla en `index.css`. Inputs, textareas y selects comparten estilo base; las páginas usan clases por dominio (`auth-*`, `clients-*`, `quote-*`, `profile-*`).
 - **Estado**: React Context API (no Redux/Zustand). Dos providers anidados.
-- **Supabase**: llamadas directas desde los contexts, no hay service layer separado.
+- **Supabase**: llamadas directas desde los contexts, no hay service layer separado. Usar selects explícitos, no `select("*")`, para bajar egress. Mantener cargas pesadas bajo demanda y considerar paginación si el historial crece.
+- **Desarrollo**: React `StrictMode` puede duplicar efectos y lecturas en logs de Supabase; confirmar tráfico real con build/producción antes de optimizar de más.
 
 ## Testing
 
