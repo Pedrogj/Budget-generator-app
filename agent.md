@@ -44,9 +44,9 @@ src/
 ├── pages/
 │   ├── LoginPage/LoginPage.tsx          # Login con email/password
 │   ├── RegisterPage/RegisterPage.tsx    # Registro + auto-login → redirige a /profile
-│   ├── ProfilePage/ProfilePage.tsx      # Config empresa: nombre, RIF, teléfono, dirección, logo, moneda, IVA
+│   ├── ProfilePage/ProfilePage.tsx      # Config empresa + logo validado/removible
 │   ├── ClientsPage/ClientsPage.tsx      # CRUD de clientes + búsqueda
-│   ├── QuoteFormPage/QuoteFormPage.tsx  # Formulario de presupuesto con ítems dinámicos (useFieldArray)
+│   ├── QuoteFormPage/QuoteFormPage.tsx  # Presupuesto con cliente, ítems dinámicos y totales en vivo
 │   └── QuotePreviewPage/QuotePreviewPage.tsx  # Vista previa PDF (PDFViewer) + descarga (PDFDownloadLink)
 │
 ├── lib/
@@ -106,6 +106,12 @@ auth.users (Supabase Auth)
 
 `ClientsPage` permite crear, editar, eliminar y buscar clientes. El formulario persiste `name`, `rif`, `address`, `email` y `phone`; `email` y `phone` son opcionales para la UI, pero si hay correo debe tener formato válido. Las operaciones de clientes en `QuoteContext` deben propagar errores de Supabase para que la página no muestre éxito ante fallos remotos.
 
+### Empresa y Presupuestos
+
+`ProfilePage` espera `updateCompany()` antes de mostrar éxito. El logo se maneja como Data URL, acepta PNG/JPG, máximo 1 MB y 600x600 px, y puede quitarse. `updateCompany()` debe lanzar errores de Supabase para evitar estado local optimista incorrecto.
+
+`QuoteFormPage` usa `useFieldArray` para ítems y `useWatch` para calcular subtotal, IVA y total en vivo. `setFromForm()` solo debe ejecutarse después de `saveQuote()` exitoso. Si falla la inserción de `quote_items`, `saveQuote()` borra la cabecera `quotes` recién creada como rollback manual.
+
 ### Migraciones aplicadas
 
 Las migraciones viven en `supabase/migrations/`.
@@ -135,7 +141,7 @@ Estado verificado después de aplicar:
 - **Componentes**: exportados como `export const ComponentName`, no default exports.
 - **Formularios**: siempre React Hook Form + Zod resolver. Errores mostrados con `<p className="form-error">`.
 - **Alertas**: SweetAlert2 para feedback al usuario (éxito, error, confirmación de eliminación).
-- **Estilos**: CSS vanilla. Clases globales en `index.css` (`.page`, `.section`, `.form-error`, `.select-form`). Estilos específicos en archivos `.css` junto al componente.
+- **Estilos**: CSS vanilla en `index.css`. Inputs, textareas y selects comparten estilo base; las páginas usan clases por dominio (`auth-*`, `clients-*`, `quote-*`, `profile-*`).
 - **Estado**: React Context API (no Redux/Zustand). Dos providers anidados.
 - **Supabase**: llamadas directas desde los contexts, no hay service layer separado.
 
@@ -148,6 +154,8 @@ Estado verificado después de aplicar:
   - `LoginPage.test.tsx`
   - `RegisterPage.test.tsx`
   - `ClientsPage.test.tsx`
+  - `QuoteFormPage.test.tsx`
+  - `ProfilePage.test.tsx`
 - Los tests de páginas mockean `useAuth`, `useQuote` y `sweetalert2` para enfocarse en comportamiento de UI sin depender de Supabase real.
 
 ## Variables de Entorno
@@ -161,9 +169,9 @@ Accesibles con `import.meta.env.VITE_*`. El archivo `.env` está en `.gitignore`
 
 ## Flujo Principal
 
-1. Usuario se registra → auto-login → redirige a `/profile`
-2. Configura datos de empresa (nombre, RIF, logo, moneda, IVA)
+1. Usuario se registra → si hay sesión redirige a `/profile`; si Supabase requiere confirmación, va a `/login`
+2. Configura datos de empresa (nombre, RIF/RUT, teléfono, dirección, logo, moneda, IVA)
 3. Agrega clientes en `/clients`
-4. Crea presupuesto en `/quotes/new`: selecciona cliente, agrega ítems con precios
-5. Guarda → datos persisten en Supabase → navega a `/quotes/preview`
+4. Crea presupuesto en `/quotes/new`: selecciona cliente, agrega ítems con precios y revisa totales
+5. Guarda → datos persisten en Supabase → actualiza estado local → navega a `/quotes/preview`
 6. Ve el PDF renderizado en el navegador y puede descargarlo

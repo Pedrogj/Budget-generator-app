@@ -97,11 +97,13 @@ Usuario no autenticado
      ├─ Tasa de IVA (%)
      └─ Logo de empresa (imagen, máx. 600x600px)
          └─ Se almacena como Data URL (base64) en la DB
+         └─ Puede reemplazarse o quitarse desde la página
 ```
 
 - El formulario valida con **Zod**: todos los campos son obligatorios, el IVA debe ser entre 0–20%.
-- El logo se valida en el cliente (dimensiones máximas) y se convierte a base64 con `FileReader`.
+- El logo se valida en el cliente (PNG/JPG, máximo 1 MB y dimensiones máximas) y se convierte a base64 con `FileReader`.
 - Solo se guarda si hay cambios reales (comparación campo a campo).
+- El guardado espera la respuesta de Supabase antes de mostrar éxito; si falla, se muestra error con SweetAlert2.
 - La moneda configurada aquí se usa automáticamente en los presupuestos.
 
 ### 3. Gestión de Clientes
@@ -157,14 +159,16 @@ Usuario no autenticado
 └─ [Guardar y ver vista previa]
      ├─ Validación completa con Zod
      ├─ Guarda en Supabase (tabla quotes + quote_items)
+     ├─ Si falla quote_items, revierte la cabecera creada
      ├─ Muestra alerta de éxito
      └─ Navega a /quotes/preview
 ```
 
 - Se usa **`useFieldArray`** de React Hook Form para manejar la lista dinámica de ítems.
-- Validación: al menos un ítem debe tener precio mayor a 0.
+- Validación: cada ítem requiere descripción, cantidad válida y precio mayor a 0.
 - Al guardar, se persisten los datos en dos tablas: `quotes` (cabecera) y `quote_items` (líneas).
 - El formulario permite seleccionar un cliente guardado, lo que auto-completa los campos de cliente.
+- Muestra subtotal, IVA y total estimado en vivo antes de guardar.
 
 ### 5. Vista Previa y Descarga de PDF
 
@@ -393,6 +397,8 @@ Cobertura actual:
 - `LoginPage`: render, validación, submit, error de login y redirección con sesión activa.
 - `RegisterPage`: render, validación, confirmación de contraseña, registro con/sin confirmación de email y redirección con sesión activa.
 - `ClientsPage`: render, validación, agregar, editar, eliminar con confirmación y búsqueda.
+- `QuoteFormPage`: render, totales en vivo, selección de cliente, validación, agregar/eliminar ítems, guardado exitoso/error y link a clientes.
+- `ProfilePage`: render, validación, guardado exitoso/error, quitar logo y validación de tipo de logo.
 
 ---
 
