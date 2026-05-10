@@ -1,9 +1,10 @@
 import { z } from "zod";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   useFieldArray,
   useForm,
+  useWatch,
   type Resolver,
   type SubmitHandler,
 } from "react-hook-form";
@@ -12,33 +13,51 @@ import type { ChangeEvent } from "react";
 import Swal from "sweetalert2";
 
 const itemSchema = z.object({
-  code: z.string().default("NA"),
-  unit: z.string().default("NA"),
-  description: z.string().min(1, "La Descripción es requerida"),
-  quantity: z.coerce.number().min(1, "La cantidad debe ser al menos 1"),
-  sg: z.string().default(""),
-  unitPrice: z.coerce.number().min(1, "Campo de precio sin valor"),
+  code: z.string().trim().default("NA"),
+  unit: z.string().trim().default("NA"),
+  description: z.string().trim().min(1, "La descripción es requerida"),
+  quantity: z.coerce
+    .number({ error: "La cantidad debe ser un número" })
+    .min(1, "La cantidad debe ser al menos 1"),
+  sg: z.string().trim().default(""),
+  unitPrice: z.coerce
+    .number({ error: "El precio debe ser un número" })
+    .positive("El precio debe ser mayor a 0"),
 });
 
-const formSchema = z
-  .object({
-    work: z.string().min(1, "Describe el tipo de Trabajo"),
-    client: z.string().min(1, "Nombre de cliente obligatorio"),
-    clientRif: z.string().min(1, "Número de razón social"),
-    clientAddress: z.string().min(1, "Ingresa una dirección"),
-    clientId: z.string().optional(),
-    issueDate: z
-      .string()
-      .min(1, "La fecha es obligatoria")
-      .regex(/^\d{4}-\d{2}-\d{2}$/, "Formato de fecha inválido"),
-    items: z.array(itemSchema).min(1, "Debes agregar al menos un ítem"),
-  })
-  .refine((data) => data.items.some((i) => i.unitPrice > 0), {
-    message: "Al menos un ítem debe tener precio mayor a 0",
-    path: ["items"],
-  });
+const formSchema = z.object({
+  work: z.string().trim().min(1, "Describe el tipo de trabajo"),
+  client: z.string().trim().min(1, "Selecciona un cliente"),
+  clientRif: z.string().trim().min(1, "Selecciona un cliente con RIF/RUT"),
+  clientAddress: z
+    .string()
+    .trim()
+    .min(1, "Selecciona un cliente con dirección"),
+  clientId: z.string().optional(),
+  issueDate: z
+    .string()
+    .min(1, "La fecha es obligatoria")
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Formato de fecha inválido"),
+  items: z.array(itemSchema).min(1, "Debes agregar al menos un ítem"),
+});
 
 type FormValues = z.infer<typeof formSchema>;
+
+function formatMoney(value: number, currency: "USD" | "CLP") {
+  return new Intl.NumberFormat("es-CL", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: currency === "CLP" ? 0 : 2,
+  }).format(value);
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return "No se pudo guardar el presupuesto en la base de datos. Intenta nuevamente.";
+}
 
 export const QuoteFormPage = () => {
   const navigate = useNavigate();
@@ -54,7 +73,7 @@ export const QuoteFormPage = () => {
     register,
     handleSubmit,
     setValue,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver,
     defaultValues: {
@@ -73,12 +92,24 @@ export const QuoteFormPage = () => {
     name: "items",
   });
 
+  const watchedItems = useWatch({
+    control,
+    name: "items",
+  });
+  const currency = company.defaultCurrency ?? "USD";
   const currencyLabel =
     company.defaultCurrency === "CLP" ? "CLP - Pesos chilenos" : "USD - Dólar";
+  const subtotal = watchedItems.reduce((sum, item) => {
+    const quantity = Number(item.quantity) || 0;
+    const unitPrice = Number(item.unitPrice) || 0;
+    return sum + quantity * unitPrice;
+  }, 0);
+  const ivaRate = Number(company.ivaRate ?? 16);
+  const iva = subtotal * (ivaRate / 100);
+  const total = subtotal + iva;
+  const isCompanyReady = !!company.id;
 
   const onSubmit: SubmitHandler<FormValues> = async (data) => {
-    const currency = company.defaultCurrency ?? "USD";
-
     const payload = {
       quote: {
         work: data.work,
@@ -92,10 +123,9 @@ export const QuoteFormPage = () => {
       items: data.items,
     };
 
-    setFromForm(payload);
-
     try {
       await saveQuote(payload);
+      setFromForm(payload);
 
       await Swal.fire({
         icon: "success",
@@ -111,7 +141,7 @@ export const QuoteFormPage = () => {
       await Swal.fire({
         icon: "error",
         title: "Error al guardar",
-        text: "No se pudo guardar el presupuesto en la base de datos. Intenta nuevamente.",
+        text: getErrorMessage(err),
       });
     }
   };
@@ -120,37 +150,47 @@ export const QuoteFormPage = () => {
     const clientId = e.target.value;
 
     if (!clientId) {
-      setValue("client", "");
-      setValue("clientRif", "");
-      setValue("clientAddress", "");
-      setValue("clientId", "");
+      setValue("client", "", { shouldValidate: true });
+      setValue("clientRif", "", { shouldValidate: true });
+      setValue("clientAddress", "", { shouldValidate: true });
+      setValue("clientId", "", { shouldValidate: true });
       return;
     }
 
     const selected = clients.find((c) => c.id === clientId);
     if (!selected) return;
 
-    setValue("client", selected.name);
-    setValue("clientRif", selected.rif);
-    setValue("clientAddress", selected.address);
-    setValue("clientId", clientId);
+    setValue("client", selected.name, { shouldValidate: true });
+    setValue("clientRif", selected.rif, { shouldValidate: true });
+    setValue("clientAddress", selected.address, { shouldValidate: true });
+    setValue("clientId", clientId, { shouldValidate: true });
   };
 
   return (
-    <div className="page">
-      <h1>Nuevo presupuesto</h1>
+    <div className="page quote-form-page">
+      <div className="quote-form-header">
+        <div>
+          <h1>Nuevo presupuesto</h1>
+          <p className="quote-form-subtitle">
+            Selecciona un cliente, agrega ítems y revisa los totales antes de guardar.
+          </p>
+        </div>
+        <div className="quote-total-badge">
+          <span>Total estimado</span>
+          <strong>{formatMoney(total, currency)}</strong>
+        </div>
+      </div>
 
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form className="quote-form" noValidate onSubmit={handleSubmit(onSubmit)}>
         <input type="hidden" {...register("clientId")} />
-        <div className="section">
+        <section className="quote-panel">
           <h2>Datos del presupuesto</h2>
           <label>
-            <span>Tipo de Obra</span>
-            <input {...register("work")} style={{ width: "100%" }} />
+            <span>Tipo de obra</span>
+            <input {...register("work")} />
             {errors.work && <p className="form-error">{errors.work.message}</p>}
           </label>
 
-          {/* Selector de cliente guardado */}
           <label>
             <span>Seleccionar cliente guardado</span>
             <select
@@ -158,7 +198,7 @@ export const QuoteFormPage = () => {
               onChange={handleClientSelect}
               defaultValue={quote.clientId ?? ""}
             >
-              <option value="">-- Selecciona un cliente --</option>
+              <option value="">Selecciona un cliente</option>
               {clients.map((client) => (
                 <option key={client.id} value={client.id}>
                   {client.name}
@@ -166,90 +206,94 @@ export const QuoteFormPage = () => {
               ))}
             </select>
           </label>
+          {clients.length === 0 && (
+            <p className="quote-client-empty">
+              Aún no tienes clientes guardados.{" "}
+              <Link to="/clients">Agrega uno para continuar</Link>.
+            </p>
+          )}
+
+          <div className="quote-client-grid">
+            <label>
+              <span>Cliente</span>
+              <input {...register("client")} readOnly />
+              {errors.client && (
+                <p className="form-error">{errors.client.message}</p>
+              )}
+            </label>
+
+            <label>
+              <span>RIF/RUT cliente</span>
+              <input {...register("clientRif")} readOnly />
+              {errors.clientRif && (
+                <p className="form-error">{errors.clientRif.message}</p>
+              )}
+            </label>
+          </div>
 
           <label>
-            <span>Cliente</span>
-            <input {...register("client")} readOnly style={{ width: "100%" }} />
-            {errors.client && (
-              <p className="form-error">{errors.client.message}</p>
-            )}
-          </label>
-
-          <label>
-            <span>RIF Cliente</span>
-            <input
-              {...register("clientRif")}
-              readOnly
-              style={{ width: "100%" }}
-            />
-            {errors.clientRif && (
-              <p className="form-error">{errors.clientRif.message}</p>
-            )}
-          </label>
-
-          <label>
-            <span>Dirección Cliente</span>
-            <input
-              {...register("clientAddress")}
-              readOnly
-              style={{ width: "100%" }}
-            />
+            <span>Dirección cliente</span>
+            <input {...register("clientAddress")} readOnly />
             {errors.clientAddress && (
               <p className="form-error">{errors.clientAddress.message}</p>
             )}
           </label>
 
-          <label>
-            <span>Fecha emisión</span>
-            <input
-              type="date"
-              {...register("issueDate")}
-              style={{ width: "100%" }}
-            />
-          </label>
+          <div className="quote-client-grid">
+            <label>
+              <span>Fecha emisión</span>
+              <input type="date" {...register("issueDate")} />
+              {errors.issueDate && (
+                <p className="form-error">{errors.issueDate.message}</p>
+              )}
+            </label>
 
-          <label>
-            <span>Tipo de moneda</span>
-            <input
-              type="text"
-              readOnly
-              value={currencyLabel}
-              style={{ width: "100%" }}
-            />
-          </label>
-          {errors.issueDate && (
-            <p className="form-error">{errors.issueDate.message}</p>
-          )}
+            <label>
+              <span>Tipo de moneda</span>
+              <input type="text" readOnly value={currencyLabel} />
+            </label>
+          </div>
+        </section>
 
-          <p>Ítems</p>
-          {errors.items && <p className="form-error">{errors.items.message}</p>}
-          {fields.map((field, index) => (
-            <div
-              key={field.id}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "0.6fr 0.6fr 2fr 0.6fr 0.6fr 1fr auto",
-                gap: 4,
-                marginBottom: 6,
-              }}
+        <section className="quote-panel">
+          <div className="quote-items-heading">
+            <h2>Ítems</h2>
+            <button
+              type="button"
+              onClick={() =>
+                append({
+                  code: "NA",
+                  unit: "NA",
+                  description: "",
+                  quantity: 1,
+                  sg: "",
+                  unitPrice: 0,
+                })
+              }
             >
-              <div>
+              + Agregar ítem
+            </button>
+          </div>
+          {errors.items && <p className="form-error">{errors.items.message}</p>}
+
+          <div className="quote-items-list">
+            {fields.map((field, index) => (
+              <div className="quote-item-row" key={field.id}>
+                <label>
+                  <span>Código</span>
                 <input
-                  placeholder="Código"
                   {...register(`items.${index}.code` as const)}
                 />
-              </div>
+                </label>
 
-              <div>
-                <input
-                  placeholder="UND"
-                  {...register(`items.${index}.unit` as const)}
-                />
-              </div>
+                <label>
+                  <span>UND</span>
+                  <input {...register(`items.${index}.unit` as const)} />
+                </label>
 
-              <div>
+                <label className="quote-description-field">
+                  <span>Descripción</span>
                 <input
-                  placeholder="Descripción"
                   {...register(`items.${index}.description` as const)}
                 />
                 {errors.items?.[index]?.description && (
@@ -257,12 +301,15 @@ export const QuoteFormPage = () => {
                     {errors.items[index]?.description?.message}
                   </p>
                 )}
-              </div>
+                </label>
 
-              <div>
+                <label>
+                  <span>Cant.</span>
                 <input
                   type="number"
-                  placeholder="Cant."
+                    min="1"
+                    step="1"
+                    inputMode="numeric"
                   {...register(`items.${index}.quantity` as const)}
                 />
                 {errors.items?.[index]?.quantity && (
@@ -270,19 +317,20 @@ export const QuoteFormPage = () => {
                     {errors.items[index]?.quantity?.message}
                   </p>
                 )}
-              </div>
+                </label>
 
-              <div>
-                <input
-                  placeholder="SG"
-                  {...register(`items.${index}.sg` as const)}
-                />
-              </div>
+                <label>
+                  <span>SG</span>
+                  <input {...register(`items.${index}.sg` as const)} />
+                </label>
 
-              <div>
+                <label>
+                  <span>P/unit.</span>
                 <input
                   type="number"
-                  placeholder="P/Unit."
+                    min="0"
+                    step="0.01"
+                    inputMode="decimal"
                   {...register(`items.${index}.unitPrice` as const)}
                 />
                 {errors.items?.[index]?.unitPrice && (
@@ -290,40 +338,46 @@ export const QuoteFormPage = () => {
                     {errors.items[index]?.unitPrice?.message}
                   </p>
                 )}
-              </div>
+                </label>
 
               <button
+                  className="quote-remove-item"
                 type="button"
                 onClick={() => remove(index)}
-                disabled={fields.length === 1} // no permitir dejar 0 ítems
-                style={{
-                  padding: "0.2rem 0.5rem",
-                  fontSize: "0.75rem",
-                }}
+                  disabled={fields.length === 1}
+                  aria-label={`Eliminar ítem ${index + 1}`}
               >
                 ✕
               </button>
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={() =>
-              append({
-                code: "NA",
-                unit: "NA",
-                description: "",
-                quantity: 1,
-                sg: "",
-                unitPrice: 0,
-              })
-            }
-          >
-            + Agregar ítem
-          </button>
-
-          <div style={{ marginTop: 16 }}>
-            <button type="submit">Guardar y ver vista previa</button>
+              </div>
+            ))}
           </div>
+
+          <div className="quote-totals">
+            <div>
+              <span>Subtotal</span>
+              <strong>{formatMoney(subtotal, currency)}</strong>
+            </div>
+            <div>
+              <span>IVA ({ivaRate}%)</span>
+              <strong>{formatMoney(iva, currency)}</strong>
+            </div>
+            <div className="quote-total-row">
+              <span>Total</span>
+              <strong>{formatMoney(total, currency)}</strong>
+            </div>
+          </div>
+        </section>
+
+        <div className="quote-submit-row">
+          {!isCompanyReady && (
+            <p className="form-error">
+              Espera un momento mientras cargamos la empresa.
+            </p>
+          )}
+          <button type="submit" disabled={isSubmitting || !isCompanyReady}>
+            {isSubmitting ? "Guardando..." : "Guardar y ver vista previa"}
+          </button>
         </div>
       </form>
     </div>

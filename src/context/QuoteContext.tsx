@@ -400,6 +400,7 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
 
     if (itemsError) {
       console.error("Error inserting quote items in Supabase", itemsError);
+      await supabase.from("quotes").delete().eq("id", quoteId);
       throw itemsError;
     }
 
