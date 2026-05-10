@@ -101,6 +101,29 @@ auth.users (Supabase Auth)
 **quotes**: id, company_id, client_id, work, issue_date, currency, client_name, client_rif, client_address
 **quote_items**: id, quote_id, code, unit, description, quantity, sg, unit_price
 
+### Migraciones aplicadas
+
+Las migraciones viven en `supabase/migrations/`.
+
+- `20260510120000_optimize_security_rls_indexes.sql`
+  - Agrega índices en FKs/RLS: `companies.profile_id`, `clients.company_id`, `quotes.company_id`, `quotes.client_id`, `quote_items.quote_id`.
+  - Endurece funciones internas con `search_path = ''`.
+  - Revoca ejecución de `handle_new_user()` y `set_current_timestamp_updated_at()` para `public`, `anon` y `authenticated`.
+  - Revoca permisos directos de tablas al rol `anon`.
+  - Optimiza políticas RLS usando `(select auth.uid())`.
+- `20260510121500_finish_quote_items_and_disable_graphql.sql`
+  - Rehace las políticas restantes de `quote_items` con `(select auth.uid())`.
+  - Desinstala `pg_graphql`; la app usa PostgREST vía `supabase.from(...)`, no GraphQL.
+
+Estado verificado después de aplicar:
+
+- Sin warnings de FKs sin índice.
+- Sin warnings de `function_search_path_mutable`.
+- Sin warnings de funciones `SECURITY DEFINER` ejecutables por `anon`/`authenticated`.
+- Sin warnings de RLS initPlan.
+- `unused_index` puede aparecer en Supabase Advisor hasta que haya tráfico real; no eliminar esos índices por esa señal inicial.
+- Queda pendiente activar `Leaked Password Protection` desde Supabase Dashboard > Auth, porque no se resuelve con SQL de migración.
+
 ## Convenciones de Código
 
 - **Idioma**: UI en español, código/variables en inglés.

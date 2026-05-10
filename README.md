@@ -233,6 +233,11 @@ src/
 │
 └── types/
     └── types.ts                       # Interfaces TypeScript
+
+supabase/
+└── migrations/
+    ├── 20260510120000_optimize_security_rls_indexes.sql
+    └── 20260510121500_finish_quote_items_and_disable_graphql.sql
 ```
 
 ---
@@ -249,6 +254,20 @@ La aplicación utiliza las siguientes tablas en PostgreSQL (vía Supabase):
 | `clients` | Clientes vinculados a una empresa |
 | `quotes` | Cabecera de cada presupuesto generado |
 | `quote_items` | Ítems/líneas de cada presupuesto |
+
+### Migraciones y Seguridad
+
+El esquema de Supabase se versiona en `supabase/migrations/`.
+
+- Todas las tablas públicas usan RLS y las políticas limitan el acceso al usuario autenticado dueño de la empresa.
+- Las políticas usan `(select auth.uid())` para mejorar el rendimiento de RLS.
+- Existen índices para las claves foráneas y predicados usados por RLS:
+  `companies.profile_id`, `clients.company_id`, `quotes.company_id`,
+  `quotes.client_id` y `quote_items.quote_id`.
+- Las funciones internas `handle_new_user()` y `set_current_timestamp_updated_at()` tienen `search_path` fijo y no son ejecutables por `anon` ni `authenticated`.
+- `pg_graphql` está desinstalado porque la app usa Supabase REST (`.from(...)`) y no el endpoint GraphQL.
+
+Nota: Supabase puede marcar los índices recién creados como `unused_index` hasta que haya tráfico suficiente. No deben eliminarse solo por esa advertencia inicial.
 
 ### Relaciones
 
