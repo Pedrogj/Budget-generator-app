@@ -1,8 +1,12 @@
-import { PDFDownloadLink, PDFViewer } from "@react-pdf/renderer";
+import { pdf, PDFViewer } from "@react-pdf/renderer";
 import { Link } from "react-router-dom";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuote } from "../../context/QuoteContext";
 import { QuotePdfDocument } from "../../components/QuotePdfDocument";
+import {
+  createQuotePdfSignedUrl,
+  uploadQuotePdf,
+} from "../../lib/quotePdfStorage";
 
 function formatMoney(value: number, currency: "USD" | "CLP") {
   return new Intl.NumberFormat("es-CL", {
@@ -25,9 +29,11 @@ function toFileSlug(value: string) {
 }
 
 export const QuotePreviewPage = () => {
-  const { company, quote, items } = useQuote();
+  const { company, quote, items, selectedTemplate, setFromForm } = useQuote();
+  const [isDownloading, setIsDownloading] = useState(false);
   const currency = quote.currency ?? company.defaultCurrency ?? "USD";
   const isReadOnly = quote.readOnly === true;
+  const hasStoredPreview = isReadOnly && !!quote.pdfPreviewUrl;
   const subtotal = items.reduce((sum, item) => {
     return sum + Number(item.quantity || 0) * Number(item.unitPrice || 0);
   }, 0);
@@ -35,12 +41,84 @@ export const QuotePreviewPage = () => {
   const iva = subtotal * (ivaRate / 100);
   const total = subtotal + iva;
   const hasQuoteData =
-    quote.work.trim() && quote.client.trim() && items.some((item) => item.description.trim());
+    quote.work.trim() &&
+    quote.client.trim() &&
+    (hasStoredPreview || items.some((item) => item.description.trim()));
   const fileName = `presupuesto-${toFileSlug(quote.client)}-${quote.issueDate || "sin-fecha"}.pdf`;
   const pdfDocument = useMemo(
-    () => <QuotePdfDocument company={company} quote={quote} items={items} />,
-    [company, items, quote],
+    () => (
+      <QuotePdfDocument
+        company={company}
+        quote={quote}
+        items={items}
+        templateId={selectedTemplate}
+      />
+    ),
+    [company, items, quote, selectedTemplate],
   );
+
+  const downloadBlob = (blob: Blob) => {
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = fileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const downloadUrl = (url: string) => {
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.rel = "noopener";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+  };
+
+  const handleDownload = async () => {
+    setIsDownloading(true);
+
+    try {
+      if (quote.pdfPreviewUrl) {
+        downloadUrl(quote.pdfPreviewUrl);
+        return;
+      }
+
+      if (quote.pdfPath && quote.pdfTemplateId === selectedTemplate) {
+        const signedUrl = await createQuotePdfSignedUrl(quote.pdfPath, fileName);
+        downloadUrl(signedUrl);
+        return;
+      }
+
+      const pdfBlob = await pdf(pdfDocument).toBlob();
+
+      if (company.id && quote.id) {
+        const storedPdf = await uploadQuotePdf({
+          companyId: company.id,
+          quoteId: quote.id,
+          fileName,
+          pdfBlob,
+          templateId: selectedTemplate,
+        });
+
+        setFromForm({
+          quote: {
+            ...quote,
+            pdfPath: storedPdf.path,
+            pdfTemplateId: storedPdf.templateId,
+            pdfGeneratedAt: storedPdf.generatedAt,
+          },
+          items,
+        });
+      }
+
+      downloadBlob(pdfBlob);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   if (!hasQuoteData) {
     return (
@@ -77,17 +155,28 @@ export const QuotePreviewPage = () => {
               Editar
             </Link>
           )}
-          <PDFDownloadLink
+          {!hasStoredPreview && (
+            <Link className="quote-preview-secondary" to="/quotes/templates">
+              Modelos
+            </Link>
+          )}
+          <button
+            type="button"
             className="quote-preview-action"
-            document={pdfDocument}
-            fileName={fileName}
+            onClick={() => void handleDownload()}
+            disabled={isDownloading}
           >
-            {({ loading }) => (loading ? "Generando PDF..." : "Descargar PDF")}
-          </PDFDownloadLink>
+            {isDownloading ? "Generando PDF..." : "Descargar PDF"}
+          </button>
         </div>
       </div>
 
-      <section className="quote-preview-summary" aria-label="Resumen del presupuesto">
+      <section
+        className={`quote-preview-summary ${
+          hasStoredPreview ? "quote-preview-summary-stored" : ""
+        }`}
+        aria-label="Resumen del presupuesto"
+      >
         <div>
           <span>Cliente</span>
           <strong>{quote.client}</strong>
@@ -96,28 +185,41 @@ export const QuotePreviewPage = () => {
           <span>Obra</span>
           <strong>{quote.work}</strong>
         </div>
-        <div>
-          <span>Ítems</span>
-          <strong>{items.length}</strong>
-        </div>
+        {!hasStoredPreview && (
+          <div>
+            <span>Ítems</span>
+            <strong>{items.length}</strong>
+          </div>
+        )}
         <div>
           <span>Total</span>
-          <strong>{formatMoney(total, currency)}</strong>
+          <strong>
+            {hasStoredPreview ? "PDF guardado" : formatMoney(total, currency)}
+          </strong>
         </div>
       </section>
 
       <section className="quote-preview-panel">
-        <PDFViewer className="quote-preview-viewer">{pdfDocument}</PDFViewer>
+        {hasStoredPreview ? (
+          <iframe
+            className="quote-preview-viewer"
+            src={quote.pdfPreviewUrl}
+            title="PDF guardado del presupuesto"
+          />
+        ) : (
+          <PDFViewer className="quote-preview-viewer">{pdfDocument}</PDFViewer>
+        )}
       </section>
 
       <div className="quote-preview-mobile-actions">
-        <PDFDownloadLink
+        <button
+          type="button"
           className="quote-preview-action"
-          document={pdfDocument}
-          fileName={fileName}
+          onClick={() => void handleDownload()}
+          disabled={isDownloading}
         >
-          {({ loading }) => (loading ? "Generando PDF..." : "Descargar PDF")}
-        </PDFDownloadLink>
+          {isDownloading ? "Generando PDF..." : "Descargar PDF"}
+        </button>
       </div>
     </div>
   );

@@ -29,13 +29,15 @@ src/
 │   │                            Expone: user, loading, login(), register(), logout()
 │   └── QuoteContext.tsx         # Provider de estado global (empresa, clientes, presupuesto)
 │                                Expone: company, quote, items, clients,
+│                                selectedTemplate, setQuoteTemplate(),
 │                                setFromForm(), updateCompany(), addClient(),
 │                                removeClient(), updateClient(), saveQuote()
 │
 ├── components/
 │   ├── index.ts                 # Barrel export (solo Navbar por ahora)
+│   ├── quoteTemplates.ts        # Catálogo de modelos PDF disponibles
 │   ├── Navbar/
-│   │   ├── Navbar.tsx           # Barra sticky responsive, marca clickeable y menú móvil
+│   │   ├── Navbar.tsx           # Sidebar desktop, topbar sticky con empresa y menú móvil
 │   │   └── Navbar.css           # Estilos del navbar (dark theme, responsive)
 │   ├── RequiredAuth/
 │   │   └── RequiredAuth.tsx     # HOC guardia de rutas: redirige a /login si no hay sesión
@@ -48,6 +50,7 @@ src/
 │   ├── ClientsPage/ClientsPage.tsx      # CRUD de clientes + búsqueda
 │   ├── QuoteFormPage/QuoteFormPage.tsx  # Presupuesto con cliente, ítems dinámicos y totales en vivo
 │   ├── QuotePreviewPage/QuotePreviewPage.tsx  # Vista previa PDF (PDFViewer) + descarga (PDFDownloadLink)
+│   ├── QuoteTemplatesPage/QuoteTemplatesPage.tsx  # Catálogo visual de modelos PDF
 │   └── HistoryPage/HistoryPage.tsx      # Historial de presupuestos guardados + exportar/eliminar
 │
 ├── lib/
@@ -81,6 +84,7 @@ BrowserRouter
 | `/quotes/new` | Protegido | QuoteFormPage | Nuevo presupuesto |
 | `/quotes/preview` | Protegido | QuotePreviewPage | Vista previa + descarga PDF |
 | `/quotes/history` | Protegido | HistoryPage | Historial + reexportar/eliminar presupuestos |
+| `/quotes/templates` | Protegido | QuoteTemplatesPage | Catálogo y selección de modelos PDF |
 | `/profile` | Protegido | ProfilePage | Datos de empresa |
 | `/clients` | Protegido | ClientsPage | Gestión de clientes |
 | `*` | — | `<p>` | 404 |
@@ -101,8 +105,9 @@ auth.users (Supabase Auth)
 
 **companies**: id, profile_id, name, rif, phone, address_lines, logo_url, default_currency, iva_rate
 **clients**: id, company_id, name, rif, address, email, phone
-**quotes**: id, company_id, client_id, work, issue_date, currency, client_name, client_rif, client_address, notes, iva_rate, subtotal, iva, total
+**quotes**: id, company_id, client_id, work, issue_date, currency, client_name, client_rif, client_address, notes, iva_rate, subtotal, iva, total, pdf_path, pdf_template_id, pdf_generated_at
 **quote_items**: id, quote_id, code, unit, description, quantity, sg, unit_price
+**storage bucket `quote-pdfs`**: PDFs generados, ruta `userId/companyId/quoteId/file-template-version.pdf`, bucket privado.
 
 ### Clientes
 
@@ -112,11 +117,13 @@ auth.users (Supabase Auth)
 
 `ProfilePage` espera `updateCompany()` antes de mostrar éxito. El logo se maneja como Data URL, acepta PNG/JPG, máximo 1 MB y 600x600 px, y puede quitarse. `updateCompany()` debe lanzar errores de Supabase para evitar estado local optimista incorrecto.
 
-`QuoteFormPage` usa `useFieldArray` para ítems y `useWatch` para calcular subtotal, IVA y total en vivo. La nota del presupuesto es opcional; si se ingresa, se persiste en `quotes.notes` y se imprime en el PDF. `saveQuote()` también persiste `iva_rate`, `subtotal`, `iva` y `total` en `quotes` para acelerar el historial. `setFromForm()` solo debe ejecutarse después de `saveQuote()` exitoso. Si falla la inserción de `quote_items`, `saveQuote()` borra la cabecera `quotes` recién creada como rollback manual.
+`QuoteFormPage` usa `useFieldArray` para ítems y `useWatch` para calcular subtotal, IVA y total en vivo. La nota del presupuesto es opcional; si se ingresa, se persiste en `quotes.notes` y se imprime en el PDF. `saveQuote()` también persiste `iva_rate`, `subtotal`, `iva` y `total` en `quotes` para acelerar el historial. Después de guardar datos, genera el PDF en cliente con `pdf(...).toBlob()`, lo sube a Storage mediante `uploadQuotePdf()` y actualiza `quotes.pdf_path`, `pdf_template_id` y `pdf_generated_at`. `setFromForm()` solo debe ejecutarse después de `saveQuote()` exitoso. Si falla la inserción de `quote_items`, `saveQuote()` borra la cabecera `quotes` recién creada como rollback manual.
 
-`HistoryPage` carga inicialmente solo cabeceras desde `quotes` para pintar rápido y reducir egress de PostgREST. Los `quote_items` se consultan bajo demanda al previsualizar o exportar. Al previsualizar desde historial, el presupuesto se marca `readOnly` para ocultar edición y evitar reutilizar esos datos en `/quotes/new`. La generación de PDF también se monta bajo demanda, después de pedir exportar. La eliminación intenta borrar `quotes`; si la FK bloquea por ítems dependientes, borra `quote_items` y reintenta.
+`HistoryPage` carga inicialmente solo cabeceras desde `quotes` para pintar rápido y reducir egress de PostgREST. Si un presupuesto tiene `pdf_path`, previsualizar crea una URL firmada y manda `pdfPreviewUrl` a `QuotePreviewPage`; así se muestra el PDF histórico guardado y no se reaplica el modelo seleccionado actualmente. Los `quote_items` se consultan bajo demanda solo cuando hay que regenerar/exportar sin PDF reutilizable. Al exportar, si existe `pdf_path` con el mismo `pdf_template_id` seleccionado, usa URL firmada de Storage; si no, regenera el PDF, lo sube y descarga el blob. La eliminación intenta borrar el PDF de Storage y luego `quotes`; si la FK bloquea por ítems dependientes, borra `quote_items` y reintenta. Fallos al borrar Storage se registran como warning para no bloquear la eliminación del presupuesto.
 
-`QuotePdfDocument` usa una plantilla PDF rediseñada: cabecera con banda superior, logo/datos de empresa, paneles para cliente y trabajo, tabla liviana, notas opcionales y totales destacados.
+`QuoteTemplatesPage` muestra un catálogo visual de modelos y actualiza `selectedTemplate` en `QuoteContext`. La preferencia se guarda en `localStorage` con la clave `presupuesta.quoteTemplate`. No persiste en Supabase ni altera presupuestos históricos.
+
+`QuotePdfDocument` recibe `templateId` y usa una plantilla PDF parametrizada. Modelos actuales: `professional`, `classic` y `compact`. Comparten los mismos datos, pero cambian acentos, densidad, cabecera, tabla y totales.
 
 ### Migraciones aplicadas
 
@@ -133,6 +140,10 @@ Las migraciones viven en `supabase/migrations/`.
   - Desinstala `pg_graphql`; la app usa PostgREST vía `supabase.from(...)`, no GraphQL.
 - `20260510163000_add_quote_notes.sql`
   - Agrega `quotes.notes` como `text` nullable para notas opcionales del presupuesto.
+- `20260511193000_add_quote_pdf_storage.sql`
+  - Crea/actualiza el bucket privado `quote-pdfs`.
+  - Agrega `pdf_path`, `pdf_template_id` y `pdf_generated_at` en `quotes`.
+  - Crea políticas de Storage para que cada usuario autenticado solo pueda leer/subir PDFs bajo su carpeta `auth.uid()`.
 
 Estado verificado después de aplicar:
 
@@ -149,7 +160,7 @@ Estado verificado después de aplicar:
 - **Componentes**: exportados como `export const ComponentName`, no default exports.
 - **Formularios**: siempre React Hook Form + Zod resolver. Errores mostrados con `<p className="form-error">`.
 - **Alertas**: SweetAlert2 para feedback al usuario (éxito, error, confirmación de eliminación).
-- **Estilos**: CSS vanilla en `index.css`. Inputs, textareas y selects comparten estilo base; las páginas usan clases por dominio (`auth-*`, `clients-*`, `quote-*`, `profile-*`).
+- **Estilos**: CSS vanilla en `index.css`. Inputs, textareas y selects comparten estilo base; las páginas usan clases por dominio (`auth-*`, `clients-*`, `quote-*`, `profile-*`). En desktop, `.app` usa layout de sidebar fijo de 260px más topbar sticky con nombre de empresa y cierre de sesión; en móvil vuelve a navegación superior.
 - **Estado**: React Context API (no Redux/Zustand). Dos providers anidados.
 - **Supabase**: llamadas directas desde los contexts, no hay service layer separado. Usar selects explícitos, no `select("*")`, para bajar egress. Mantener cargas pesadas bajo demanda y considerar paginación si el historial crece.
 - **Desarrollo**: React `StrictMode` puede duplicar efectos y lecturas en logs de Supabase; confirmar tráfico real con build/producción antes de optimizar de más.
@@ -165,6 +176,7 @@ Estado verificado después de aplicar:
   - `ClientsPage.test.tsx`
   - `QuoteFormPage.test.tsx`
   - `QuotePreviewPage.test.tsx`
+  - `QuoteTemplatesPage.test.tsx`
   - `HistoryPage.test.tsx`
   - `Navbar.test.tsx`
   - `ProfilePage.test.tsx`
@@ -187,4 +199,5 @@ Accesibles con `import.meta.env.VITE_*`. El archivo `.env` está en `.gitignore`
 4. Crea presupuesto en `/quotes/new`: selecciona cliente, agrega ítems con precios y revisa totales
 5. Guarda → datos persisten en Supabase → actualiza estado local → navega a `/quotes/preview`
 6. Ve el PDF renderizado en el navegador y puede descargarlo
-7. Consulta `/quotes/history` para reexportar o eliminar presupuestos guardados
+7. Puede elegir modelo en `/quotes/templates`; el modelo se aplica al preview y a la exportación desde historial
+8. Consulta `/quotes/history` para reexportar o eliminar presupuestos guardados

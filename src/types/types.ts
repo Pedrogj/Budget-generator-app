@@ -7,6 +7,8 @@ export interface QuoteItem {
   unitPrice: number;
 }
 
+export type QuoteTemplateId = "professional" | "classic" | "compact";
+
 export interface CompanyInfo {
   id?: string;
   name: string;
@@ -29,6 +31,10 @@ export interface QuoteInfo {
   currency: "USD" | "CLP";
   notes?: string;
   readOnly?: boolean;
+  pdfPath?: string;
+  pdfTemplateId?: QuoteTemplateId;
+  pdfGeneratedAt?: string;
+  pdfPreviewUrl?: string;
 }
 
 export interface ClientInfo {

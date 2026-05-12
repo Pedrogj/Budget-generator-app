@@ -10,6 +10,7 @@ import type {
   QuoteInfo,
   QuoteItem,
   ClientInfo,
+  QuoteTemplateId,
 } from "../types/types";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "./AuthContext";
@@ -17,14 +18,17 @@ import { useAuth } from "./AuthContext";
 const companySelect =
   "id,name,rif,phone,address_lines,logo_url,default_currency,iva_rate";
 const clientSelect = "id,name,rif,address,email,phone";
+const quoteTemplateStorageKey = "presupuesta.quoteTemplate";
 
 interface QuoteContextType {
   company: CompanyInfo;
   quote: QuoteInfo;
   items: QuoteItem[];
   clients: ClientInfo[];
+  selectedTemplate: QuoteTemplateId;
 
   setFromForm: (data: { quote: QuoteInfo; items: QuoteItem[] }) => void;
+  setQuoteTemplate: (templateId: QuoteTemplateId) => void;
   updateCompany: (company: CompanyInfo) => Promise<void>;
   addClient: (data: Omit<ClientInfo, "id">) => Promise<void>;
   removeClient: (id: string) => Promise<void>;
@@ -73,6 +77,21 @@ const initialItems: QuoteItem[] = [
 
 const initialClients: ClientInfo[] = [];
 
+function getInitialQuoteTemplate(): QuoteTemplateId {
+  if (typeof window === "undefined") return "professional";
+
+  const stored = window.localStorage.getItem(quoteTemplateStorageKey);
+  if (
+    stored === "professional" ||
+    stored === "classic" ||
+    stored === "compact"
+  ) {
+    return stored;
+  }
+
+  return "professional";
+}
+
 export const QuoteProvider = ({ children }: { children: ReactNode }) => {
   const { user, loading: authLoading } = useAuth();
 
@@ -80,6 +99,8 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
   const [quote, setQuote] = useState<QuoteInfo>(initialQuote);
   const [items, setItems] = useState<QuoteItem[]>(initialItems);
   const [clients, setClients] = useState<ClientInfo[]>(initialClients);
+  const [selectedTemplate, setSelectedTemplate] =
+    useState<QuoteTemplateId>(getInitialQuoteTemplate);
 
   useEffect(() => {
     // 1) Esperamos a saber si hay usuario
@@ -190,6 +211,13 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
   const setFromForm: QuoteContextType["setFromForm"] = (data) => {
     setQuote(data.quote);
     setItems(data.items);
+  };
+
+  const setQuoteTemplate: QuoteContextType["setQuoteTemplate"] = (
+    templateId,
+  ) => {
+    setSelectedTemplate(templateId);
+    window.localStorage.setItem(quoteTemplateStorageKey, templateId);
   };
 
   const updateCompany: QuoteContextType["updateCompany"] = async (
@@ -442,7 +470,9 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
         quote,
         items,
         clients,
+        selectedTemplate,
         setFromForm,
+        setQuoteTemplate,
         updateCompany,
         addClient,
         removeClient,

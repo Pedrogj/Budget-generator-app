@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { Link, useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { pdf } from "@react-pdf/renderer";
 import {
   useFieldArray,
   useForm,
@@ -11,6 +12,8 @@ import {
 import { useQuote } from "../../context/QuoteContext";
 import type { ChangeEvent } from "react";
 import Swal from "sweetalert2";
+import { QuotePdfDocument } from "../../components/QuotePdfDocument";
+import { uploadQuotePdf } from "../../lib/quotePdfStorage";
 
 const itemSchema = z.object({
   code: z.string().trim().default("NA"),
@@ -69,10 +72,30 @@ function getErrorMessage(error: unknown) {
   return "No se pudo guardar el presupuesto en la base de datos. Intenta nuevamente.";
 }
 
+function toFileSlug(value: string) {
+  const normalized = value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return normalized || "cliente";
+}
+
 export const QuoteFormPage = () => {
   const navigate = useNavigate();
 
-  const { quote, items, setFromForm, clients, company, saveQuote } = useQuote();
+  const {
+    quote,
+    items,
+    selectedTemplate,
+    setFromForm,
+    clients,
+    company,
+    saveQuote,
+  } = useQuote();
   const shouldIgnoreCurrentQuote = quote.readOnly === true;
 
   const resolver: Resolver<FormValues> = zodResolver(
@@ -140,13 +163,57 @@ export const QuoteFormPage = () => {
     };
 
     try {
-      await saveQuote(payload);
-      setFromForm(payload);
+      const quoteId = await saveQuote(payload);
+      const savedQuote = {
+        ...payload.quote,
+        id: quoteId,
+        pdfTemplateId: selectedTemplate,
+      };
+      const fileName = `presupuesto-${toFileSlug(data.client)}-${
+        data.issueDate || "sin-fecha"
+      }.pdf`;
+      let storedPdf:
+        | Awaited<ReturnType<typeof uploadQuotePdf>>
+        | null = null;
+
+      try {
+        const pdfBlob = await pdf(
+          <QuotePdfDocument
+            company={company}
+            quote={savedQuote}
+            items={payload.items}
+            templateId={selectedTemplate}
+          />,
+        ).toBlob();
+        storedPdf = await uploadQuotePdf({
+          companyId: company.id!,
+          quoteId,
+          fileName,
+          pdfBlob,
+          templateId: selectedTemplate,
+        });
+      } catch (pdfError) {
+        console.error("Error uploading quote PDF to storage", pdfError);
+      }
+
+      setFromForm({
+        quote: storedPdf
+          ? {
+              ...savedQuote,
+              pdfPath: storedPdf.path,
+              pdfGeneratedAt: storedPdf.generatedAt,
+              pdfTemplateId: storedPdf.templateId,
+            }
+          : savedQuote,
+        items: payload.items,
+      });
 
       await Swal.fire({
-        icon: "success",
-        title: "Presupuesto listo",
-        text: "Los datos se guardaron correctamente. Ahora verás la vista previa del PDF.",
+        icon: storedPdf ? "success" : "warning",
+        title: storedPdf ? "Presupuesto listo" : "Presupuesto guardado",
+        text: storedPdf
+          ? "Los datos se guardaron correctamente. Ahora verás la vista previa del PDF."
+          : "Los datos se guardaron correctamente, pero no se pudo subir el PDF a Storage. Se reintentará al descargar o exportar.",
         timer: 1700,
         showConfirmButton: false,
       });

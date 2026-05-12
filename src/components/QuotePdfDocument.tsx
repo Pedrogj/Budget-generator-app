@@ -6,12 +6,18 @@ import {
   StyleSheet,
   Image,
 } from "@react-pdf/renderer";
-import type { CompanyInfo, QuoteInfo, QuoteItem } from "../types/types";
+import type {
+  CompanyInfo,
+  QuoteInfo,
+  QuoteItem,
+  QuoteTemplateId,
+} from "../types/types";
 
 interface Props {
   items: QuoteItem[];
   company: CompanyInfo;
   quote: QuoteInfo;
+  templateId?: QuoteTemplateId;
 }
 
 const colors = {
@@ -246,6 +252,71 @@ const styles = StyleSheet.create({
   },
 });
 
+const templateStyles: Record<
+  QuoteTemplateId,
+  {
+    accent: string;
+    header: string;
+    panel: string;
+    topBar: string;
+    tableHeader: string;
+    tableHeaderText: string;
+    statusBackground: string;
+    statusText: string;
+    pagePadding: number;
+    rowMinHeight: number;
+    cellPadding: number;
+    footerMarginTop: number;
+    showTopBar: boolean;
+  }
+> = {
+  professional: {
+    accent: "#0284c7",
+    header: "#0f172a",
+    panel: "#f8fafc",
+    topBar: "#0f172a",
+    tableHeader: "#0f172a",
+    tableHeaderText: "#ffffff",
+    statusBackground: "#e0f2fe",
+    statusText: "#075985",
+    pagePadding: 24,
+    rowMinHeight: 24,
+    cellPadding: 6,
+    footerMarginTop: 18,
+    showTopBar: true,
+  },
+  classic: {
+    accent: "#111827",
+    header: "#111827",
+    panel: "#ffffff",
+    topBar: "#111827",
+    tableHeader: "#e5e7eb",
+    tableHeaderText: "#111827",
+    statusBackground: "#ffffff",
+    statusText: "#111827",
+    pagePadding: 28,
+    rowMinHeight: 24,
+    cellPadding: 6,
+    footerMarginTop: 18,
+    showTopBar: false,
+  },
+  compact: {
+    accent: "#0f766e",
+    header: "#134e4a",
+    panel: "#f0fdfa",
+    topBar: "#0f766e",
+    tableHeader: "#0f766e",
+    tableHeaderText: "#ffffff",
+    statusBackground: "#ccfbf1",
+    statusText: "#134e4a",
+    pagePadding: 18,
+    rowMinHeight: 19,
+    cellPadding: 4,
+    footerMarginTop: 10,
+    showTopBar: true,
+  },
+};
+
 const formatMoney = (value: number, currency: "USD" | "CLP" = "USD") => {
   const locale = currency === "CLP" ? "es-CL" : "en-US";
 
@@ -266,7 +337,13 @@ const formatIssueDate = (value: string) => {
   return value;
 };
 
-export const QuotePdfDocument = ({ company, quote, items }: Props) => {
+export const QuotePdfDocument = ({
+  company,
+  quote,
+  items,
+  templateId = "professional",
+}: Props) => {
+  const template = templateStyles[templateId] ?? templateStyles.professional;
   const currency: "USD" | "CLP" =
     (quote.currency as "USD" | "CLP") ??
     (company.defaultCurrency as "USD" | "CLP") ??
@@ -286,8 +363,10 @@ export const QuotePdfDocument = ({ company, quote, items }: Props) => {
 
   return (
     <Document>
-      <Page size="LETTER" style={styles.page}>
-        <View style={styles.topBar} />
+      <Page size="LETTER" style={[styles.page, { padding: template.pagePadding }]}>
+        {template.showTopBar && (
+          <View style={[styles.topBar, { backgroundColor: template.topBar }]} />
+        )}
 
         <View style={styles.headerRow}>
           <View style={styles.companyHeader}>
@@ -310,8 +389,20 @@ export const QuotePdfDocument = ({ company, quote, items }: Props) => {
           </View>
 
           <View style={styles.documentHeading}>
-            <Text style={styles.documentTitle}>PRESUPUESTO</Text>
-            <Text style={styles.statusPill}>{currency}</Text>
+            <Text style={[styles.documentTitle, { color: template.header }]}>
+              PRESUPUESTO
+            </Text>
+            <Text
+              style={[
+                styles.statusPill,
+                {
+                  backgroundColor: template.statusBackground,
+                  color: template.statusText,
+                },
+              ]}
+            >
+              {currency}
+            </Text>
             <Text style={styles.documentMeta}>
               Fecha emisión: {formatIssueDate(quote.issueDate)}
             </Text>
@@ -319,8 +410,10 @@ export const QuotePdfDocument = ({ company, quote, items }: Props) => {
         </View>
 
         <View style={styles.detailGrid}>
-          <View style={styles.detailPanel}>
-            <Text style={styles.panelTitle}>Datos del cliente</Text>
+          <View style={[styles.detailPanel, { backgroundColor: template.panel }]}>
+            <Text style={[styles.panelTitle, { color: template.accent }]}>
+              Datos del cliente
+            </Text>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Cliente</Text>
               <Text style={styles.detailValue}>{quote.client}</Text>
@@ -335,8 +428,10 @@ export const QuotePdfDocument = ({ company, quote, items }: Props) => {
             </View>
           </View>
 
-          <View style={styles.detailPanel}>
-            <Text style={styles.panelTitle}>Detalle del trabajo</Text>
+          <View style={[styles.detailPanel, { backgroundColor: template.panel }]}>
+            <Text style={[styles.panelTitle, { color: template.accent }]}>
+              Detalle del trabajo
+            </Text>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Obra</Text>
               <Text style={styles.detailValue}>{quote.work}</Text>
@@ -349,26 +444,75 @@ export const QuotePdfDocument = ({ company, quote, items }: Props) => {
         </View>
 
         <View style={styles.table}>
-          <View style={styles.tableHeader}>
-            <Text style={[styles.cell, styles.headerCell, styles.colCode]}>
+          <View style={[styles.tableHeader, { backgroundColor: template.tableHeader }]}>
+            <Text
+              style={[
+                styles.cell,
+                styles.headerCell,
+                styles.colCode,
+                { color: template.tableHeaderText },
+              ]}
+            >
               Código
             </Text>
-            <Text style={[styles.cell, styles.headerCell, styles.colUnit]}>
+            <Text
+              style={[
+                styles.cell,
+                styles.headerCell,
+                styles.colUnit,
+                { color: template.tableHeaderText },
+              ]}
+            >
               UND
             </Text>
-            <Text style={[styles.cell, styles.headerCell, styles.colDesc]}>
+            <Text
+              style={[
+                styles.cell,
+                styles.headerCell,
+                styles.colDesc,
+                { color: template.tableHeaderText },
+              ]}
+            >
               Descripción
             </Text>
-            <Text style={[styles.cell, styles.headerCell, styles.colQty]}>
+            <Text
+              style={[
+                styles.cell,
+                styles.headerCell,
+                styles.colQty,
+                { color: template.tableHeaderText },
+              ]}
+            >
               Cant.
             </Text>
-            <Text style={[styles.cell, styles.headerCell, styles.colSg]}>
+            <Text
+              style={[
+                styles.cell,
+                styles.headerCell,
+                styles.colSg,
+                { color: template.tableHeaderText },
+              ]}
+            >
               SG
             </Text>
-            <Text style={[styles.cell, styles.headerCell, styles.colUnitPrice]}>
+            <Text
+              style={[
+                styles.cell,
+                styles.headerCell,
+                styles.colUnitPrice,
+                { color: template.tableHeaderText },
+              ]}
+            >
               P/unitario
             </Text>
-            <Text style={[styles.cell, styles.headerCell, styles.colTotal]}>
+            <Text
+              style={[
+                styles.cell,
+                styles.headerCell,
+                styles.colTotal,
+                { color: template.tableHeaderText },
+              ]}
+            >
               Total
             </Text>
           </View>
@@ -380,23 +524,75 @@ export const QuotePdfDocument = ({ company, quote, items }: Props) => {
                 key={`${item.description}-${index}`}
                 style={
                   index % 2 === 1
-                    ? [styles.tableRow, styles.tableRowAlt]
-                    : styles.tableRow
+                    ? [
+                        styles.tableRow,
+                        styles.tableRowAlt,
+                        { minHeight: template.rowMinHeight },
+                      ]
+                    : [styles.tableRow, { minHeight: template.rowMinHeight }]
                 }
               >
-                <Text style={[styles.cell, styles.colCode]}>{item.code}</Text>
-                <Text style={[styles.cell, styles.colUnit]}>{item.unit}</Text>
-                <Text style={[styles.cell, styles.colDesc]}>
+                <Text
+                  style={[
+                    styles.cell,
+                    styles.colCode,
+                    { paddingVertical: template.cellPadding },
+                  ]}
+                >
+                  {item.code}
+                </Text>
+                <Text
+                  style={[
+                    styles.cell,
+                    styles.colUnit,
+                    { paddingVertical: template.cellPadding },
+                  ]}
+                >
+                  {item.unit}
+                </Text>
+                <Text
+                  style={[
+                    styles.cell,
+                    styles.colDesc,
+                    { paddingVertical: template.cellPadding },
+                  ]}
+                >
                   {item.description}
                 </Text>
-                <Text style={[styles.cell, styles.colQty]}>
+                <Text
+                  style={[
+                    styles.cell,
+                    styles.colQty,
+                    { paddingVertical: template.cellPadding },
+                  ]}
+                >
                   {item.quantity}
                 </Text>
-                <Text style={[styles.cell, styles.colSg]}>{item.sg}</Text>
-                <Text style={[styles.cell, styles.colUnitPrice]}>
+                <Text
+                  style={[
+                    styles.cell,
+                    styles.colSg,
+                    { paddingVertical: template.cellPadding },
+                  ]}
+                >
+                  {item.sg}
+                </Text>
+                <Text
+                  style={[
+                    styles.cell,
+                    styles.colUnitPrice,
+                    { paddingVertical: template.cellPadding },
+                  ]}
+                >
                   {formatMoney(item.unitPrice, currency)}
                 </Text>
-                <Text style={[styles.cell, styles.colTotal]}>
+                <Text
+                  style={[
+                    styles.cell,
+                    styles.colTotal,
+                    { paddingVertical: template.cellPadding },
+                  ]}
+                >
                   {formatMoney(lineTotal, currency)}
                 </Text>
               </View>
@@ -404,8 +600,8 @@ export const QuotePdfDocument = ({ company, quote, items }: Props) => {
           })}
         </View>
 
-        <View style={styles.footerRow}>
-          <View style={styles.notesPanel}>
+        <View style={[styles.footerRow, { marginTop: template.footerMarginTop }]}>
+          <View style={[styles.notesPanel, { borderLeftColor: template.accent }]}>
             {noteLines.length > 0 && (
               <>
                 <Text style={styles.notesTitle}>Notas</Text>
@@ -431,7 +627,7 @@ export const QuotePdfDocument = ({ company, quote, items }: Props) => {
                 {formatMoney(iva, currency)}
               </Text>
             </View>
-            <View style={styles.grandTotalRow}>
+            <View style={[styles.grandTotalRow, { backgroundColor: template.header }]}>
               <Text style={styles.grandTotalLabel}>TOTAL</Text>
               <Text style={styles.grandTotalValue}>
                 {formatMoney(total, currency)}

@@ -9,6 +9,28 @@ vi.mock("../../context/QuoteContext", () => ({
   useQuote: vi.fn(),
 }));
 
+vi.mock("@react-pdf/renderer", () => ({
+  pdf: vi.fn(() => ({
+    toBlob: vi.fn().mockResolvedValue(new Blob(["pdf"], { type: "application/pdf" })),
+  })),
+  Document: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Page: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Text: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+  View: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Image: () => <img alt="" />,
+  StyleSheet: {
+    create: (styles: unknown) => styles,
+  },
+}));
+
+vi.mock("../../lib/quotePdfStorage", () => ({
+  uploadQuotePdf: vi.fn().mockResolvedValue({
+    path: "company-1/quote-1/presupuesto.pdf",
+    generatedAt: "2026-05-11T12:00:00.000Z",
+    templateId: "professional",
+  }),
+}));
+
 vi.mock("sweetalert2", () => ({
   default: {
     fire: vi.fn(),
@@ -56,7 +78,9 @@ const baseQuoteContext = {
       address: "Calle 1",
     },
   ],
+  selectedTemplate: "professional" as const,
   setFromForm: vi.fn(),
+  setQuoteTemplate: vi.fn(),
   updateCompany: vi.fn(),
   addClient: vi.fn(),
   removeClient: vi.fn(),

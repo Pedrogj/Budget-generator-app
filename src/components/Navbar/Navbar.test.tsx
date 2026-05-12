@@ -3,12 +3,18 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { Navbar } from "./Navbar";
 import { useAuth } from "../../context/AuthContext";
+import { useQuote } from "../../context/QuoteContext";
 
 vi.mock("../../context/AuthContext", () => ({
   useAuth: vi.fn(),
 }));
 
+vi.mock("../../context/QuoteContext", () => ({
+  useQuote: vi.fn(),
+}));
+
 const mockedUseAuth = vi.mocked(useAuth);
+const mockedUseQuote = vi.mocked(useQuote);
 
 function renderNavbar(authOverrides = {}) {
   const logout = vi.fn().mockResolvedValue(undefined);
@@ -20,6 +26,36 @@ function renderNavbar(authOverrides = {}) {
     register: vi.fn(),
     logout,
     ...authOverrides,
+  });
+
+  mockedUseQuote.mockReturnValue({
+    company: {
+      id: "company-1",
+      name: "ACME Servicios",
+      rif: "J-1",
+      phone: "+56 9",
+      addressLines: "Calle 1",
+      defaultCurrency: "USD",
+      ivaRate: 16,
+    },
+    quote: {
+      work: "",
+      client: "",
+      clientRif: "",
+      clientAddress: "",
+      issueDate: "2026-05-11",
+      currency: "USD",
+    },
+    items: [],
+    clients: [],
+    selectedTemplate: "professional",
+    setFromForm: vi.fn(),
+    setQuoteTemplate: vi.fn(),
+    updateCompany: vi.fn(),
+    addClient: vi.fn(),
+    removeClient: vi.fn(),
+    updateClient: vi.fn(),
+    saveQuote: vi.fn(),
   });
 
   const view = render(
@@ -50,9 +86,11 @@ describe("Navbar", () => {
     expect(links.map((link) => link.textContent)).toEqual([
       "Nuevo presupuesto",
       "Historial",
+      "Modelos",
       "Clientes",
       "Empresa",
     ]);
+    expect(screen.getByText("ACME Servicios")).toBeInTheDocument();
   });
 
   it("renders public navigation for anonymous users", () => {

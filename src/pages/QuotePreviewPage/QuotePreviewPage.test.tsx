@@ -8,23 +8,13 @@ vi.mock("../../context/QuoteContext", () => ({
 }));
 
 vi.mock("@react-pdf/renderer", () => ({
+  pdf: vi.fn(() => ({
+    toBlob: vi.fn().mockResolvedValue(new Blob(["pdf"], { type: "application/pdf" })),
+  })),
   PDFViewer: ({ children, className }: { children: React.ReactNode; className?: string }) => (
     <div className={className} data-testid="pdf-viewer">
       {children}
     </div>
-  ),
-  PDFDownloadLink: ({
-    children,
-    className,
-    fileName,
-  }: {
-    children: (state: { loading: boolean }) => React.ReactNode;
-    className?: string;
-    fileName: string;
-  }) => (
-    <a className={className} data-filename={fileName} href="/mock.pdf">
-      {children({ loading: false })}
-    </a>
   ),
   Document: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   Page: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -34,6 +24,16 @@ vi.mock("@react-pdf/renderer", () => ({
   StyleSheet: {
     create: (styles: unknown) => styles,
   },
+}));
+
+vi.mock("../../lib/quotePdfStorage", () => ({
+  createQuotePdfPreviewUrl: vi.fn().mockResolvedValue("https://signed.test/preview"),
+  createQuotePdfSignedUrl: vi.fn().mockResolvedValue("https://signed.test/pdf"),
+  uploadQuotePdf: vi.fn().mockResolvedValue({
+    path: "company-1/quote-1/presupuesto.pdf",
+    generatedAt: "2026-05-11T12:00:00.000Z",
+    templateId: "professional",
+  }),
 }));
 
 const mockedUseQuote = vi.mocked(useQuote);
@@ -70,7 +70,9 @@ const baseQuoteContext = {
     },
   ],
   clients: [],
+  selectedTemplate: "professional" as const,
   setFromForm: vi.fn(),
+  setQuoteTemplate: vi.fn(),
   updateCompany: vi.fn(),
   addClient: vi.fn(),
   removeClient: vi.fn(),
@@ -115,10 +117,7 @@ describe("QuotePreviewPage", () => {
   it("uses quote data to build the download filename", () => {
     renderQuotePreviewPage();
 
-    expect(screen.getAllByRole("link", { name: /descargar pdf/i })[0]).toHaveAttribute(
-      "data-filename",
-      "presupuesto-cliente-agil-2026-05-10.pdf",
-    );
+    expect(screen.getAllByRole("button", { name: /descargar pdf/i })[0]).toBeInTheDocument();
   });
 
   it("does not allow editing when the preview comes from history", () => {
@@ -131,6 +130,25 @@ describe("QuotePreviewPage", () => {
 
     expect(screen.queryByRole("link", { name: /editar/i })).not.toBeInTheDocument();
     expect(screen.getByText(/pertenece al historial/i)).toBeInTheDocument();
+  });
+
+  it("renders a stored PDF preview without applying the current template", () => {
+    renderQuotePreviewPage({
+      quote: {
+        ...baseQuoteContext.quote,
+        readOnly: true,
+        pdfPreviewUrl: "https://signed.test/preserved.pdf",
+      },
+      items: [],
+      selectedTemplate: "compact",
+    });
+
+    expect(screen.queryByTestId("pdf-viewer")).not.toBeInTheDocument();
+    expect(screen.getByTitle(/pdf guardado del presupuesto/i)).toHaveAttribute(
+      "src",
+      "https://signed.test/preserved.pdf",
+    );
+    expect(screen.queryByRole("link", { name: /modelos/i })).not.toBeInTheDocument();
   });
 
   it("shows an empty state when no quote has been prepared", () => {

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useQuote } from "../../context/QuoteContext";
 import "./Navbar.css";
 
 function getLinkClass({
@@ -15,8 +16,10 @@ function getLinkClass({
 
 export const Navbar = () => {
   const { user, logout } = useAuth();
+  const { company } = useQuote();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const brandTarget = user ? "/quotes/new" : "/login";
+  const companyName = company.name.trim() || "Empresa sin configurar";
 
   const closeMenu = () => setIsMenuOpen(false);
 
@@ -26,8 +29,9 @@ export const Navbar = () => {
   };
 
   return (
-    <header className="navbar">
-      <div className="navbar-content">
+    <>
+      <aside className="navbar">
+        <div className="navbar-content">
         <Link
           className="navbar-brand"
           to={brandTarget}
@@ -74,6 +78,13 @@ export const Navbar = () => {
               </NavLink>
               <NavLink
                 className={getLinkClass}
+                to="/quotes/templates"
+                onClick={closeMenu}
+              >
+                Modelos
+              </NavLink>
+              <NavLink
+                className={getLinkClass}
                 to="/clients"
                 onClick={closeMenu}
               >
@@ -89,15 +100,7 @@ export const Navbar = () => {
             </>
           )}
 
-          {user ? (
-            <button
-              className="navbar-logout"
-              type="button"
-              onClick={() => void handleLogout()}
-            >
-              Cerrar sesión
-            </button>
-          ) : (
+          {!user && (
             <>
               <NavLink
                 className={getLinkClass}
@@ -117,6 +120,24 @@ export const Navbar = () => {
           )}
         </nav>
       </div>
-    </header>
+      </aside>
+
+      <header className="topbar">
+        <div className="topbar-company">
+          <span>Empresa</span>
+          <strong>{user ? companyName : "Presupuesta"}</strong>
+        </div>
+
+        {user && (
+          <button
+            className="topbar-logout"
+            type="button"
+            onClick={() => void handleLogout()}
+          >
+            Cerrar sesión
+          </button>
+        )}
+      </header>
+    </>
   );
 };

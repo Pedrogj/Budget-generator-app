@@ -15,6 +15,7 @@ Aplicación web para generar presupuestos profesionales en PDF. Permite a usuari
   - [4. Creación de Presupuesto](#4-creación-de-presupuesto)
   - [5. Vista Previa y Descarga de PDF](#5-vista-previa-y-descarga-de-pdf)
   - [6. Historial de Presupuestos](#6-historial-de-presupuestos)
+  - [7. Modelos de Presupuesto](#7-modelos-de-presupuesto)
 - [Estructura del Proyecto](#estructura-del-proyecto)
 - [Base de Datos (Supabase)](#base-de-datos-supabase)
 - [Rutas de la Aplicación](#rutas-de-la-aplicación)
@@ -54,7 +55,7 @@ BrowserRouter
 La app utiliza dos Context Providers anidados:
 
 - **AuthContext** — Gestiona autenticación con Supabase (login, registro, logout, sesión persistente). Expone `user`, `loading`, `login()`, `register()`, `logout()`.
-- **QuoteContext** — Carga y sincroniza datos de la empresa y clientes del usuario autenticado con Supabase. Gestiona el estado del presupuesto en curso. Expone `company`, `quote`, `items`, `clients`, y métodos CRUD.
+- **QuoteContext** — Carga y sincroniza datos de la empresa y clientes del usuario autenticado con Supabase. Gestiona el estado del presupuesto en curso y el modelo PDF seleccionado. Expone `company`, `quote`, `items`, `clients`, `selectedTemplate` y métodos CRUD.
 
 El componente **RequiredAuth** actúa como guardia de rutas: redirige a `/login` si no hay sesión activa.
 
@@ -171,6 +172,7 @@ Usuario no autenticado
 - Al guardar, se persisten los datos en dos tablas: `quotes` (cabecera) y `quote_items` (líneas).
 - La nota es opcional: si se deja vacía se guarda como `null`; si se completa, se imprime en el PDF y queda persistida en `quotes.notes`.
 - La cabecera guarda también `subtotal`, `iva`, `total` e `iva_rate` para acelerar el historial.
+- Después de guardar datos, se genera el PDF en cliente y se sube al bucket privado `quote-pdfs` de Supabase Storage.
 - El formulario permite seleccionar un cliente guardado, lo que auto-completa los campos de cliente.
 - Muestra subtotal, IVA y total estimado en vivo antes de guardar.
 
@@ -197,9 +199,11 @@ Usuario no autenticado
 
 - Se usa **@react-pdf/renderer** (`Document`, `Page`, `View`, `Text`, `Image`, `StyleSheet`).
 - El PDF se genera completamente en el cliente (no requiere servidor).
+- El diseño aplicado depende del modelo seleccionado en `/quotes/templates`.
 - Los montos se formatean según la moneda seleccionada (`Intl.NumberFormat`).
 - La fecha se reformatea de `YYYY-MM-DD` a `DD/MM/YYYY` para el documento.
-- El componente `PDFViewer` muestra una vista previa embebida; `PDFDownloadLink` permite la descarga.
+- El componente `PDFViewer` muestra una vista previa embebida.
+- Al descargar desde la vista previa, si el modelo cambió se regenera el PDF, se sube a Storage y luego se descarga.
 - Si se entra a `/quotes/preview` sin presupuesto cargado, la página muestra un estado vacío con link para crear uno nuevo.
 
 ### 6. Historial de Presupuestos
@@ -216,17 +220,38 @@ Usuario no autenticado
 │    └─ Total estimado
 │
 └─ Acciones por presupuesto:
-     ├─ Previsualizar → carga el presupuesto en modo solo lectura y navega a /quotes/preview
+     ├─ Previsualizar → abre el PDF histórico guardado en Storage cuando existe
      ├─ Exportar PDF → descarga el PDF sin abrir la vista previa
      └─ Eliminar → confirmación con SweetAlert2
 ```
 
 - Carga inicialmente solo cabeceras de `quotes` mediante Supabase para que la lista aparezca rápido y reducir egress de PostgREST.
 - Los `quote_items` se consultan bajo demanda al previsualizar o exportar.
+- Si el presupuesto tiene `pdf_path`, la previsualización usa una URL firmada de Storage y no reaplica el modelo seleccionado actualmente.
 - Los presupuestos del historial no se editan: la vista previa oculta la acción de edición y el formulario de nuevo presupuesto se abre limpio si el estado venía del historial.
-- Permite reexportar presupuestos guardados con la misma plantilla PDF; la generación del PDF también ocurre bajo demanda.
-- Para eliminar, intenta borrar primero la cabecera `quotes`; si la FK lo impide, borra `quote_items` y reintenta.
+- Permite reexportar presupuestos guardados. Si existe un PDF en Storage con el modelo seleccionado, usa una URL firmada; si no existe o el modelo cambió, lo regenera, lo sube y lo descarga.
+- Para eliminar, intenta borrar el PDF asociado en Storage y luego la cabecera `quotes`; si la FK lo impide, borra `quote_items` y reintenta.
 - La ruta está protegida con `RequiredAuth`.
+
+### 7. Modelos de Presupuesto
+
+```
+/quotes/templates
+│
+├─ Catálogo visual de modelos:
+│    ├─ Profesional
+│    ├─ Clásico
+│    └─ Compacto
+│
+└─ Selección:
+     ├─ Se guarda localmente como preferencia del navegador
+     ├─ Se aplica en /quotes/preview
+     └─ Se aplica al exportar desde /quotes/history
+```
+
+- La selección no modifica presupuestos históricos; solo define la plantilla usada al generar el PDF.
+- Los modelos comparten los mismos datos del presupuesto, pero cambian acentos, densidad, cabecera, tabla y presentación de totales.
+- El catálogo usa miniaturas CSS livianas para evitar generar PDFs solo para mostrar opciones.
 
 ---
 
@@ -245,8 +270,9 @@ src/
 │
 ├── components/
 │   ├── index.ts                       # Barrel export
+│   ├── quoteTemplates.ts              # Catálogo de modelos PDF disponibles
 │   ├── Navbar/
-│   │   ├── Navbar.tsx                 # Barra de navegación responsive
+│   │   ├── Navbar.tsx                 # Sidebar desktop, topbar sticky y navegación móvil
 │   │   ├── Navbar.css                 # Estilos del navbar
 │   │   └── Navbar.test.tsx            # Tests de navegación
 │   ├── RequiredAuth/
@@ -266,6 +292,8 @@ src/
 │   │   └── QuoteFormPage.tsx          # Formulario de presupuesto
 │   ├── QuotePreviewPage/
 │   │   └── QuotePreviewPage.tsx       # Vista previa + descarga PDF
+│   ├── QuoteTemplatesPage/
+│   │   └── QuoteTemplatesPage.tsx     # Catálogo visual de modelos de presupuesto
 │   └── HistoryPage/
 │       └── HistoryPage.tsx            # Historial + previsualizar/exportar/eliminar
 │
@@ -279,7 +307,8 @@ supabase/
 └── migrations/
     ├── 20260510120000_optimize_security_rls_indexes.sql
     ├── 20260510121500_finish_quote_items_and_disable_graphql.sql
-    └── 20260510163000_add_quote_notes.sql
+    ├── 20260510163000_add_quote_notes.sql
+    └── 20260511193000_add_quote_pdf_storage.sql
 ```
 
 ---
@@ -296,6 +325,7 @@ La aplicación utiliza las siguientes tablas en PostgreSQL (vía Supabase):
 | `clients` | Clientes vinculados a una empresa |
 | `quotes` | Cabecera de cada presupuesto generado, incluyendo nota opcional y totales |
 | `quote_items` | Ítems/líneas de cada presupuesto |
+| Storage `quote-pdfs` | PDFs generados de presupuestos, guardados en un bucket privado |
 
 ### Migraciones y Seguridad
 
@@ -310,6 +340,8 @@ El esquema de Supabase se versiona en `supabase/migrations/`.
 - `pg_graphql` está desinstalado porque la app usa Supabase REST (`.from(...)`) y no el endpoint GraphQL.
 - `quotes.notes` es nullable y guarda la nota opcional del presupuesto.
 - `quotes.subtotal`, `quotes.iva`, `quotes.total` y `quotes.iva_rate` se usan para listar el historial sin cargar ítems.
+- `quotes.pdf_path`, `quotes.pdf_template_id` y `quotes.pdf_generated_at` registran el PDF generado en Storage.
+- El bucket privado `quote-pdfs` usa rutas `userId/companyId/quoteId/archivo.pdf` y políticas sobre `storage.objects` para permitir acceso solo al usuario autenticado dueño de esa carpeta.
 - Las consultas desde el frontend deben pedir columnas explícitas en vez de `select("*")` para bajar egress y evitar transferir datos que la UI no usa.
 - En desarrollo, React `StrictMode` puede duplicar efectos y hacer que algunas lecturas aparezcan repetidas en los logs de Supabase; validar egress real con build/producción.
 
@@ -362,7 +394,10 @@ interface QuoteInfo {
   clientId?: string;
   currency: "USD" | "CLP";
   notes?: string;
+  readOnly?: boolean;
 }
+
+type QuoteTemplateId = "professional" | "classic" | "compact";
 
 interface QuoteItem {
   code: string;
@@ -386,6 +421,7 @@ interface QuoteItem {
 | `/quotes/new` | Protegido | QuoteFormPage | Formulario de nuevo presupuesto |
 | `/quotes/preview` | Protegido | QuotePreviewPage | Vista previa y descarga de PDF |
 | `/quotes/history` | Protegido | HistoryPage | Historial, previsualización, exportación y eliminación |
+| `/quotes/templates` | Protegido | QuoteTemplatesPage | Catálogo y selección de modelos PDF |
 | `/profile` | Protegido | ProfilePage | Configuración de datos de empresa |
 | `/clients` | Protegido | ClientsPage | Gestión de clientes (CRUD) |
 | `*` | — | 404 | Página no encontrada |
@@ -440,6 +476,7 @@ Cobertura actual:
 - `ClientsPage`: render, validación, agregar, editar, eliminar con confirmación y búsqueda.
 - `QuoteFormPage`: render, totales en vivo, selección de cliente, validación, agregar/eliminar ítems, guardado exitoso/error y link a clientes.
 - `QuotePreviewPage`: resumen, nombre de descarga y estado vacío.
+- `QuoteTemplatesPage`: catálogo de modelos, selección de plantilla y atajo condicional a la vista previa.
 - `HistoryPage`: carga rápida de cabeceras, carga bajo demanda de ítems, exportación, previsualización y eliminación con fallback de FK.
 - `ProfilePage`: render, validación, guardado exitoso/error, quitar logo y validación de tipo de logo.
 - `Navbar`: navegación autenticada/pública, menú móvil y logout.

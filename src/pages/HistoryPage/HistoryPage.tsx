@@ -1,11 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { PDFDownloadLink } from "@react-pdf/renderer";
+import { pdf } from "@react-pdf/renderer";
 import { Link, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { QuotePdfDocument } from "../../components/QuotePdfDocument";
 import { useQuote } from "../../context/QuoteContext";
+import {
+  createQuotePdfPreviewUrl,
+  createQuotePdfSignedUrl,
+  removeQuotePdf,
+  uploadQuotePdf,
+} from "../../lib/quotePdfStorage";
 import { supabase } from "../../lib/supabaseClient";
-import type { QuoteInfo, QuoteItem } from "../../types/types";
+import type { QuoteInfo, QuoteItem, QuoteTemplateId } from "../../types/types";
 
 interface QuoteHistoryRecord {
   id: string;
@@ -25,6 +31,9 @@ interface QuoteRow {
   currency: "USD" | "CLP";
   notes?: string | null;
   total?: number | string | null;
+  pdf_path?: string | null;
+  pdf_template_id?: QuoteTemplateId | null;
+  pdf_generated_at?: string | null;
   created_at?: string;
 }
 
@@ -47,6 +56,9 @@ const quotesSelectWithNotes = [
   "currency",
   "notes",
   "total",
+  "pdf_path",
+  "pdf_template_id",
+  "pdf_generated_at",
   "created_at",
 ].join(",");
 
@@ -58,6 +70,19 @@ const quotesSelectWithoutNotes = [
   "client_address",
   "issue_date",
   "currency",
+  "total",
+  "created_at",
+].join(",");
+
+const quotesSelectWithoutPdf = [
+  "id",
+  "work",
+  "client_name",
+  "client_rif",
+  "client_address",
+  "issue_date",
+  "currency",
+  "notes",
   "total",
   "created_at",
 ].join(",");
@@ -119,6 +144,9 @@ function mapQuoteRow(row: QuoteRow): QuoteHistoryRecord {
       issueDate: row.issue_date,
       currency: row.currency,
       notes: row.notes ?? "",
+      pdfPath: row.pdf_path ?? undefined,
+      pdfTemplateId: row.pdf_template_id ?? undefined,
+      pdfGeneratedAt: row.pdf_generated_at ?? undefined,
     },
   };
 }
@@ -155,6 +183,12 @@ async function fetchQuoteRows(companyId: string) {
 
   if (!error) return data as unknown as QuoteRow[];
 
+  if (error.message.toLowerCase().includes("pdf_")) {
+    const fallback = await baseQuery(quotesSelectWithoutPdf);
+    if (fallback.error) throw fallback.error;
+    return fallback.data as unknown as QuoteRow[];
+  }
+
   if (error.message.toLowerCase().includes("notes")) {
     const fallback = await baseQuery(quotesSelectWithoutNotes);
     if (fallback.error) throw fallback.error;
@@ -177,7 +211,7 @@ async function fetchQuoteItems(quoteId: string) {
 
 export const HistoryPage = () => {
   const navigate = useNavigate();
-  const { company, setFromForm } = useQuote();
+  const { company, selectedTemplate, setFromForm } = useQuote();
   const [quotes, setQuotes] = useState<QuoteHistoryRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -275,6 +309,14 @@ export const HistoryPage = () => {
     setDeletingId(record.id);
 
     try {
+      if (record.quote.pdfPath) {
+        try {
+          await removeQuotePdf(record.quote.pdfPath);
+        } catch (storageError) {
+          console.warn("Could not delete stored quote PDF", storageError);
+        }
+      }
+
       const { error: quoteError } = await supabase
         .from("quotes")
         .delete()
@@ -322,6 +364,21 @@ export const HistoryPage = () => {
 
   const handlePreview = async (record: QuoteHistoryRecord) => {
     try {
+      if (record.quote.pdfPath) {
+        const signedUrl = await createQuotePdfPreviewUrl(record.quote.pdfPath);
+
+        setFromForm({
+          quote: {
+            ...record.quote,
+            readOnly: true,
+            pdfPreviewUrl: signedUrl,
+          },
+          items: [],
+        });
+        navigate("/quotes/preview");
+        return;
+      }
+
       const items = await getQuoteItems(record);
       setFromForm({
         quote: {
@@ -338,6 +395,89 @@ export const HistoryPage = () => {
         title: "No se pudo previsualizar",
         text: getErrorMessage(error),
       });
+    }
+  };
+
+  const downloadBlob = (blob: Blob, fileName: string) => {
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = fileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const downloadUrl = (url: string) => {
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.rel = "noopener";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+  };
+
+  const handleExport = async (record: QuoteHistoryRecord, fileName: string) => {
+    if (!company.id) return;
+
+    setExportingId(record.id);
+
+    try {
+      if (
+        record.quote.pdfPath &&
+        record.quote.pdfTemplateId === selectedTemplate
+      ) {
+        const signedUrl = await createQuotePdfSignedUrl(
+          record.quote.pdfPath,
+          fileName,
+        );
+        downloadUrl(signedUrl);
+        return;
+      }
+
+      const items = await getQuoteItems(record);
+      const pdfBlob = await pdf(
+        <QuotePdfDocument
+          company={company}
+          quote={record.quote}
+          items={items}
+          templateId={selectedTemplate}
+        />,
+      ).toBlob();
+      const storedPdf = await uploadQuotePdf({
+        companyId: company.id,
+        quoteId: record.id,
+        fileName,
+        pdfBlob,
+        templateId: selectedTemplate,
+      });
+
+      setQuotes((prev) =>
+        prev.map((quoteRecord) =>
+          quoteRecord.id === record.id
+            ? {
+                ...quoteRecord,
+                quote: {
+                  ...quoteRecord.quote,
+                  pdfPath: storedPdf.path,
+                  pdfTemplateId: storedPdf.templateId,
+                  pdfGeneratedAt: storedPdf.generatedAt,
+                },
+              }
+            : quoteRecord,
+        ),
+      );
+      downloadBlob(pdfBlob, fileName);
+    } catch (error) {
+      console.error("Error exporting quote PDF", error);
+      await Swal.fire({
+        icon: "error",
+        title: "No se pudo exportar",
+        text: getErrorMessage(error),
+      });
+    } finally {
+      setExportingId(null);
     }
   };
 
@@ -439,31 +579,19 @@ export const HistoryPage = () => {
                   >
                     {loadingItemsId === record.id ? "Cargando..." : "Previsualizar"}
                   </button>
-                  {exportingId === record.id ? (
-                    <PDFDownloadLink
-                      className="history-secondary-action"
-                      document={
-                        <QuotePdfDocument
-                          company={company}
-                          quote={record.quote}
-                          items={items}
-                        />
-                      }
-                      fileName={fileName}
-                    >
-                      {({ loading: pdfLoading }) =>
-                        pdfLoading ? "Generando..." : "Descargar PDF"
-                      }
-                    </PDFDownloadLink>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => void getQuoteItems(record).then(() => setExportingId(record.id))}
-                      disabled={loadingItemsId === record.id}
-                    >
-                      {loadingItemsId === record.id ? "Cargando..." : "Exportar PDF"}
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => void handleExport(record, fileName)}
+                    disabled={
+                      loadingItemsId === record.id || exportingId === record.id
+                    }
+                  >
+                    {exportingId === record.id
+                      ? "Exportando..."
+                      : loadingItemsId === record.id
+                        ? "Cargando..."
+                        : "Exportar PDF"}
+                  </button>
                   <button
                     type="button"
                     onClick={() => void handleDelete(record)}

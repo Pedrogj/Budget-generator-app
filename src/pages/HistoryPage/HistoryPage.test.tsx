@@ -5,6 +5,11 @@ import Swal from "sweetalert2";
 import { HistoryPage } from "./HistoryPage";
 import { useQuote } from "../../context/QuoteContext";
 import { supabase } from "../../lib/supabaseClient";
+import {
+  createQuotePdfPreviewUrl,
+  createQuotePdfSignedUrl,
+  removeQuotePdf,
+} from "../../lib/quotePdfStorage";
 
 vi.mock("../../context/QuoteContext", () => ({
   useQuote: vi.fn(),
@@ -23,19 +28,9 @@ vi.mock("sweetalert2", () => ({
 }));
 
 vi.mock("@react-pdf/renderer", () => ({
-  PDFDownloadLink: ({
-    children,
-    className,
-    fileName,
-  }: {
-    children: (state: { loading: boolean }) => React.ReactNode;
-    className?: string;
-    fileName: string;
-  }) => (
-    <a className={className} data-filename={fileName} href="/mock.pdf">
-      {children({ loading: false })}
-    </a>
-  ),
+  pdf: vi.fn(() => ({
+    toBlob: vi.fn().mockResolvedValue(new Blob(["pdf"], { type: "application/pdf" })),
+  })),
   Document: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   Page: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   Text: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
@@ -46,9 +41,23 @@ vi.mock("@react-pdf/renderer", () => ({
   },
 }));
 
+vi.mock("../../lib/quotePdfStorage", () => ({
+  createQuotePdfPreviewUrl: vi.fn().mockResolvedValue("https://signed.test/preview"),
+  createQuotePdfSignedUrl: vi.fn().mockResolvedValue("https://signed.test/pdf"),
+  removeQuotePdf: vi.fn().mockResolvedValue(undefined),
+  uploadQuotePdf: vi.fn().mockResolvedValue({
+    path: "company-1/quote-1/presupuesto.pdf",
+    generatedAt: "2026-05-11T12:00:00.000Z",
+    templateId: "professional",
+  }),
+}));
+
 const mockedUseQuote = vi.mocked(useQuote);
 const mockedSupabaseFrom = vi.mocked(supabase.from);
 const mockedSwal = vi.mocked(Swal.fire);
+const mockedCreateQuotePdfPreviewUrl = vi.mocked(createQuotePdfPreviewUrl);
+const mockedCreateQuotePdfSignedUrl = vi.mocked(createQuotePdfSignedUrl);
+const mockedRemoveQuotePdf = vi.mocked(removeQuotePdf);
 
 const quoteRows = [
   {
@@ -61,18 +70,10 @@ const quoteRows = [
     currency: "USD",
     notes: "Nota guardada",
     total: 232,
+    pdf_path: "user-1/company-1/quote-1/presupuesto-professional.pdf",
+    pdf_template_id: "professional",
+    pdf_generated_at: "2026-05-11T12:00:00Z",
     created_at: "2026-05-10T12:00:00Z",
-  },
-];
-
-const quoteItemRows = [
-  {
-    code: "MAT-1",
-    unit: "UND",
-    description: "Tablero",
-    quantity: 2,
-    sg: "",
-    unit_price: 100,
   },
 ];
 
@@ -82,13 +83,6 @@ function mockQuotesQuery(data = quoteRows, error = null) {
   const select = vi.fn(() => ({ eq }));
 
   return { select, eq, order };
-}
-
-function mockItemsQuery(data = quoteItemRows, error = null) {
-  const eq = vi.fn().mockResolvedValue({ data, error });
-  const select = vi.fn(() => ({ eq }));
-
-  return { select, eq };
 }
 
 function mockDeleteQuery(error: unknown = null) {
@@ -122,7 +116,9 @@ function renderHistoryPage(overrides = {}) {
     },
     items: [],
     clients: [],
+    selectedTemplate: "professional",
     setFromForm,
+    setQuoteTemplate: vi.fn(),
     updateCompany: vi.fn(),
     addClient: vi.fn(),
     removeClient: vi.fn(),
@@ -147,6 +143,10 @@ function renderHistoryPage(overrides = {}) {
 describe("HistoryPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockedSupabaseFrom.mockReset();
+    mockedCreateQuotePdfPreviewUrl.mockResolvedValue("https://signed.test/preview");
+    mockedCreateQuotePdfSignedUrl.mockResolvedValue("https://signed.test/pdf");
+    mockedRemoveQuotePdf.mockResolvedValue(undefined);
     mockedSwal.mockResolvedValue({ isConfirmed: true } as Awaited<
       ReturnType<typeof Swal.fire>
     >);
@@ -154,23 +154,21 @@ describe("HistoryPage", () => {
 
   it("loads saved quotes and exposes a PDF export", async () => {
     const user = userEvent.setup();
-    mockedSupabaseFrom
-      .mockReturnValueOnce(mockQuotesQuery() as never)
-      .mockReturnValueOnce(mockItemsQuery() as never);
+    mockedSupabaseFrom.mockReturnValueOnce(mockQuotesQuery() as never);
 
     renderHistoryPage();
 
     expect(await screen.findByText("Cliente Uno")).toBeInTheDocument();
     expect(screen.getByText("Instalación eléctrica")).toBeInTheDocument();
     expect(screen.getAllByText("US$232,00").length).toBeGreaterThan(0);
-    expect(screen.queryByRole("link", { name: /descargar pdf/i })).not.toBeInTheDocument();
-
     await user.click(screen.getByRole("button", { name: /exportar pdf/i }));
 
-    expect(screen.getByRole("link", { name: /descargar pdf/i })).toHaveAttribute(
-      "data-filename",
-      "presupuesto-cliente-uno-2026-05-10.pdf",
-    );
+    await waitFor(() => {
+      expect(mockedCreateQuotePdfSignedUrl).toHaveBeenCalledWith(
+        "user-1/company-1/quote-1/presupuesto-professional.pdf",
+        "presupuesto-cliente-uno-2026-05-10.pdf",
+      );
+    });
     expect(mockedSupabaseFrom).toHaveBeenCalledWith("quotes");
   });
 
@@ -183,16 +181,14 @@ describe("HistoryPage", () => {
     await screen.findByText("Cliente Uno");
 
     expect(quotesQuery.select).toHaveBeenCalledWith(
-      "id,work,client_name,client_rif,client_address,issue_date,currency,notes,total,created_at",
+      "id,work,client_name,client_rif,client_address,issue_date,currency,notes,total,pdf_path,pdf_template_id,pdf_generated_at,created_at",
     );
   });
 
   it("loads a saved quote into preview state and navigates to preview", async () => {
     const user = userEvent.setup();
     const setFromForm = vi.fn();
-    mockedSupabaseFrom
-      .mockReturnValueOnce(mockQuotesQuery() as never)
-      .mockReturnValueOnce(mockItemsQuery() as never);
+    mockedSupabaseFrom.mockReturnValueOnce(mockQuotesQuery() as never);
 
     renderHistoryPage({ setFromForm });
 
@@ -205,14 +201,9 @@ describe("HistoryPage", () => {
         client: "Cliente Uno",
         notes: "Nota guardada",
         readOnly: true,
+        pdfPreviewUrl: "https://signed.test/preview",
       }),
-      items: [
-        expect.objectContaining({
-          description: "Tablero",
-          quantity: 2,
-          unitPrice: 100,
-        }),
-      ],
+      items: [],
     });
     expect(await screen.findByText("Preview route")).toBeInTheDocument();
   });
@@ -239,6 +230,9 @@ describe("HistoryPage", () => {
     await user.click(screen.getByRole("button", { name: /eliminar/i }));
 
     await waitFor(() => {
+      expect(mockedRemoveQuotePdf).toHaveBeenCalledWith(
+        "user-1/company-1/quote-1/presupuesto-professional.pdf",
+      );
       expect(itemsDelete.delete).toHaveBeenCalled();
       expect(quoteDeleteRetry.delete).toHaveBeenCalled();
     });
