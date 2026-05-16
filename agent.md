@@ -121,7 +121,7 @@ auth.users (Supabase Auth)
 
 `HistoryPage` carga inicialmente solo cabeceras desde `quotes` para pintar rápido y reducir egress de PostgREST. Si un presupuesto tiene `pdf_path`, previsualizar crea una URL firmada y manda `pdfPreviewUrl` a `QuotePreviewPage`; así se muestra el PDF histórico guardado y no se reaplica el modelo seleccionado actualmente. Los `quote_items` se consultan bajo demanda solo cuando hay que regenerar/exportar sin PDF reutilizable. Al exportar, si existe `pdf_path` con el mismo `pdf_template_id` seleccionado, usa URL firmada de Storage; si no, regenera el PDF, lo sube y descarga el blob. La eliminación intenta borrar el PDF de Storage y luego `quotes`; si la FK bloquea por ítems dependientes, borra `quote_items` y reintenta. Fallos al borrar Storage se registran como warning para no bloquear la eliminación del presupuesto.
 
-`QuoteTemplatesPage` muestra un catálogo visual de modelos y actualiza `selectedTemplate` en `QuoteContext`. La preferencia se guarda en `localStorage` con la clave `presupuesta.quoteTemplate`. No persiste en Supabase ni altera presupuestos históricos.
+`QuoteTemplatesPage` muestra un catálogo visual de modelos con miniaturas referenciales del presupuesto usando datos ficticios (empresa, cliente, ítems, IVA y total) y actualiza `selectedTemplate` en `QuoteContext`. La preferencia se guarda en `localStorage` con la clave `presupuesta.quoteTemplate`. No persiste en Supabase ni altera presupuestos históricos.
 
 `QuotePdfDocument` recibe `templateId` y usa una plantilla PDF parametrizada. Modelos actuales: `professional`, `classic` y `compact`. Comparten los mismos datos, pero cambian acentos, densidad, cabecera, tabla y totales.
 

@@ -243,6 +243,10 @@ Usuario no autenticado
 │    ├─ Clásico
 │    └─ Compacto
 │
+├─ Miniaturas referenciales:
+│    ├─ Muestran una hoja de presupuesto con datos ficticios
+│    └─ Permiten comparar cabecera, tabla, notas y totales antes de elegir
+│
 └─ Selección:
      ├─ Se guarda localmente como preferencia del navegador
      ├─ Se aplica en /quotes/preview
@@ -251,7 +255,7 @@ Usuario no autenticado
 
 - La selección no modifica presupuestos históricos; solo define la plantilla usada al generar el PDF.
 - Los modelos comparten los mismos datos del presupuesto, pero cambian acentos, densidad, cabecera, tabla y presentación de totales.
-- El catálogo usa miniaturas CSS livianas para evitar generar PDFs solo para mostrar opciones.
+- El catálogo usa miniaturas CSS livianas con datos ficticios para mostrar el diseño final sin generar PDFs solo para enseñar opciones.
 
 ---
 

@@ -3,6 +3,30 @@ import { quoteTemplates } from "../../components/quoteTemplates";
 import { useQuote } from "../../context/QuoteContext";
 import type { QuoteTemplateId } from "../../types/types";
 
+const previewRows = [
+  {
+    code: "MAT-01",
+    description: "Suministro tablero eléctrico",
+    quantity: "2",
+    unitPrice: "$ 480.00",
+    total: "$ 960.00",
+  },
+  {
+    code: "SER-12",
+    description: "Instalación y pruebas técnicas",
+    quantity: "1",
+    unitPrice: "$ 720.00",
+    total: "$ 720.00",
+  },
+  {
+    code: "LOG-03",
+    description: "Traslado y puesta en marcha",
+    quantity: "1",
+    unitPrice: "$ 180.00",
+    total: "$ 180.00",
+  },
+];
+
 function getPreviewClass(templateId: QuoteTemplateId) {
   return `template-preview template-preview-${templateId}`;
 }
@@ -46,28 +70,62 @@ export const QuoteTemplatesPage = () => {
               className={`template-card ${isSelected ? "template-card-selected" : ""}`}
               key={template.id}
             >
-              <div className={getPreviewClass(template.id)} aria-hidden="true">
-                <div className="template-preview-bar" />
-                <div className="template-preview-header">
-                  <span />
+              <div
+                className={getPreviewClass(template.id)}
+                role="img"
+                aria-label={`Vista referencial del modelo ${template.name}`}
+              >
+                <div className="template-preview-topline" />
+                <div className="template-preview-heading">
+                  <span className="template-preview-logo">AC</span>
                   <div>
-                    <strong />
-                    <em />
+                    <strong>ACME Servicios Integrales</strong>
+                    <span>RIF/RUT: J-12345678-9</span>
+                    <span>Av. Principal 245, Santiago</span>
                   </div>
+                  <aside>
+                    <strong>PRESUPUESTO</strong>
+                    <span>USD</span>
+                    <em>10/05/2026</em>
+                  </aside>
                 </div>
                 <div className="template-preview-panels">
-                  <span />
-                  <span />
+                  <section>
+                    <span>Cliente</span>
+                    <strong>Constructora Norte</strong>
+                    <em>RUT: 76.123.456-7</em>
+                  </section>
+                  <section>
+                    <span>Obra</span>
+                    <strong>Remodelación oficina central</strong>
+                    <em>3 ítems presupuestados</em>
+                  </section>
                 </div>
                 <div className="template-preview-table">
-                  <b />
-                  <span />
-                  <span />
-                  <span />
+                  <div className="template-preview-table-head">
+                    <span>Cód.</span>
+                    <span>Descripción</span>
+                    <span>Cant.</span>
+                    <span>Total</span>
+                  </div>
+                  {previewRows.map((row) => (
+                    <div className="template-preview-table-row" key={row.code}>
+                      <span>{row.code}</span>
+                      <strong>{row.description}</strong>
+                      <span>{row.quantity}</span>
+                      <span>{row.total}</span>
+                    </div>
+                  ))}
                 </div>
                 <div className="template-preview-footer">
-                  <span />
-                  <strong />
+                  <p>Notas: entrega estimada en 7 días hábiles.</p>
+                  <div>
+                    <span>Subtotal</span>
+                    <strong>$ 1,860.00</strong>
+                    <span>IVA 16%</span>
+                    <strong>$ 297.60</strong>
+                    <b>Total $ 2,157.60</b>
+                  </div>
                 </div>
               </div>
 
