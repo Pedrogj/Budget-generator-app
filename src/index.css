@@ -210,6 +210,12 @@ button:disabled {
   text-align: center;
 }
 
+.auth-inline-link {
+  margin-top: -0.35rem;
+  text-align: right;
+}
+
+.auth-inline-link a,
 .auth-switch a {
   color: #075985;
   font-weight: 500;

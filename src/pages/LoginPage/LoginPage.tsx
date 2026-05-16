@@ -114,6 +114,10 @@ export const LoginPage = () => {
             )}
           </label>
 
+          <p className="auth-inline-link">
+            <Link to="/forgot-password">¿Olvidaste tu contraseña?</Link>
+          </p>
+
           <button className="auth-submit" type="submit" disabled={isSubmitting}>
             {isSubmitting ? "Ingresando..." : "Entrar"}
           </button>

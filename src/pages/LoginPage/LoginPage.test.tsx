@@ -24,6 +24,7 @@ function renderLoginPage(initialPath = "/login") {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={<p>Dashboard</p>} />
+        <Route path="/forgot-password" element={<p>Forgot password</p>} />
       </Routes>
     </MemoryRouter>
   );
@@ -49,6 +50,9 @@ describe("LoginPage", () => {
     ).toBeInTheDocument();
     expect(screen.getByLabelText(/correo electrónico/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/^contraseña$/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /olvidaste tu contraseña/i })
+    ).toHaveAttribute("href", "/forgot-password");
     expect(screen.getByRole("button", { name: /entrar/i })).toBeInTheDocument();
   });
 

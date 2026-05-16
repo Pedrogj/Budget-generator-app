@@ -46,6 +46,8 @@ src/
 ├── pages/
 │   ├── LoginPage/LoginPage.tsx          # Login con email/password
 │   ├── RegisterPage/RegisterPage.tsx    # Registro + auto-login → redirige a /profile
+│   ├── ForgotPasswordPage/ForgotPasswordPage.tsx  # Solicita correo de recuperación
+│   ├── ResetPasswordPage/ResetPasswordPage.tsx    # Define nueva contraseña
 │   ├── ProfilePage/ProfilePage.tsx      # Config empresa + logo validado/removible
 │   ├── ClientsPage/ClientsPage.tsx      # CRUD de clientes + búsqueda
 │   ├── QuoteFormPage/QuoteFormPage.tsx  # Presupuesto con cliente, ítems dinámicos y totales en vivo
@@ -55,6 +57,7 @@ src/
 │
 ├── lib/
 │   ├── accountDeletion.ts      # Invoca Edge Function delete-account y cierra sesión
+│   ├── passwordRecovery.ts     # resetPasswordForEmail + updateUser
 │   └── supabaseClient.ts       # Instancia singleton de createClient(url, anonKey)
 │
 ├── supabase/functions/
@@ -74,6 +77,7 @@ BrowserRouter
 ```
 
 - **AuthContext** escucha `onAuthStateChange` para persistir la sesión.
+- Recuperación de contraseña: `/forgot-password` llama `resetPasswordForEmail()` con `redirectTo` hacia `/reset-password`; `/reset-password` llama `updateUser({ password })` cuando Supabase ya procesó el enlace de recuperación.
 - **QuoteContext** depende de `useAuth()`. Cuando `user` cambia:
   - Si hay usuario → carga (o crea) la empresa + carga clientes desde Supabase.
   - Si no hay usuario → resetea todo al estado inicial.
@@ -84,6 +88,8 @@ BrowserRouter
 |---|---|---|---|
 | `/login` | Público | LoginPage | Inicio de sesión |
 | `/register` | Público | RegisterPage | Registro |
+| `/forgot-password` | Público | ForgotPasswordPage | Recuperación por correo |
+| `/reset-password` | Público | ResetPasswordPage | Nueva contraseña |
 | `/` | Protegido | QuoteFormPage | Nuevo presupuesto (alias) |
 | `/quotes/new` | Protegido | QuoteFormPage | Nuevo presupuesto |
 | `/quotes/preview` | Protegido | QuotePreviewPage | Vista previa + descarga PDF |

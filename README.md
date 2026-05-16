@@ -72,12 +72,16 @@ Usuario no autenticado
 │                 └─ Auto-login tras registro exitoso
 │                 └─ Redirige a /profile para configurar la empresa
 │
-└─ /login     → Iniciar sesión con credenciales
-                  └─ Redirige a la ruta protegida original (o "/" por defecto)
+├─ /login     → Iniciar sesión con credenciales
+│                 └─ Redirige a la ruta protegida original (o "/" por defecto)
+│
+└─ /forgot-password → Solicita correo de recuperación
+                      └─ Email redirige a /reset-password para definir nueva contraseña
 ```
 
-- Se usa **Supabase Auth** (`signUp`, `signInWithPassword`).
+- Se usa **Supabase Auth** (`signUp`, `signInWithPassword`, `resetPasswordForEmail`, `updateUser`).
 - Al registrarse, el sistema automáticamente inicia sesión y redirige a la página de perfil.
+- La recuperación de contraseña requiere agregar `/reset-password` en las Redirect URLs de Supabase.
 - El `AuthContext` escucha cambios de estado de autenticación (`onAuthStateChange`) para mantener la sesión sincronizada.
 - Los formularios usan **React Hook Form** con validación inline.
 - Errores se muestran con **SweetAlert2**.
@@ -290,6 +294,10 @@ src/
 │   │   └── LoginPage.tsx              # Inicio de sesión
 │   ├── RegisterPage/
 │   │   └── RegisterPage.tsx           # Registro de usuario
+│   ├── ForgotPasswordPage/
+│   │   └── ForgotPasswordPage.tsx     # Solicita email de recuperación
+│   ├── ResetPasswordPage/
+│   │   └── ResetPasswordPage.tsx      # Define nueva contraseña
 │   ├── ProfilePage/
 │   │   └── ProfilePage.tsx            # Configuración de empresa
 │   ├── ClientsPage/
@@ -304,6 +312,7 @@ src/
 │       └── HistoryPage.tsx            # Historial + previsualizar/exportar/eliminar
 │
 ├── lib/
+│   ├── passwordRecovery.ts           # resetPasswordForEmail + updateUser
 │   └── supabaseClient.ts             # Instancia del cliente Supabase
 │
 └── types/
@@ -435,6 +444,8 @@ interface QuoteItem {
 |---|---|---|---|
 | `/login` | Público | LoginPage | Inicio de sesión |
 | `/register` | Público | RegisterPage | Registro de nueva cuenta |
+| `/forgot-password` | Público | ForgotPasswordPage | Solicitud de correo de recuperación |
+| `/reset-password` | Público | ResetPasswordPage | Actualización de contraseña desde enlace seguro |
 | `/` | Protegido | QuoteFormPage | Formulario de nuevo presupuesto |
 | `/quotes/new` | Protegido | QuoteFormPage | Formulario de nuevo presupuesto |
 | `/quotes/preview` | Protegido | QuotePreviewPage | Vista previa y descarga de PDF |
@@ -491,6 +502,8 @@ Cobertura actual:
 
 - `LoginPage`: render, validación, submit, error de login y redirección con sesión activa.
 - `RegisterPage`: render, validación, confirmación de contraseña, registro con/sin confirmación de email y redirección con sesión activa.
+- `ForgotPasswordPage`: render, validación, envío de correo de recuperación y error remoto.
+- `ResetPasswordPage`: render, validación, actualización de contraseña, error remoto y redirección a login.
 - `ClientsPage`: render, validación, agregar, editar, eliminar con confirmación y búsqueda.
 - `QuoteFormPage`: render, totales en vivo, selección de cliente, validación, agregar/eliminar ítems, guardado exitoso/error y link a clientes.
 - `QuotePreviewPage`: resumen, nombre de descarga y estado vacío.
