@@ -516,7 +516,7 @@ button:disabled {
 
 .quote-item-row {
   display: grid;
-  grid-template-columns: 0.7fr 0.7fr minmax(180px, 2fr) 0.7fr 0.7fr 1fr auto;
+  grid-template-columns: 0.65fr 0.6fr minmax(180px, 2fr) 0.6fr 0.6fr 0.9fr 1fr auto;
   gap: 0.5rem;
   align-items: start;
   border: 1px solid #e5e7eb;
@@ -531,6 +531,30 @@ button:disabled {
 
 .quote-description-field {
   min-width: 0;
+}
+
+.quote-item-total {
+  align-self: end;
+  min-height: 2.1rem;
+  border: 1px solid #dbeafe;
+  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
+  background: #eff6ff;
+  color: #075985;
+}
+
+.quote-item-total span {
+  display: block;
+  margin-bottom: 0.12rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.quote-item-total strong {
+  display: block;
+  overflow-wrap: anywhere;
+  color: #111827;
+  font-size: 0.86rem;
 }
 
 .quote-remove-item {
@@ -1335,7 +1359,7 @@ button:disabled {
 
 @media (max-width: 900px) {
   .quote-item-row {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .templates-grid {
@@ -1346,7 +1370,13 @@ button:disabled {
     grid-column: 1 / -1;
   }
 
+  .quote-price-field,
+  .quote-item-total {
+    grid-column: span 2;
+  }
+
   .quote-remove-item {
+    grid-column: 1 / -1;
     width: 100%;
   }
 }
@@ -1364,9 +1394,44 @@ button:disabled {
     text-align: left;
   }
 
-  .quote-client-grid,
-  .quote-item-row {
+  .quote-client-grid {
     grid-template-columns: 1fr;
+  }
+
+  .quote-item-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+    padding: 0.75rem;
+  }
+
+  .quote-description-field,
+  .quote-price-field,
+  .quote-item-total,
+  .quote-remove-item {
+    grid-column: 1 / -1;
+  }
+
+  .quote-code-field,
+  .quote-unit-field,
+  .quote-quantity-field,
+  .quote-sg-field {
+    min-width: 0;
+  }
+
+  .quote-item-total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-height: 2.35rem;
+  }
+
+  .quote-item-total span {
+    margin-bottom: 0;
+  }
+
+  .quote-remove-item {
+    min-height: 2.25rem;
   }
 
   .quote-totals {

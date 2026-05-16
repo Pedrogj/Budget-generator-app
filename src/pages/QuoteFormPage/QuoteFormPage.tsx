@@ -374,80 +374,87 @@ export const QuoteFormPage = () => {
           {errors.items && <p className="form-error">{errors.items.message}</p>}
 
           <div className="quote-items-list">
-            {fields.map((field, index) => (
-              <div className="quote-item-row" key={field.id}>
-                <label>
-                  <span>Código</span>
-                <input
-                  {...register(`items.${index}.code` as const)}
-                />
-                </label>
+            {fields.map((field, index) => {
+              const itemTotal =
+                Number(watchedItems[index]?.quantity || 0) *
+                Number(watchedItems[index]?.unitPrice || 0);
 
-                <label>
-                  <span>UND</span>
-                  <input {...register(`items.${index}.unit` as const)} />
-                </label>
+              return (
+                <div className="quote-item-row" key={field.id}>
+                  <label className="quote-code-field">
+                    <span>Código</span>
+                    <input {...register(`items.${index}.code` as const)} />
+                  </label>
 
-                <label className="quote-description-field">
-                  <span>Descripción</span>
-                <input
-                  {...register(`items.${index}.description` as const)}
-                />
-                {errors.items?.[index]?.description && (
-                  <p className="form-error">
-                    {errors.items[index]?.description?.message}
-                  </p>
-                )}
-                </label>
+                  <label className="quote-unit-field">
+                    <span>UND</span>
+                    <input {...register(`items.${index}.unit` as const)} />
+                  </label>
 
-                <label>
-                  <span>Cant.</span>
-                <input
-                  type="number"
-                    min="1"
-                    step="1"
-                    inputMode="numeric"
-                  {...register(`items.${index}.quantity` as const)}
-                />
-                {errors.items?.[index]?.quantity && (
-                  <p className="form-error">
-                    {errors.items[index]?.quantity?.message}
-                  </p>
-                )}
-                </label>
+                  <label className="quote-description-field">
+                    <span>Descripción</span>
+                    <input {...register(`items.${index}.description` as const)} />
+                    {errors.items?.[index]?.description && (
+                      <p className="form-error">
+                        {errors.items[index]?.description?.message}
+                      </p>
+                    )}
+                  </label>
 
-                <label>
-                  <span>SG</span>
-                  <input {...register(`items.${index}.sg` as const)} />
-                </label>
+                  <label className="quote-quantity-field">
+                    <span>Cant.</span>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      inputMode="numeric"
+                      {...register(`items.${index}.quantity` as const)}
+                    />
+                    {errors.items?.[index]?.quantity && (
+                      <p className="form-error">
+                        {errors.items[index]?.quantity?.message}
+                      </p>
+                    )}
+                  </label>
 
-                <label>
-                  <span>P/unit.</span>
-                <input
-                  type="number"
-                    min="0"
-                    step="0.01"
-                    inputMode="decimal"
-                  {...register(`items.${index}.unitPrice` as const)}
-                />
-                {errors.items?.[index]?.unitPrice && (
-                  <p className="form-error">
-                    {errors.items[index]?.unitPrice?.message}
-                  </p>
-                )}
-                </label>
+                  <label className="quote-sg-field">
+                    <span>SG</span>
+                    <input {...register(`items.${index}.sg` as const)} />
+                  </label>
 
-              <button
-                  className="quote-remove-item"
-                type="button"
-                onClick={() => remove(index)}
-                  disabled={fields.length === 1}
-                  aria-label={`Eliminar ítem ${index + 1}`}
-              >
-                ✕
-              </button>
-              </div>
-            ))}
+                  <label className="quote-price-field">
+                    <span>P/unit.</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      inputMode="decimal"
+                      {...register(`items.${index}.unitPrice` as const)}
+                    />
+                    {errors.items?.[index]?.unitPrice && (
+                      <p className="form-error">
+                        {errors.items[index]?.unitPrice?.message}
+                      </p>
+                    )}
+                  </label>
+
+                  <div className="quote-item-total">
+                    <span>Total ítem</span>
+                    <strong>{formatMoney(itemTotal, currency)}</strong>
+                  </div>
+
+                  <button
+                    className="quote-remove-item"
+                    type="button"
+                    onClick={() => remove(index)}
+                    disabled={fields.length === 1}
+                    aria-label={`Eliminar ítem ${index + 1}`}
+                  >
+                    ✕
+                  </button>
+                </div>
+              );
+            })}
           </div>
 
           <div className="quote-totals">
