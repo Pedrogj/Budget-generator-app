@@ -241,7 +241,9 @@ Usuario no autenticado
 ├─ Catálogo visual de modelos:
 │    ├─ Profesional
 │    ├─ Clásico
-│    └─ Compacto
+│    ├─ Compacto
+│    ├─ Impacto
+│    └─ Corporativo
 │
 ├─ Miniaturas referenciales:
 │    ├─ Muestran una hoja de presupuesto con datos ficticios
@@ -401,7 +403,12 @@ interface QuoteInfo {
   readOnly?: boolean;
 }
 
-type QuoteTemplateId = "professional" | "classic" | "compact";
+type QuoteTemplateId =
+  | "professional"
+  | "classic"
+  | "compact"
+  | "bold"
+  | "corporate";
 
 interface QuoteItem {
   code: string;

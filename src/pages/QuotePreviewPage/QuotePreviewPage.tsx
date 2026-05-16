@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useMemo, useState } from "react";
 import { useQuote } from "../../context/QuoteContext";
 import { QuotePdfDocument } from "../../components/QuotePdfDocument";
+import { getQuoteTemplate } from "../../components/quoteTemplates";
 import {
   createQuotePdfSignedUrl,
   uploadQuotePdf,
@@ -34,6 +35,9 @@ export const QuotePreviewPage = () => {
   const currency = quote.currency ?? company.defaultCurrency ?? "USD";
   const isReadOnly = quote.readOnly === true;
   const hasStoredPreview = isReadOnly && !!quote.pdfPreviewUrl;
+  const previewTemplateId =
+    hasStoredPreview && quote.pdfTemplateId ? quote.pdfTemplateId : selectedTemplate;
+  const previewTemplate = getQuoteTemplate(previewTemplateId);
   const subtotal = items.reduce((sum, item) => {
     return sum + Number(item.quantity || 0) * Number(item.unitPrice || 0);
   }, 0);
@@ -71,7 +75,9 @@ export const QuotePreviewPage = () => {
   const downloadUrl = (url: string) => {
     const anchor = document.createElement("a");
     anchor.href = url;
+    anchor.download = fileName;
     anchor.rel = "noopener";
+    anchor.target = "_blank";
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
@@ -81,14 +87,17 @@ export const QuotePreviewPage = () => {
     setIsDownloading(true);
 
     try {
-      if (quote.pdfPreviewUrl) {
-        downloadUrl(quote.pdfPreviewUrl);
+      if (
+        quote.pdfPath &&
+        (hasStoredPreview || quote.pdfTemplateId === selectedTemplate)
+      ) {
+        const signedUrl = await createQuotePdfSignedUrl(quote.pdfPath, fileName);
+        downloadUrl(signedUrl);
         return;
       }
 
-      if (quote.pdfPath && quote.pdfTemplateId === selectedTemplate) {
-        const signedUrl = await createQuotePdfSignedUrl(quote.pdfPath, fileName);
-        downloadUrl(signedUrl);
+      if (quote.pdfPreviewUrl) {
+        downloadUrl(quote.pdfPreviewUrl);
         return;
       }
 
@@ -191,6 +200,10 @@ export const QuotePreviewPage = () => {
             <strong>{items.length}</strong>
           </div>
         )}
+        <div>
+          <span>{hasStoredPreview ? "Modelo guardado" : "Modelo aplicado"}</span>
+          <strong>{previewTemplate.name}</strong>
+        </div>
         <div>
           <span>Total</span>
           <strong>

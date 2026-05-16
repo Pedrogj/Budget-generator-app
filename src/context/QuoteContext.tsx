@@ -84,7 +84,9 @@ function getInitialQuoteTemplate(): QuoteTemplateId {
   if (
     stored === "professional" ||
     stored === "classic" ||
-    stored === "compact"
+    stored === "compact" ||
+    stored === "bold" ||
+    stored === "corporate"
   ) {
     return stored;
   }

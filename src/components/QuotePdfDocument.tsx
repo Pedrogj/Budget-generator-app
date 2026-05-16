@@ -33,7 +33,7 @@ const colors = {
 const styles = StyleSheet.create({
   page: {
     padding: 24,
-    fontSize: 9,
+    fontSize: 10,
     fontFamily: "Helvetica",
     color: colors.ink,
     backgroundColor: "#ffffff",
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
   },
   logoPlaceholder: {
     color: colors.muted,
-    fontSize: 8,
+    fontSize: 9,
     letterSpacing: 1,
   },
   logoImage: {
@@ -78,21 +78,21 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   companyName: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "bold",
     marginBottom: 1,
   },
   metaText: {
     color: colors.muted,
-    fontSize: 8,
-    lineHeight: 1.05,
+    fontSize: 9,
+    lineHeight: 1.15,
   },
   documentHeading: {
     width: 180,
     alignItems: "flex-end",
   },
   documentTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "bold",
     color: colors.header,
     marginBottom: 4,
@@ -103,13 +103,13 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     backgroundColor: "#e0f2fe",
     color: "#075985",
-    fontSize: 8,
+    fontSize: 9,
     fontWeight: "bold",
   },
   documentMeta: {
     color: colors.muted,
-    fontSize: 8,
-    lineHeight: 1.05,
+    fontSize: 9,
+    lineHeight: 1.15,
     textAlign: "right",
   },
   detailGrid: {
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   panelTitle: {
     marginBottom: 3,
     color: colors.accent,
-    fontSize: 8,
+    fontSize: 9,
     fontWeight: "bold",
     textTransform: "uppercase",
   },
@@ -142,14 +142,14 @@ const styles = StyleSheet.create({
   detailLabel: {
     width: 58,
     color: colors.muted,
-    fontSize: 7,
+    fontSize: 8,
     fontWeight: "bold",
     textTransform: "uppercase",
   },
   detailValue: {
     flex: 1,
-    fontSize: 8,
-    lineHeight: 1.05,
+    fontSize: 9,
+    lineHeight: 1.15,
   },
   table: {
     borderWidth: 1,
@@ -172,12 +172,12 @@ const styles = StyleSheet.create({
   cell: {
     paddingHorizontal: 5,
     paddingVertical: 6,
-    fontSize: 8,
+    fontSize: 9,
     lineHeight: 1.25,
   },
   headerCell: {
     color: "#ffffff",
-    fontSize: 7,
+    fontSize: 8,
     fontWeight: "bold",
     textTransform: "uppercase",
   },
@@ -204,12 +204,13 @@ const styles = StyleSheet.create({
   notesTitle: {
     marginBottom: 5,
     color: colors.muted,
-    fontSize: 8,
+    fontSize: 9,
     fontWeight: "bold",
     textTransform: "uppercase",
   },
   noteText: {
-    lineHeight: 1.35,
+    fontSize: 9,
+    lineHeight: 1.4,
   },
   totalsPanel: {
     width: 190,
@@ -226,11 +227,11 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     color: colors.muted,
-    fontSize: 8,
+    fontSize: 9,
     fontWeight: "bold",
   },
   totalValue: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: "bold",
   },
   grandTotalRow: {
@@ -242,12 +243,12 @@ const styles = StyleSheet.create({
   },
   grandTotalLabel: {
     color: "#ffffff",
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: "bold",
   },
   grandTotalValue: {
     color: "#ffffff",
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "bold",
   },
 });
@@ -315,7 +316,267 @@ const templateStyles: Record<
     footerMarginTop: 10,
     showTopBar: true,
   },
+  bold: {
+    accent: "#dc2626",
+    header: "#dc2626",
+    panel: "#fff5f5",
+    topBar: "#111111",
+    tableHeader: "#111111",
+    tableHeaderText: "#ffffff",
+    statusBackground: "#fee2e2",
+    statusText: "#991b1b",
+    pagePadding: 24,
+    rowMinHeight: 24,
+    cellPadding: 6,
+    footerMarginTop: 18,
+    showTopBar: true,
+  },
+  corporate: {
+    accent: "#fbbf24",
+    header: "#111111",
+    panel: "#fff8e1",
+    topBar: "#111111",
+    tableHeader: "#fbbf24",
+    tableHeaderText: "#111111",
+    statusBackground: "#fef3c7",
+    statusText: "#92400e",
+    pagePadding: 0,
+    rowMinHeight: 22,
+    cellPadding: 5,
+    footerMarginTop: 14,
+    showTopBar: false,
+  },
 };
+
+const corporateStyles = StyleSheet.create({
+  page: {
+    padding: 0,
+    fontSize: 9,
+    fontFamily: "Helvetica",
+    color: "#111111",
+    backgroundColor: "#ffffff",
+  },
+  header: {
+    flexDirection: "row",
+    height: 92,
+    marginBottom: 18,
+  },
+  headerDark: {
+    width: "58%",
+    paddingHorizontal: 30,
+    paddingTop: 22,
+    backgroundColor: "#111111",
+  },
+  headerAccent: {
+    width: 10,
+    backgroundColor: "#fbbf24",
+  },
+  headerLight: {
+    flex: 1,
+    alignItems: "flex-end",
+    justifyContent: "center",
+    paddingRight: 30,
+    backgroundColor: "#ffffff",
+  },
+  brandRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+  },
+  brandMark: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fbbf24",
+  },
+  brandMarkText: {
+    color: "#111111",
+    fontSize: 13,
+    fontWeight: "bold",
+  },
+  brandName: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  brandMeta: {
+    marginTop: 2,
+    color: "#d1d5db",
+    fontSize: 8,
+  },
+  documentTitle: {
+    color: "#fbbf24",
+    fontSize: 23,
+    fontWeight: "bold",
+    marginBottom: 6,
+  },
+  documentMeta: {
+    color: "#111111",
+    fontSize: 8,
+    lineHeight: 1.25,
+    textAlign: "right",
+  },
+  content: {
+    paddingHorizontal: 30,
+    flex: 1,
+  },
+  infoGrid: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 24,
+    marginBottom: 18,
+  },
+  infoBlock: {
+    flex: 1,
+  },
+  infoBlockRight: {
+    width: 190,
+  },
+  sectionTitle: {
+    color: "#fbbf24",
+    fontSize: 9,
+    fontWeight: "bold",
+    marginBottom: 4,
+    textTransform: "uppercase",
+  },
+  clientName: {
+    color: "#111111",
+    fontSize: 13,
+    fontWeight: "bold",
+    marginBottom: 2,
+  },
+  detailText: {
+    color: "#4b5563",
+    fontSize: 9,
+    lineHeight: 1.25,
+  },
+  methodRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+    marginBottom: 2,
+  },
+  methodLabel: {
+    color: "#111111",
+    fontSize: 8,
+    fontWeight: "bold",
+  },
+  methodValue: {
+    color: "#4b5563",
+    fontSize: 8,
+    textAlign: "right",
+  },
+  table: {
+    overflow: "hidden",
+    borderRadius: 10,
+    marginBottom: 14,
+  },
+  tableHeader: {
+    flexDirection: "row",
+    backgroundColor: "#fbbf24",
+  },
+  tableRow: {
+    flexDirection: "row",
+    minHeight: 24,
+    backgroundColor: "#ffffff",
+  },
+  tableRowAlt: {
+    backgroundColor: "#eeeeee",
+  },
+  tableCell: {
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+    fontSize: 8.5,
+  },
+  tableHeadCell: {
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+    color: "#111111",
+    fontSize: 8,
+    fontWeight: "bold",
+    textTransform: "uppercase",
+  },
+  corpCode: { width: 38, textAlign: "center" },
+  corpDesc: { flex: 1.8 },
+  corpPrice: { width: 78, textAlign: "right" },
+  corpQty: { width: 46, textAlign: "right" },
+  corpTotal: { width: 82, textAlign: "right" },
+  bottomGrid: {
+    flexDirection: "row",
+    gap: 24,
+    alignItems: "flex-start",
+  },
+  terms: {
+    flex: 1,
+  },
+  termsText: {
+    color: "#4b5563",
+    fontSize: 8,
+    lineHeight: 1.35,
+  },
+  totals: {
+    width: 190,
+  },
+  totalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  totalLabel: {
+    color: "#4b5563",
+    fontSize: 8,
+  },
+  totalValue: {
+    color: "#111111",
+    fontSize: 8.5,
+    fontWeight: "bold",
+  },
+  totalPill: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginTop: 4,
+    backgroundColor: "#fbbf24",
+  },
+  totalPillText: {
+    color: "#ffffff",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
+  thanks: {
+    marginTop: 18,
+    color: "#111111",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
+  footer: {
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: 54,
+    marginTop: "auto",
+  },
+  footerDark: {
+    flex: 1,
+    height: 54,
+    paddingHorizontal: 30,
+    paddingVertical: 13,
+    backgroundColor: "#111111",
+  },
+  footerAccent: {
+    width: 150,
+    height: 54,
+    backgroundColor: "#fbbf24",
+  },
+  footerText: {
+    color: "#ffffff",
+    fontSize: 8,
+    lineHeight: 1.35,
+  },
+});
 
 const formatMoney = (value: number, currency: "USD" | "CLP" = "USD") => {
   const locale = currency === "CLP" ? "es-CL" : "en-US";
@@ -337,12 +598,227 @@ const formatIssueDate = (value: string) => {
   return value;
 };
 
+const getCompanyInitials = (name: string) => {
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word.charAt(0).toUpperCase())
+    .join("");
+
+  return initials || "CO";
+};
+
+const CorporateQuotePdfDocument = ({ company, quote, items }: Props) => {
+  const currency: "USD" | "CLP" =
+    (quote.currency as "USD" | "CLP") ??
+    (company.defaultCurrency as "USD" | "CLP") ??
+    "USD";
+  const subtotal = items.reduce(
+    (acc, item) => acc + item.quantity * item.unitPrice,
+    0,
+  );
+  const ivaRatePercent = company.ivaRate ?? 16;
+  const iva = subtotal * (ivaRatePercent / 100);
+  const total = subtotal + iva;
+  const noteLines = (quote.notes ?? "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  return (
+    <Document>
+      <Page size="LETTER" style={corporateStyles.page}>
+        <View style={corporateStyles.header}>
+          <View style={corporateStyles.headerDark}>
+            <View style={corporateStyles.brandRow}>
+              <View style={corporateStyles.brandMark}>
+                {company.logoUrl ? (
+                  <Image src={company.logoUrl} style={styles.logoImage} />
+                ) : (
+                  <Text style={corporateStyles.brandMarkText}>
+                    {getCompanyInitials(company.name)}
+                  </Text>
+                )}
+              </View>
+              <View>
+                <Text style={corporateStyles.brandName}>
+                  {company.name || "Tu empresa"}
+                </Text>
+                <Text style={corporateStyles.brandMeta}>
+                  PRESUPUESTOS Y SERVICIOS
+                </Text>
+              </View>
+            </View>
+          </View>
+          <View style={corporateStyles.headerAccent} />
+          <View style={corporateStyles.headerLight}>
+            <Text style={corporateStyles.documentTitle}>PRESUPUESTO</Text>
+            <Text style={corporateStyles.documentMeta}>
+              Fecha: {formatIssueDate(quote.issueDate)}
+            </Text>
+            <Text style={corporateStyles.documentMeta}>Moneda: {currency}</Text>
+            <Text style={corporateStyles.documentMeta}>
+              Ítems: {items.length}
+            </Text>
+          </View>
+        </View>
+
+        <View style={corporateStyles.content}>
+          <View style={corporateStyles.infoGrid}>
+            <View style={corporateStyles.infoBlock}>
+              <Text style={corporateStyles.sectionTitle}>Presupuesto para</Text>
+              <Text style={corporateStyles.clientName}>{quote.client}</Text>
+              <Text style={corporateStyles.detailText}>
+                RIF/RUT: {quote.clientRif}
+              </Text>
+              <Text style={corporateStyles.detailText}>
+                Dirección: {quote.clientAddress}
+              </Text>
+              <Text style={corporateStyles.detailText}>Obra: {quote.work}</Text>
+            </View>
+
+            <View style={corporateStyles.infoBlockRight}>
+              <Text style={corporateStyles.sectionTitle}>Datos de contacto</Text>
+              <View style={corporateStyles.methodRow}>
+                <Text style={corporateStyles.methodLabel}>Empresa</Text>
+                <Text style={corporateStyles.methodValue}>{company.name}</Text>
+              </View>
+              <View style={corporateStyles.methodRow}>
+                <Text style={corporateStyles.methodLabel}>RIF/RUT</Text>
+                <Text style={corporateStyles.methodValue}>{company.rif}</Text>
+              </View>
+              <View style={corporateStyles.methodRow}>
+                <Text style={corporateStyles.methodLabel}>Teléfono</Text>
+                <Text style={corporateStyles.methodValue}>{company.phone}</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={corporateStyles.table}>
+            <View style={corporateStyles.tableHeader}>
+              <Text style={[corporateStyles.tableHeadCell, corporateStyles.corpCode]}>
+                No.
+              </Text>
+              <Text style={[corporateStyles.tableHeadCell, corporateStyles.corpDesc]}>
+                Descripción
+              </Text>
+              <Text style={[corporateStyles.tableHeadCell, corporateStyles.corpPrice]}>
+                Precio
+              </Text>
+              <Text style={[corporateStyles.tableHeadCell, corporateStyles.corpQty]}>
+                Cant.
+              </Text>
+              <Text style={[corporateStyles.tableHeadCell, corporateStyles.corpTotal]}>
+                Total
+              </Text>
+            </View>
+
+            {items.map((item, index) => (
+              <View
+                key={`${item.description}-${index}`}
+                style={[
+                  corporateStyles.tableRow,
+                  index % 2 === 1 ? corporateStyles.tableRowAlt : {},
+                ]}
+              >
+                <Text style={[corporateStyles.tableCell, corporateStyles.corpCode]}>
+                  {String(index + 1).padStart(2, "0")}
+                </Text>
+                <Text style={[corporateStyles.tableCell, corporateStyles.corpDesc]}>
+                  {item.description}
+                </Text>
+                <Text style={[corporateStyles.tableCell, corporateStyles.corpPrice]}>
+                  {formatMoney(item.unitPrice, currency)}
+                </Text>
+                <Text style={[corporateStyles.tableCell, corporateStyles.corpQty]}>
+                  {item.quantity}
+                </Text>
+                <Text style={[corporateStyles.tableCell, corporateStyles.corpTotal]}>
+                  {formatMoney(item.quantity * item.unitPrice, currency)}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={corporateStyles.bottomGrid}>
+            <View style={corporateStyles.terms}>
+              <Text style={corporateStyles.sectionTitle}>
+                Términos y condiciones
+              </Text>
+              {noteLines.length > 0 ? (
+                noteLines.map((line, index) => (
+                  <Text key={index} style={corporateStyles.termsText}>
+                    {line}
+                  </Text>
+                ))
+              ) : (
+                <Text style={corporateStyles.termsText}>
+                  Este presupuesto está sujeto a disponibilidad de materiales y
+                  aprobación de las condiciones comerciales indicadas.
+                </Text>
+              )}
+              <Text style={corporateStyles.thanks}>
+                Gracias por confiar en nosotros.
+              </Text>
+            </View>
+
+            <View style={corporateStyles.totals}>
+              <View style={corporateStyles.totalRow}>
+                <Text style={corporateStyles.totalLabel}>Subtotal</Text>
+                <Text style={corporateStyles.totalValue}>
+                  {formatMoney(subtotal, currency)}
+                </Text>
+              </View>
+              <View style={corporateStyles.totalRow}>
+                <Text style={corporateStyles.totalLabel}>IVA {ivaRatePercent}%</Text>
+                <Text style={corporateStyles.totalValue}>
+                  {formatMoney(iva, currency)}
+                </Text>
+              </View>
+              <View style={corporateStyles.totalPill}>
+                <Text style={corporateStyles.totalPillText}>Total</Text>
+                <Text style={corporateStyles.totalPillText}>
+                  {formatMoney(total, currency)}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        <View style={corporateStyles.footer}>
+          <View style={corporateStyles.footerDark}>
+            <Text style={corporateStyles.footerText}>
+              {company.phone || "Teléfono no configurado"}  |  {company.rif}
+            </Text>
+            <Text style={corporateStyles.footerText}>
+              {company.addressLines || "Dirección de la empresa"}
+            </Text>
+          </View>
+          <View style={corporateStyles.footerAccent} />
+        </View>
+      </Page>
+    </Document>
+  );
+};
+
 export const QuotePdfDocument = ({
   company,
   quote,
   items,
   templateId = "professional",
 }: Props) => {
+  if (templateId === "corporate") {
+    return (
+      <CorporateQuotePdfDocument
+        company={company}
+        quote={quote}
+        items={items}
+        templateId={templateId}
+      />
+    );
+  }
+
   const template = templateStyles[templateId] ?? templateStyles.professional;
   const currency: "USD" | "CLP" =
     (quote.currency as "USD" | "CLP") ??

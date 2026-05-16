@@ -74,6 +74,8 @@ describe("QuoteTemplatesPage", () => {
     expect(screen.getByRole("heading", { name: /profesional/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /clásico/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /compacto/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /impacto/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /corporativo/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /seleccionado/i })).toHaveAttribute(
       "aria-pressed",
       "true",

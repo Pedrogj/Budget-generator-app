@@ -133,13 +133,14 @@ function mapQuoteRow(row: QuoteRow): QuoteHistoryRecord {
   return {
     id: row.id,
     createdAt: row.created_at,
-    total: row.total === null || row.total === undefined ? null : Number(row.total),
-      quote: {
-        readOnly: false,
-        id: row.id,
-        work: row.work,
-        client: row.client_name,
-        clientRif: row.client_rif,
+    total:
+      row.total === null || row.total === undefined ? null : Number(row.total),
+    quote: {
+      readOnly: false,
+      id: row.id,
+      work: row.work,
+      client: row.client_name,
+      clientRif: row.client_rif,
       clientAddress: row.client_address,
       issueDate: row.issue_date,
       currency: row.currency,
@@ -218,7 +219,9 @@ export const HistoryPage = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [exportingId, setExportingId] = useState<string | null>(null);
   const [loadingItemsId, setLoadingItemsId] = useState<string | null>(null);
-  const [itemsByQuoteId, setItemsByQuoteId] = useState<Record<string, QuoteItem[]>>({});
+  const [itemsByQuoteId, setItemsByQuoteId] = useState<
+    Record<string, QuoteItem[]>
+  >({});
   const isCompanyReady = !!company.id;
 
   useEffect(() => {
@@ -503,7 +506,9 @@ export const HistoryPage = () => {
         </div>
         <div>
           <span>Total estimado</span>
-          <strong>{formatMoney(totalAmount, company.defaultCurrency ?? "USD")}</strong>
+          <strong>
+            {formatMoney(totalAmount, company.defaultCurrency ?? "USD")}
+          </strong>
         </div>
       </section>
 
@@ -560,7 +565,9 @@ export const HistoryPage = () => {
                   <p>{record.quote.work}</p>
                   <div className="history-item-meta">
                     <span>
-                      {hasLoadedItems ? `${items.length} ítem(s)` : "Ítems bajo demanda"}
+                      {hasLoadedItems
+                        ? `${items.length} ítem(s)`
+                        : "Ítems bajo demanda"}
                     </span>
                     <span>{record.quote.currency}</span>
                     <span>
@@ -577,7 +584,9 @@ export const HistoryPage = () => {
                     onClick={() => void handlePreview(record)}
                     disabled={loadingItemsId === record.id}
                   >
-                    {loadingItemsId === record.id ? "Cargando..." : "Previsualizar"}
+                    {loadingItemsId === record.id
+                      ? "Cargando..."
+                      : "Previsualizar"}
                   </button>
                   <button
                     type="button"

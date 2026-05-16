@@ -7,7 +7,12 @@ export interface QuoteItem {
   unitPrice: number;
 }
 
-export type QuoteTemplateId = "professional" | "classic" | "compact";
+export type QuoteTemplateId =
+  | "professional"
+  | "classic"
+  | "compact"
+  | "bold"
+  | "corporate";
 
 export interface CompanyInfo {
   id?: string;

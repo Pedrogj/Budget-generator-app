@@ -1,7 +1,9 @@
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { QuotePreviewPage } from "./QuotePreviewPage";
 import { useQuote } from "../../context/QuoteContext";
+import { createQuotePdfSignedUrl } from "../../lib/quotePdfStorage";
 
 vi.mock("../../context/QuoteContext", () => ({
   useQuote: vi.fn(),
@@ -37,6 +39,7 @@ vi.mock("../../lib/quotePdfStorage", () => ({
 }));
 
 const mockedUseQuote = vi.mocked(useQuote);
+const mockedCreateQuotePdfSignedUrl = vi.mocked(createQuotePdfSignedUrl);
 
 const baseQuoteContext = {
   company: {
@@ -108,6 +111,8 @@ describe("QuotePreviewPage", () => {
 
     expect(within(summary).getByText("Cliente Ágil")).toBeInTheDocument();
     expect(within(summary).getByText("Instalación eléctrica")).toBeInTheDocument();
+    expect(within(summary).getByText("Modelo aplicado")).toBeInTheDocument();
+    expect(within(summary).getByText("Profesional")).toBeInTheDocument();
     expect(within(summary).getByText("US$232,00")).toBeInTheDocument();
     expect(screen.getByText("Nota personalizada")).toBeInTheDocument();
     expect(screen.getByText("Vigencia de 15 días")).toBeInTheDocument();
@@ -137,18 +142,45 @@ describe("QuotePreviewPage", () => {
       quote: {
         ...baseQuoteContext.quote,
         readOnly: true,
+        pdfTemplateId: "corporate",
         pdfPreviewUrl: "https://signed.test/preserved.pdf",
       },
       items: [],
       selectedTemplate: "compact",
     });
 
+    const summary = screen.getByLabelText(/resumen del presupuesto/i);
+
     expect(screen.queryByTestId("pdf-viewer")).not.toBeInTheDocument();
+    expect(within(summary).getByText("Modelo guardado")).toBeInTheDocument();
+    expect(within(summary).getByText("Corporativo")).toBeInTheDocument();
     expect(screen.getByTitle(/pdf guardado del presupuesto/i)).toHaveAttribute(
       "src",
       "https://signed.test/preserved.pdf",
     );
     expect(screen.queryByRole("link", { name: /modelos/i })).not.toBeInTheDocument();
+  });
+
+  it("downloads stored history PDFs with a download signed URL", async () => {
+    const user = userEvent.setup();
+
+    renderQuotePreviewPage({
+      quote: {
+        ...baseQuoteContext.quote,
+        readOnly: true,
+        pdfPath: "user-1/company-1/quote-1/presupuesto-professional.pdf",
+        pdfTemplateId: "professional",
+        pdfPreviewUrl: "https://signed.test/preserved.pdf",
+      },
+      items: [],
+    });
+
+    await user.click(screen.getAllByRole("button", { name: /descargar pdf/i })[0]);
+
+    expect(mockedCreateQuotePdfSignedUrl).toHaveBeenCalledWith(
+      "user-1/company-1/quote-1/presupuesto-professional.pdf",
+      "presupuesto-cliente-agil-2026-05-10.pdf",
+    );
   });
 
   it("shows an empty state when no quote has been prepared", () => {

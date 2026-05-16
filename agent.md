@@ -123,7 +123,7 @@ auth.users (Supabase Auth)
 
 `QuoteTemplatesPage` muestra un catálogo visual de modelos con miniaturas referenciales del presupuesto usando datos ficticios (empresa, cliente, ítems, IVA y total) y actualiza `selectedTemplate` en `QuoteContext`. La preferencia se guarda en `localStorage` con la clave `presupuesta.quoteTemplate`. No persiste en Supabase ni altera presupuestos históricos.
 
-`QuotePdfDocument` recibe `templateId` y usa una plantilla PDF parametrizada. Modelos actuales: `professional`, `classic` y `compact`. Comparten los mismos datos, pero cambian acentos, densidad, cabecera, tabla y totales.
+`QuotePdfDocument` recibe `templateId` y usa una plantilla PDF parametrizada. Modelos actuales: `professional`, `classic`, `compact`, `bold` y `corporate`. Comparten los mismos datos, pero cambian acentos, densidad, cabecera, tabla y totales. `corporate` usa un layout propio con cabecera negra, acento amarillo, tabla destacada y footer oscuro inspirado en factura corporativa.
 
 ### Migraciones aplicadas
 

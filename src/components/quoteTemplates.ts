@@ -26,6 +26,18 @@ export const quoteTemplates: QuoteTemplateOption[] = [
     description: "Más denso y directo, ideal para presupuestos con muchos ítems.",
     accent: "#0f766e",
   },
+  {
+    id: "bold",
+    name: "Impacto",
+    description: "Diseño rojo y negro con presencia fuerte, pensado para propuestas comerciales.",
+    accent: "#dc2626",
+  },
+  {
+    id: "corporate",
+    name: "Corporativo",
+    description: "Formato moderno con cabecera negra, acento amarillo, tabla destacada y footer comercial.",
+    accent: "#fbbf24",
+  },
 ];
 
 export function getQuoteTemplate(id: QuoteTemplateId) {

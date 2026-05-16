@@ -2,8 +2,10 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import Swal from "sweetalert2";
+import { pdf } from "@react-pdf/renderer";
 import { QuoteFormPage } from "./QuoteFormPage";
 import { useQuote } from "../../context/QuoteContext";
+import { uploadQuotePdf } from "../../lib/quotePdfStorage";
 
 vi.mock("../../context/QuoteContext", () => ({
   useQuote: vi.fn(),
@@ -24,11 +26,11 @@ vi.mock("@react-pdf/renderer", () => ({
 }));
 
 vi.mock("../../lib/quotePdfStorage", () => ({
-  uploadQuotePdf: vi.fn().mockResolvedValue({
-    path: "company-1/quote-1/presupuesto.pdf",
+  uploadQuotePdf: vi.fn().mockImplementation(({ templateId }) => ({
+    path: `company-1/quote-1/presupuesto-${templateId}.pdf`,
     generatedAt: "2026-05-11T12:00:00.000Z",
-    templateId: "professional",
-  }),
+    templateId,
+  })),
 }));
 
 vi.mock("sweetalert2", () => ({
@@ -39,6 +41,8 @@ vi.mock("sweetalert2", () => ({
 
 const mockedUseQuote = vi.mocked(useQuote);
 const mockedSwal = vi.mocked(Swal.fire);
+const mockedPdf = vi.mocked(pdf);
+const mockedUploadQuotePdf = vi.mocked(uploadQuotePdf);
 
 const baseQuoteContext = {
   company: {
@@ -212,6 +216,31 @@ describe("QuoteFormPage", () => {
     );
     expect(setFromForm).toHaveBeenCalledAfter(saveQuote);
     expect(await screen.findByText("Preview route")).toBeInTheDocument();
+  });
+
+  it("generates and stores the PDF with the selected template", async () => {
+    const user = userEvent.setup();
+    const saveQuote = vi.fn().mockResolvedValue("quote-1");
+
+    renderQuoteFormPage({ saveQuote, selectedTemplate: "bold" });
+
+    await fillValidQuote(user);
+    await user.click(
+      screen.getByRole("button", { name: /guardar y ver vista previa/i })
+    );
+
+    expect(mockedPdf).toHaveBeenCalledWith(
+      expect.objectContaining({
+        props: expect.objectContaining({
+          templateId: "bold",
+        }),
+      })
+    );
+    expect(mockedUploadQuotePdf).toHaveBeenCalledWith(
+      expect.objectContaining({
+        templateId: "bold",
+      })
+    );
   });
 
   it("saves a custom optional note when provided", async () => {
