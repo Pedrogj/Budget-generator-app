@@ -12,7 +12,8 @@ const MAX_LOGO_SIZE_BYTES = 1024 * 1024;
 
 const profileSchema = z.object({
   name: z.string().trim().min(1, "El nombre de la empresa es requerido"),
-  rif: z.string().trim().min(1, "El RIF/RUT es requerido"),
+  rif: z.string().trim().min(1, "El documento fiscal es requerido"),
+  taxIdLabel: z.enum(["RIF", "RUT", "DNI"]),
   phone: z.string().trim().min(1, "El teléfono es requerido"),
   addressLines: z.string().trim().min(1, "La dirección es requerida"),
   defaultCurrency: z.enum(["USD", "CLP"]),
@@ -57,12 +58,14 @@ export const ProfilePage = () => {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { isDirty, errors, isSubmitting },
   } = useForm<ProfileFormValues>({
     resolver,
     defaultValues: {
       name: company.name,
       rif: company.rif,
+      taxIdLabel: company.taxIdLabel ?? "RIF",
       phone: company.phone,
       addressLines: company.addressLines ?? "",
       defaultCurrency: company.defaultCurrency ?? "USD",
@@ -74,6 +77,7 @@ export const ProfilePage = () => {
     reset({
       name: company.name,
       rif: company.rif,
+      taxIdLabel: company.taxIdLabel ?? "RIF",
       phone: company.phone,
       addressLines: company.addressLines ?? "",
       defaultCurrency: company.defaultCurrency ?? "USD",
@@ -81,11 +85,14 @@ export const ProfilePage = () => {
     });
   }, [company, reset]);
 
+  const taxIdLabel = watch("taxIdLabel");
+
   const onSubmit: SubmitHandler<ProfileFormValues> = async (data) => {
     try {
       await updateCompany({
         name: data.name,
         rif: data.rif,
+        taxIdLabel: data.taxIdLabel,
         phone: data.phone,
         logoUrl: tempLogo || undefined,
         addressLines: data.addressLines,
@@ -259,7 +266,19 @@ export const ProfilePage = () => {
             </label>
 
             <label>
-              <span>RIF/RUT</span>
+              <span>Tipo de documento fiscal</span>
+              <select {...register("taxIdLabel")}>
+                <option value="RIF">RIF</option>
+                <option value="RUT">RUT</option>
+                <option value="DNI">DNI</option>
+              </select>
+              {errors.taxIdLabel && (
+                <p className="form-error">{errors.taxIdLabel.message}</p>
+              )}
+            </label>
+
+            <label>
+              <span>{taxIdLabel || "RIF"}</span>
               <input autoComplete="off" {...register("rif")} />
               {errors.rif && <p className="form-error">{errors.rif.message}</p>}
             </label>

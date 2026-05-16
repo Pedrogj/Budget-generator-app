@@ -14,10 +14,13 @@ export type QuoteTemplateId =
   | "bold"
   | "corporate";
 
+export type TaxIdLabel = "RIF" | "RUT" | "DNI";
+
 export interface CompanyInfo {
   id?: string;
   name: string;
   rif: string;
+  taxIdLabel?: TaxIdLabel;
   phone: string;
   addressLines: string;
   logoUrl?: string;

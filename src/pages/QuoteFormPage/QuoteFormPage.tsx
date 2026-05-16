@@ -29,7 +29,10 @@ const itemSchema = z.object({
 const formSchema = z.object({
   work: z.string().trim().min(1, "Describe el tipo de trabajo"),
   client: z.string().trim().min(1, "Selecciona un cliente"),
-  clientRif: z.string().trim().min(1, "Selecciona un cliente con RIF/RUT"),
+  clientRif: z
+    .string()
+    .trim()
+    .min(1, "Selecciona un cliente con documento fiscal"),
   clientAddress: z
     .string()
     .trim()
@@ -132,6 +135,7 @@ export const QuoteFormPage = () => {
     name: "items",
   });
   const currency = company.defaultCurrency ?? "USD";
+  const taxIdLabel = company.taxIdLabel ?? "RIF";
   const currencyLabel =
     company.defaultCurrency === "CLP" ? "CLP - Pesos chilenos" : "USD - Dólar";
   const subtotal = watchedItems.reduce((sum, item) => {
@@ -308,7 +312,7 @@ export const QuoteFormPage = () => {
             </label>
 
             <label>
-              <span>RIF/RUT cliente</span>
+              <span>{taxIdLabel} cliente</span>
               <input {...register("clientRif")} readOnly />
               {errors.clientRif && (
                 <p className="form-error">{errors.clientRif.message}</p>

@@ -49,6 +49,7 @@ const baseQuoteContext = {
     id: "company-1",
     name: "ACME",
     rif: "J-1",
+    taxIdLabel: "RIF" as const,
     phone: "",
     addressLines: "",
     defaultCurrency: "USD" as const,
@@ -155,7 +156,7 @@ describe("QuoteFormPage", () => {
     );
 
     expect(screen.getByLabelText(/^cliente$/i)).toHaveValue("Cliente Uno");
-    expect(screen.getByLabelText(/rif\/rut cliente/i)).toHaveValue("RIF-1");
+    expect(screen.getByLabelText(/rif cliente/i)).toHaveValue("RIF-1");
     expect(screen.getByLabelText(/dirección cliente/i)).toHaveValue("Calle 1");
   });
 

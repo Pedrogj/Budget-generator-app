@@ -16,7 +16,7 @@ import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "./AuthContext";
 
 const companySelect =
-  "id,name,rif,phone,address_lines,logo_url,default_currency,iva_rate";
+  "id,name,rif,tax_id_label,phone,address_lines,logo_url,default_currency,iva_rate";
 const clientSelect = "id,name,rif,address,email,phone";
 const quoteTemplateStorageKey = "presupuesta.quoteTemplate";
 
@@ -45,6 +45,7 @@ const QuoteContext = createContext<QuoteContextType | undefined>(undefined);
 const initialCompany: CompanyInfo = {
   name: "",
   rif: "",
+  taxIdLabel: "RIF",
   phone: "",
   addressLines: "",
   logoUrl: "",
@@ -138,6 +139,7 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
             id: companyRow.id,
             name: companyRow.name,
             rif: companyRow.rif,
+            taxIdLabel: companyRow.tax_id_label ?? "RIF",
             phone: companyRow.phone,
             addressLines: companyRow.address_lines,
             logoUrl: companyRow.logo_url ?? undefined,
@@ -153,6 +155,7 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
               profile_id: user.id,
               name: "",
               rif: "",
+              tax_id_label: "RIF",
               phone: "",
               address_lines: "",
               logo_url: null,
@@ -169,6 +172,7 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
               id: inserted.id,
               name: inserted.name,
               rif: inserted.rif,
+              taxIdLabel: inserted.tax_id_label ?? "RIF",
               phone: inserted.phone,
               addressLines: inserted.address_lines,
               logoUrl: inserted.logo_url ?? undefined,
@@ -238,6 +242,7 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
     const isSame =
       company.name === merged.name &&
       company.rif === merged.rif &&
+      company.taxIdLabel === merged.taxIdLabel &&
       company.phone === merged.phone &&
       company.addressLines === merged.addressLines &&
       company.logoUrl === merged.logoUrl &&
@@ -254,6 +259,7 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
           .update({
             name: merged.name,
             rif: merged.rif,
+            tax_id_label: merged.taxIdLabel ?? "RIF",
             phone: merged.phone,
             address_lines: merged.addressLines,
             logo_url: merged.logoUrl ?? null,
@@ -274,6 +280,7 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
             profile_id: user.id,
             name: merged.name,
             rif: merged.rif,
+            tax_id_label: merged.taxIdLabel ?? "RIF",
             phone: merged.phone,
             address_lines: merged.addressLines,
             logo_url: merged.logoUrl ?? null,

@@ -624,6 +624,7 @@ const getCompanyInitials = (name: string) => {
 };
 
 const CorporateQuotePdfDocument = ({ company, quote, items }: Props) => {
+  const taxIdLabel = company.taxIdLabel ?? "RIF";
   const currency: "USD" | "CLP" =
     (quote.currency as "USD" | "CLP") ??
     (company.defaultCurrency as "USD" | "CLP") ??
@@ -686,7 +687,7 @@ const CorporateQuotePdfDocument = ({ company, quote, items }: Props) => {
                 {formatPdfText(quote.client)}
               </Text>
               <Text style={corporateStyles.detailText}>
-                RIF/RUT: {formatPdfText(quote.clientRif)}
+                {taxIdLabel}: {formatPdfText(quote.clientRif)}
               </Text>
               <Text style={corporateStyles.detailText}>
                 Dirección: {formatPdfText(quote.clientAddress)}
@@ -705,7 +706,7 @@ const CorporateQuotePdfDocument = ({ company, quote, items }: Props) => {
                 </Text>
               </View>
               <View style={corporateStyles.methodRow}>
-                <Text style={corporateStyles.methodLabel}>RIF/RUT</Text>
+                <Text style={corporateStyles.methodLabel}>{taxIdLabel}</Text>
                 <Text style={corporateStyles.methodValue}>
                   {formatPdfText(company.rif)}
                 </Text>
@@ -845,6 +846,7 @@ export const QuotePdfDocument = ({
   }
 
   const template = templateStyles[templateId] ?? templateStyles.professional;
+  const taxIdLabel = company.taxIdLabel ?? "RIF";
   const currency: "USD" | "CLP" =
     (quote.currency as "USD" | "CLP") ??
     (company.defaultCurrency as "USD" | "CLP") ??
@@ -884,7 +886,7 @@ export const QuotePdfDocument = ({
                 {formatPdfText(company.name, "Tu empresa")}
               </Text>
               <Text style={styles.metaText}>
-                RIF/RUT: {formatPdfText(company.rif)}
+                {taxIdLabel}: {formatPdfText(company.rif)}
               </Text>
               <Text style={styles.metaText}>
                 Teléfono: {formatPdfText(company.phone)}
@@ -926,7 +928,7 @@ export const QuotePdfDocument = ({
               <Text style={styles.detailValue}>{formatPdfText(quote.client)}</Text>
             </View>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>RIF/RUT</Text>
+              <Text style={styles.detailLabel}>{taxIdLabel}</Text>
               <Text style={styles.detailValue}>
                 {formatPdfText(quote.clientRif)}
               </Text>

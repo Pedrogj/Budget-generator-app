@@ -29,6 +29,7 @@ const baseQuoteContext = {
     id: "company-1",
     name: "ACME",
     rif: "J-1",
+    taxIdLabel: "RIF" as const,
     phone: "+56 9",
     addressLines: "Calle 1",
     logoUrl: "data:image/png;base64,logo",
@@ -84,7 +85,10 @@ describe("ProfilePage", () => {
       screen.getByRole("heading", { level: 1, name: /datos de empresa/i })
     ).toBeInTheDocument();
     expect(screen.getByLabelText(/nombre de la empresa/i)).toHaveValue("ACME");
-    expect(screen.getByLabelText(/rif\/rut/i)).toHaveValue("J-1");
+    expect(screen.getByLabelText(/^rif$/i)).toHaveValue("J-1");
+    expect(screen.getByLabelText(/tipo de documento fiscal/i)).toHaveValue(
+      "RIF",
+    );
     expect(screen.getByLabelText(/teléfono/i)).toHaveValue("+56 9");
     expect(screen.getByAltText(/logo de la empresa/i)).toBeInTheDocument();
   });
@@ -101,7 +105,7 @@ describe("ProfilePage", () => {
     renderProfilePage();
 
     await user.clear(screen.getByLabelText(/nombre de la empresa/i));
-    await user.clear(screen.getByLabelText(/rif\/rut/i));
+    await user.clear(screen.getByLabelText(/^rif$/i));
     await user.clear(screen.getByLabelText(/teléfono/i));
     await user.click(screen.getByRole("button", { name: /quitar logo/i }));
     await user.click(screen.getByRole("button", { name: /guardar cambios/i }));
@@ -109,7 +113,7 @@ describe("ProfilePage", () => {
     expect(
       await screen.findByText(/el nombre de la empresa es requerido/i)
     ).toBeVisible();
-    expect(screen.getByText(/el rif\/rut es requerido/i)).toBeVisible();
+    expect(screen.getByText(/el documento fiscal es requerido/i)).toBeVisible();
     expect(screen.getByText(/el teléfono es requerido/i)).toBeVisible();
   });
 
@@ -127,6 +131,7 @@ describe("ProfilePage", () => {
       expect.objectContaining({
         name: "ACME Nueva",
         rif: "J-1",
+        taxIdLabel: "RIF",
         phone: "+56 9",
         addressLines: "Calle 1",
         defaultCurrency: "USD",
@@ -157,6 +162,25 @@ describe("ProfilePage", () => {
         title: "No se pudo guardar",
         text: "Fallo remoto",
       })
+    );
+  });
+
+  it("saves the selected tax document label", async () => {
+    const user = userEvent.setup();
+    const updateCompany = vi.fn().mockResolvedValue(undefined);
+
+    renderProfilePage({ updateCompany });
+
+    await user.selectOptions(
+      screen.getByLabelText(/tipo de documento fiscal/i),
+      "DNI",
+    );
+    await user.click(screen.getByRole("button", { name: /guardar cambios/i }));
+
+    expect(updateCompany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        taxIdLabel: "DNI",
+      }),
     );
   });
 

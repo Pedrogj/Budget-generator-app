@@ -32,7 +32,9 @@ function getPreviewClass(templateId: QuoteTemplateId) {
 }
 
 export const QuoteTemplatesPage = () => {
-  const { selectedTemplate, setQuoteTemplate, quote, items } = useQuote();
+  const { selectedTemplate, setQuoteTemplate, quote, items, company } =
+    useQuote();
+  const taxIdLabel = company.taxIdLabel ?? "RIF";
   const hasQuoteData =
     quote.work.trim() &&
     quote.client.trim() &&
@@ -80,7 +82,7 @@ export const QuoteTemplatesPage = () => {
                   <span className="template-preview-logo">AC</span>
                   <div>
                     <strong>ACME Servicios Integrales</strong>
-                    <span>RIF/RUT: J-12345678-9</span>
+                    <span>{taxIdLabel}: J-12345678-9</span>
                     <span>Av. Principal 245, Santiago</span>
                   </div>
                   <aside>
@@ -93,7 +95,7 @@ export const QuoteTemplatesPage = () => {
                   <section>
                     <span>Cliente</span>
                     <strong>Constructora Norte</strong>
-                    <em>RUT: 76.123.456-7</em>
+                    <em>{taxIdLabel}: 76.123.456-7</em>
                   </section>
                   <section>
                     <span>Obra</span>

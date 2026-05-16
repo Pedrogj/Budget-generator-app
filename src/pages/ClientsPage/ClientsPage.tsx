@@ -8,7 +8,7 @@ import { useMemo, useState } from "react";
 
 const clientSchema = z.object({
   name: z.string().trim().min(2, "Ingresa al menos 2 caracteres"),
-  rif: z.string().trim().min(2, "Ingresa el RIF/RUT del cliente"),
+  rif: z.string().trim().min(2, "Ingresa el documento fiscal del cliente"),
   address: z.string().trim().min(2, "Ingresa la dirección del cliente"),
   email: z
     .string()
@@ -42,6 +42,7 @@ export const ClientsPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const { clients, addClient, removeClient, updateClient, company } =
     useQuote();
+  const taxIdLabel = company.taxIdLabel ?? "RIF";
 
   const isCompanyReady = !!company.id;
   const editingClient = clients.find((client) => client.id === editingId);
@@ -191,7 +192,7 @@ export const ClientsPage = () => {
           </label>
 
           <label>
-            <span>RIF/RUT</span>
+            <span>{taxIdLabel}</span>
             <input autoComplete="off" {...register("rif")} />
             {errors.rif && <p className="form-error">{errors.rif.message}</p>}
           </label>
@@ -254,7 +255,7 @@ export const ClientsPage = () => {
             <span>Buscar cliente</span>
             <input
               type="search"
-              placeholder="Nombre, RIF, correo o teléfono"
+              placeholder={`Nombre, ${taxIdLabel}, correo o teléfono`}
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
             />
@@ -269,7 +270,7 @@ export const ClientsPage = () => {
         ) : filteredClients.length === 0 ? (
           <div className="clients-empty">
             <strong>No encontramos coincidencias.</strong>
-            <p>Prueba con otro nombre, RIF, correo o teléfono.</p>
+            <p>Prueba con otro nombre, {taxIdLabel}, correo o teléfono.</p>
           </div>
         ) : (
           <div className="clients-list">

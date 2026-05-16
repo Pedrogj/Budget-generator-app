@@ -22,6 +22,7 @@ const baseQuoteContext = {
     id: "company-1",
     name: "ACME",
     rif: "J-1",
+    taxIdLabel: "RIF" as const,
     phone: "",
     addressLines: "",
     defaultCurrency: "USD" as const,
@@ -101,7 +102,9 @@ describe("ClientsPage", () => {
     await user.click(screen.getByRole("button", { name: /agregar cliente/i }));
 
     expect(await screen.findByText(/ingresa al menos 2 caracteres/i)).toBeVisible();
-    expect(screen.getByText(/ingresa el rif\/rut del cliente/i)).toBeVisible();
+    expect(
+      screen.getByText(/ingresa el documento fiscal del cliente/i),
+    ).toBeVisible();
     expect(screen.getByText(/ingresa la dirección del cliente/i)).toBeVisible();
     expect(baseQuoteContext.addClient).not.toHaveBeenCalled();
   });
@@ -113,7 +116,7 @@ describe("ClientsPage", () => {
     renderClientsPage({ addClient });
 
     await user.type(screen.getByLabelText(/^nombre$/i), "Cliente Tres");
-    await user.type(screen.getByLabelText(/rif\/rut/i), "RIF-3");
+    await user.type(screen.getByLabelText(/^rif$/i), "RIF-3");
     await user.type(screen.getByLabelText(/correo/i), "tres@test.com");
     await user.type(screen.getByLabelText(/teléfono/i), "+56 3");
     await user.type(screen.getByLabelText(/dirección/i), "Calle 3");

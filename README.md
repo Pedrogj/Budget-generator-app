@@ -96,7 +96,8 @@ Usuario no autenticado
 │
 └─ Formulario editable:
      ├─ Nombre de la empresa
-     ├─ RIF / RUT
+     ├─ Tipo de documento fiscal (RIF, RUT o DNI)
+     ├─ Número de documento fiscal
      ├─ Teléfono
      ├─ Dirección
      ├─ Moneda por defecto (USD / CLP)
@@ -119,7 +120,7 @@ Usuario no autenticado
 │
 ├─ Formulario para agregar / editar cliente:
 │    ├─ Nombre
-│    ├─ RIF / RUT
+│    ├─ Documento fiscal según preferencia de empresa
 │    ├─ Correo
 │    ├─ Teléfono
 │    └─ Dirección
@@ -145,7 +146,7 @@ Usuario no autenticado
 │    ├─ Seleccionar cliente guardado (dropdown)
 │    │    └─ Autocompleta: nombre, RIF y dirección del cliente
 │    ├─ Cliente (solo lectura, viene del selector)
-│    ├─ RIF del cliente (solo lectura)
+│    ├─ Documento fiscal del cliente (solo lectura)
 │    ├─ Dirección del cliente (solo lectura)
 │    ├─ Fecha de emisión (date picker)
 │    ├─ Moneda (solo lectura, viene del perfil de empresa)
@@ -336,7 +337,7 @@ La aplicación utiliza las siguientes tablas en PostgreSQL (vía Supabase):
 
 | Tabla | Descripción |
 |---|---|
-| `companies` | Datos de la empresa del usuario (nombre, RIF, teléfono, dirección, logo, moneda, IVA) |
+| `companies` | Datos de la empresa del usuario (nombre, documento fiscal, etiqueta RIF/RUT/DNI, teléfono, dirección, logo, moneda, IVA) |
 | `clients` | Clientes vinculados a una empresa |
 | `quotes` | Cabecera de cada presupuesto generado, incluyendo nota opcional y totales |
 | `quote_items` | Ítems/líneas de cada presupuesto |
@@ -362,6 +363,7 @@ El esquema de Supabase se versiona en `supabase/migrations/`.
 - `quotes.notes` es nullable y guarda la nota opcional del presupuesto.
 - `quotes.subtotal`, `quotes.iva`, `quotes.total` y `quotes.iva_rate` se usan para listar el historial sin cargar ítems.
 - `quotes.pdf_path`, `quotes.pdf_template_id` y `quotes.pdf_generated_at` registran el PDF generado en Storage.
+- `companies.tax_id_label` define si el documento fiscal se imprime como `RIF`, `RUT` o `DNI` en formularios, catálogo visual y PDFs.
 - El bucket privado `quote-pdfs` usa rutas `userId/companyId/quoteId/archivo.pdf` y políticas sobre `storage.objects` para permitir acceso solo al usuario autenticado dueño de esa carpeta.
 - La Edge Function `delete-account` elimina objetos de Storage usando la API de Storage antes de borrar el usuario, para evitar archivos huérfanos y bloqueos de Supabase Auth por objetos todavía asociados al usuario.
 - Las consultas desde el frontend deben pedir columnas explícitas en vez de `select("*")` para bajar egress y evitar transferir datos que la UI no usa.
@@ -390,6 +392,7 @@ interface CompanyInfo {
   id?: string;
   name: string;
   rif: string;
+  taxIdLabel?: "RIF" | "RUT" | "DNI";
   phone: string;
   addressLines: string;
   logoUrl?: string;
