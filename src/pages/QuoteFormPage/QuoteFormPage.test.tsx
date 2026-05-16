@@ -214,8 +214,15 @@ describe("QuoteFormPage", () => {
         }),
       })
     );
-    expect(setFromForm).toHaveBeenCalledAfter(saveQuote);
     expect(await screen.findByText("Preview route")).toBeInTheDocument();
+    expect(setFromForm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        quote: expect.objectContaining({
+          id: "quote-1",
+          pdfTemplateId: "professional",
+        }),
+      })
+    );
   });
 
   it("generates and stores the PDF with the selected template", async () => {

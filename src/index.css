@@ -667,6 +667,13 @@ button:disabled {
   border: 0;
 }
 
+.quote-preview-loading {
+  display: grid;
+  place-items: center;
+  color: #4b5563;
+  font-size: 0.95rem;
+}
+
 .quote-preview-mobile-actions {
   display: none;
 }

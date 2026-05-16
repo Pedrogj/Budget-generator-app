@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { Link, useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { pdf } from "@react-pdf/renderer";
 import {
   useFieldArray,
   useForm,
@@ -12,7 +11,6 @@ import {
 import { useQuote } from "../../context/QuoteContext";
 import type { ChangeEvent } from "react";
 import Swal from "sweetalert2";
-import { QuotePdfDocument } from "../../components/QuotePdfDocument";
 import { uploadQuotePdf } from "../../lib/quotePdfStorage";
 
 const itemSchema = z.object({
@@ -177,6 +175,10 @@ export const QuoteFormPage = () => {
         | null = null;
 
       try {
+        const [{ pdf }, { QuotePdfDocument }] = await Promise.all([
+          import("@react-pdf/renderer"),
+          import("../../components/QuotePdfDocument"),
+        ]);
         const pdfBlob = await pdf(
           <QuotePdfDocument
             company={company}

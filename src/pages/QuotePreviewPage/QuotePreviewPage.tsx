@@ -1,13 +1,17 @@
-import { pdf, PDFViewer } from "@react-pdf/renderer";
 import { Link } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useQuote } from "../../context/QuoteContext";
-import { QuotePdfDocument } from "../../components/QuotePdfDocument";
 import { getQuoteTemplate } from "../../components/quoteTemplates";
 import {
   createQuotePdfSignedUrl,
   uploadQuotePdf,
 } from "../../lib/quotePdfStorage";
+
+const QuotePdfViewer = lazy(() =>
+  import("../../components/QuotePdfViewer").then((module) => ({
+    default: module.QuotePdfViewer,
+  })),
+);
 
 function formatMoney(value: number, currency: "USD" | "CLP") {
   return new Intl.NumberFormat("es-CL", {
@@ -49,17 +53,6 @@ export const QuotePreviewPage = () => {
     quote.client.trim() &&
     (hasStoredPreview || items.some((item) => item.description.trim()));
   const fileName = `presupuesto-${toFileSlug(quote.client)}-${quote.issueDate || "sin-fecha"}.pdf`;
-  const pdfDocument = useMemo(
-    () => (
-      <QuotePdfDocument
-        company={company}
-        quote={quote}
-        items={items}
-        templateId={selectedTemplate}
-      />
-    ),
-    [company, items, quote, selectedTemplate],
-  );
 
   const downloadBlob = (blob: Blob) => {
     const url = window.URL.createObjectURL(blob);
@@ -101,7 +94,18 @@ export const QuotePreviewPage = () => {
         return;
       }
 
-      const pdfBlob = await pdf(pdfDocument).toBlob();
+      const [{ pdf }, { QuotePdfDocument }] = await Promise.all([
+        import("@react-pdf/renderer"),
+        import("../../components/QuotePdfDocument"),
+      ]);
+      const pdfBlob = await pdf(
+        <QuotePdfDocument
+          company={company}
+          quote={quote}
+          items={items}
+          templateId={selectedTemplate}
+        />,
+      ).toBlob();
 
       if (company.id && quote.id) {
         const storedPdf = await uploadQuotePdf({
@@ -220,7 +224,21 @@ export const QuotePreviewPage = () => {
             title="PDF guardado del presupuesto"
           />
         ) : (
-          <PDFViewer className="quote-preview-viewer">{pdfDocument}</PDFViewer>
+          <Suspense
+            fallback={
+              <div className="quote-preview-viewer quote-preview-loading">
+                Preparando vista previa...
+              </div>
+            }
+          >
+            <QuotePdfViewer
+              className="quote-preview-viewer"
+              company={company}
+              quote={quote}
+              items={items}
+              templateId={selectedTemplate}
+            />
+          </Suspense>
         )}
       </section>
 

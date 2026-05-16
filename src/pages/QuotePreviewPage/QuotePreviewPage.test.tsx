@@ -101,7 +101,7 @@ describe("QuotePreviewPage", () => {
     vi.clearAllMocks();
   });
 
-  it("renders a preview summary and the PDF viewer", () => {
+  it("renders a preview summary and the PDF viewer", async () => {
     renderQuotePreviewPage();
 
     expect(
@@ -114,9 +114,9 @@ describe("QuotePreviewPage", () => {
     expect(within(summary).getByText("Modelo aplicado")).toBeInTheDocument();
     expect(within(summary).getByText("Profesional")).toBeInTheDocument();
     expect(within(summary).getByText("US$232,00")).toBeInTheDocument();
+    expect(await screen.findByTestId("pdf-viewer")).toBeInTheDocument();
     expect(screen.getByText("Nota personalizada")).toBeInTheDocument();
     expect(screen.getByText("Vigencia de 15 días")).toBeInTheDocument();
-    expect(screen.getByTestId("pdf-viewer")).toBeInTheDocument();
   });
 
   it("uses quote data to build the download filename", () => {

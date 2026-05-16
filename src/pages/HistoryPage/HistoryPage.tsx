@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { pdf } from "@react-pdf/renderer";
 import { Link, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-import { QuotePdfDocument } from "../../components/QuotePdfDocument";
 import { useQuote } from "../../context/QuoteContext";
 import {
   createQuotePdfPreviewUrl,
@@ -440,6 +438,10 @@ export const HistoryPage = () => {
       }
 
       const items = await getQuoteItems(record);
+      const [{ pdf }, { QuotePdfDocument }] = await Promise.all([
+        import("@react-pdf/renderer"),
+        import("../../components/QuotePdfDocument"),
+      ]);
       const pdfBlob = await pdf(
         <QuotePdfDocument
           company={company}
