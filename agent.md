@@ -54,7 +54,11 @@ src/
 │   └── HistoryPage/HistoryPage.tsx      # Historial de presupuestos guardados + exportar/eliminar
 │
 ├── lib/
+│   ├── accountDeletion.ts      # Invoca Edge Function delete-account y cierra sesión
 │   └── supabaseClient.ts       # Instancia singleton de createClient(url, anonKey)
+│
+├── supabase/functions/
+│   └── delete-account/index.ts # Edge Function para borrar cuenta + datos + PDFs
 │
 └── types/
     └── types.ts                 # Interfaces: QuoteItem, CompanyInfo, QuoteInfo, ClientInfo
@@ -115,7 +119,9 @@ auth.users (Supabase Auth)
 
 ### Empresa y Presupuestos
 
-`ProfilePage` espera `updateCompany()` antes de mostrar éxito. El logo se maneja como Data URL, acepta PNG/JPG, máximo 1 MB y 600x600 px, y puede quitarse. `updateCompany()` debe lanzar errores de Supabase para evitar estado local optimista incorrecto.
+`ProfilePage` espera `updateCompany()` antes de mostrar éxito. El logo se maneja como Data URL, acepta PNG/JPG, máximo 1 MB y 600x600 px, y puede quitarse. `updateCompany()` debe lanzar errores de Supabase para evitar estado local optimista incorrecto. La zona de peligro invoca `deleteCurrentAccount()`, exige confirmación escribiendo `ELIMINAR`, y luego redirige a `/login`.
+
+`delete-account` es una Supabase Edge Function que valida el JWT del usuario, usa una secret key de backend solo del lado servidor, borra primero los archivos del bucket privado `quote-pdfs` bajo la carpeta `user.id`, elimina en orden `quote_items`, `quotes`, `clients`, `companies`, `profiles`, y finalmente llama `auth.admin.deleteUser(user.id)`. La función prioriza `SUPABASE_SECRET_KEYS`, acepta `SECRET_KEYS` como secret personalizada compatible con el Dashboard, espera formato JSON (`{"default":"sb_secret_..."}`) y mantiene `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_SERVICE_ROLE` solo como fallback legacy.
 
 `QuoteFormPage` usa `useFieldArray` para ítems y `useWatch` para calcular subtotal, IVA y total en vivo. La nota del presupuesto es opcional; si se ingresa, se persiste en `quotes.notes` y se imprime en el PDF. `saveQuote()` también persiste `iva_rate`, `subtotal`, `iva` y `total` en `quotes` para acelerar el historial. Después de guardar datos, genera el PDF en cliente con `pdf(...).toBlob()`, lo sube a Storage mediante `uploadQuotePdf()` y actualiza `quotes.pdf_path`, `pdf_template_id` y `pdf_generated_at`. `setFromForm()` solo debe ejecutarse después de `saveQuote()` exitoso. Si falla la inserción de `quote_items`, `saveQuote()` borra la cabecera `quotes` recién creada como rollback manual.
 

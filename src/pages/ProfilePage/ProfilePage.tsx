@@ -3,7 +3,9 @@ import { useForm, type Resolver, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import z from "zod";
 import Swal from "sweetalert2";
+import { useNavigate } from "react-router-dom";
 import { useQuote } from "../../context/QuoteContext";
+import { deleteCurrentAccount } from "../../lib/accountDeletion";
 
 const MAX_LOGO_DIMENSION = 600;
 const MAX_LOGO_SIZE_BYTES = 1024 * 1024;
@@ -32,7 +34,9 @@ function getErrorMessage(error: unknown) {
 
 export const ProfilePage = () => {
   const { company, updateCompany } = useQuote();
+  const navigate = useNavigate();
   const [logoError, setLogoError] = useState<string | null>(null);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [logoDraft, setLogoDraft] = useState<{
     sourceLogo?: string;
     value?: string;
@@ -41,7 +45,9 @@ export const ProfilePage = () => {
     value: company.logoUrl,
   });
   const tempLogo =
-    logoDraft.sourceLogo === company.logoUrl ? logoDraft.value : company.logoUrl;
+    logoDraft.sourceLogo === company.logoUrl
+      ? logoDraft.value
+      : company.logoUrl;
 
   const resolver: Resolver<ProfileFormValues> = zodResolver(
     profileSchema,
@@ -73,7 +79,6 @@ export const ProfilePage = () => {
       defaultCurrency: company.defaultCurrency ?? "USD",
       ivaRate: company.ivaRate ?? 16,
     });
-
   }, [company, reset]);
 
   const onSubmit: SubmitHandler<ProfileFormValues> = async (data) => {
@@ -169,6 +174,58 @@ export const ProfilePage = () => {
     });
   };
 
+  const handleDeleteAccount = async () => {
+    const result = await Swal.fire({
+      icon: "warning",
+      title: "Eliminar cuenta",
+      text: "Se borrarán tu empresa, clientes, presupuestos y PDFs guardados. Esta acción no se puede deshacer.",
+      input: "text",
+      inputLabel: 'Escribe "ELIMINAR" para confirmar',
+      inputPlaceholder: "ELIMINAR",
+      showCancelButton: true,
+      confirmButtonText: "Eliminar definitivamente",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#b91c1c",
+      inputValidator: (value) => {
+        if (value !== "ELIMINAR") {
+          return 'Debes escribir "ELIMINAR" para continuar.';
+        }
+
+        return null;
+      },
+    });
+
+    if (!result.isConfirmed) return;
+
+    setIsDeletingAccount(true);
+
+    try {
+      await deleteCurrentAccount();
+
+      await Swal.fire({
+        icon: "success",
+        title: "Cuenta eliminada",
+        text: "Tu cuenta y sus datos asociados fueron eliminados correctamente.",
+        timer: 1800,
+        showConfirmButton: false,
+      });
+
+      navigate("/login", { replace: true });
+    } catch (err) {
+      console.error("Error al eliminar cuenta", err);
+      await Swal.fire({
+        icon: "error",
+        title: "No se pudo eliminar la cuenta",
+        text:
+          err instanceof Error
+            ? err.message
+            : "Intenta nuevamente o revisa la configuración de Supabase.",
+      });
+    } finally {
+      setIsDeletingAccount(false);
+    }
+  };
+
   const hasLogoChange = tempLogo !== company.logoUrl;
   const isCompanyReady = !!company.id;
   const isSubmitDisabled =
@@ -185,7 +242,11 @@ export const ProfilePage = () => {
         </div>
       </div>
 
-      <form className="profile-form" noValidate onSubmit={handleSubmit(onSubmit)}>
+      <form
+        className="profile-form"
+        noValidate
+        onSubmit={handleSubmit(onSubmit)}
+      >
         <section className="profile-panel">
           <h2>Información fiscal</h2>
           <div className="profile-grid">
@@ -240,7 +301,10 @@ export const ProfilePage = () => {
 
           <label>
             <span>Dirección</span>
-            <textarea className="profile-address" {...register("addressLines")} />
+            <textarea
+              className="profile-address"
+              {...register("addressLines")}
+            />
             {errors.addressLines && (
               <p className="form-error">{errors.addressLines.message}</p>
             )}
@@ -264,9 +328,9 @@ export const ProfilePage = () => {
                 />
               </label>
 
-          {logoError && (
+              {logoError && (
                 <p className="form-error profile-logo-error">{logoError}</p>
-          )}
+              )}
 
               {tempLogo && (
                 <button type="button" onClick={handleRemoveLogo}>
@@ -277,10 +341,7 @@ export const ProfilePage = () => {
 
             <div className="profile-logo-preview">
               {tempLogo && !logoError ? (
-              <img
-                src={tempLogo}
-                alt="Logo de la empresa"
-              />
+                <img src={tempLogo} alt="Logo de la empresa" />
               ) : (
                 <span>Sin logo</span>
               )}
@@ -299,6 +360,25 @@ export const ProfilePage = () => {
           </button>
         </div>
       </form>
+
+      <section className="profile-panel profile-danger-panel">
+        <div>
+          <h2>Eliminar cuenta</h2>
+          <p className="profile-help">
+            Elimina permanentemente la cuenta, la empresa, clientes,
+            presupuestos y PDFs asociados.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className="profile-danger-button"
+          disabled={isDeletingAccount}
+          onClick={handleDeleteAccount}
+        >
+          {isDeletingAccount ? "Eliminando..." : "Eliminar cuenta"}
+        </button>
+      </section>
     </div>
   );
 };

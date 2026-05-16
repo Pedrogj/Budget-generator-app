@@ -1,11 +1,17 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Swal from "sweetalert2";
+import { MemoryRouter } from "react-router-dom";
 import { ProfilePage } from "./ProfilePage";
 import { useQuote } from "../../context/QuoteContext";
+import { deleteCurrentAccount } from "../../lib/accountDeletion";
 
 vi.mock("../../context/QuoteContext", () => ({
   useQuote: vi.fn(),
+}));
+
+vi.mock("../../lib/accountDeletion", () => ({
+  deleteCurrentAccount: vi.fn(),
 }));
 
 vi.mock("sweetalert2", () => ({
@@ -16,6 +22,7 @@ vi.mock("sweetalert2", () => ({
 
 const mockedUseQuote = vi.mocked(useQuote);
 const mockedSwal = vi.mocked(Swal.fire);
+const mockedDeleteCurrentAccount = vi.mocked(deleteCurrentAccount);
 
 const baseQuoteContext = {
   company: {
@@ -54,7 +61,11 @@ function renderProfilePage(overrides = {}) {
     ...overrides,
   });
 
-  return render(<ProfilePage />);
+  return render(
+    <MemoryRouter>
+      <ProfilePage />
+    </MemoryRouter>,
+  );
 }
 
 describe("ProfilePage", () => {
@@ -63,6 +74,7 @@ describe("ProfilePage", () => {
     mockedSwal.mockResolvedValue({ isConfirmed: true } as Awaited<
       ReturnType<typeof Swal.fire>
     >);
+    mockedDeleteCurrentAccount.mockResolvedValue(undefined);
   });
 
   it("renders company data", () => {
@@ -177,5 +189,72 @@ describe("ProfilePage", () => {
     await user.upload(screen.getByLabelText(/subir logo/i), file);
 
     expect(screen.getByText(/usa una imagen png o jpg/i)).toBeVisible();
+  });
+
+  it("deletes the account after explicit confirmation", async () => {
+    const user = userEvent.setup();
+    mockedSwal
+      .mockResolvedValueOnce({ isConfirmed: true } as Awaited<
+        ReturnType<typeof Swal.fire>
+      >)
+      .mockResolvedValueOnce({ isConfirmed: true } as Awaited<
+        ReturnType<typeof Swal.fire>
+      >);
+
+    renderProfilePage();
+
+    await user.click(screen.getByRole("button", { name: /eliminar cuenta/i }));
+
+    expect(mockedSwal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        icon: "warning",
+        title: "Eliminar cuenta",
+        input: "text",
+      }),
+    );
+    expect(mockedDeleteCurrentAccount).toHaveBeenCalledTimes(1);
+    expect(mockedSwal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        icon: "success",
+        title: "Cuenta eliminada",
+      }),
+    );
+  });
+
+  it("does not delete the account when confirmation is cancelled", async () => {
+    const user = userEvent.setup();
+    mockedSwal.mockResolvedValueOnce({ isConfirmed: false } as Awaited<
+      ReturnType<typeof Swal.fire>
+    >);
+
+    renderProfilePage();
+
+    await user.click(screen.getByRole("button", { name: /eliminar cuenta/i }));
+
+    expect(mockedDeleteCurrentAccount).not.toHaveBeenCalled();
+  });
+
+  it("shows an error when account deletion fails", async () => {
+    const user = userEvent.setup();
+    mockedDeleteCurrentAccount.mockRejectedValue(new Error("Storage bloqueado"));
+    mockedSwal
+      .mockResolvedValueOnce({ isConfirmed: true } as Awaited<
+        ReturnType<typeof Swal.fire>
+      >)
+      .mockResolvedValueOnce({ isConfirmed: true } as Awaited<
+        ReturnType<typeof Swal.fire>
+      >);
+
+    renderProfilePage();
+
+    await user.click(screen.getByRole("button", { name: /eliminar cuenta/i }));
+
+    expect(mockedSwal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        icon: "error",
+        title: "No se pudo eliminar la cuenta",
+        text: "Storage bloqueado",
+      }),
+    );
   });
 });

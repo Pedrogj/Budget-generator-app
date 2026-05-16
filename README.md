@@ -333,6 +333,12 @@ La aplicación utiliza las siguientes tablas en PostgreSQL (vía Supabase):
 | `quote_items` | Ítems/líneas de cada presupuesto |
 | Storage `quote-pdfs` | PDFs generados de presupuestos, guardados en un bucket privado |
 
+### Eliminación de Cuenta
+
+`ProfilePage` incluye una zona de peligro para eliminar la cuenta. El frontend invoca la Edge Function `delete-account`, que valida el JWT del usuario, borra primero los PDFs del bucket `quote-pdfs`, elimina datos de `quote_items`, `quotes`, `clients`, `companies` y `profiles`, y finalmente elimina el usuario de Supabase Auth con `auth.admin.deleteUser()`.
+
+Esta función debe ejecutarse en Supabase Edge Functions porque requiere una secret key de backend (`SUPABASE_SECRET_KEYS`); esa clave nunca debe exponerse en el navegador.
+
 ### Migraciones y Seguridad
 
 El esquema de Supabase se versiona en `supabase/migrations/`.
@@ -348,6 +354,7 @@ El esquema de Supabase se versiona en `supabase/migrations/`.
 - `quotes.subtotal`, `quotes.iva`, `quotes.total` y `quotes.iva_rate` se usan para listar el historial sin cargar ítems.
 - `quotes.pdf_path`, `quotes.pdf_template_id` y `quotes.pdf_generated_at` registran el PDF generado en Storage.
 - El bucket privado `quote-pdfs` usa rutas `userId/companyId/quoteId/archivo.pdf` y políticas sobre `storage.objects` para permitir acceso solo al usuario autenticado dueño de esa carpeta.
+- La Edge Function `delete-account` elimina objetos de Storage usando la API de Storage antes de borrar el usuario, para evitar archivos huérfanos y bloqueos de Supabase Auth por objetos todavía asociados al usuario.
 - Las consultas desde el frontend deben pedir columnas explícitas en vez de `select("*")` para bajar egress y evitar transferir datos que la UI no usa.
 - En desarrollo, React `StrictMode` puede duplicar efectos y hacer que algunas lecturas aparezcan repetidas en los logs de Supabase; validar egress real con build/producción.
 
@@ -504,3 +511,11 @@ VITE_SUPABASE_ANON_KEY=tu-anon-key-publica
 ```
 
 > ⚠️ El archivo `.env` está incluido en `.gitignore` y **no** debe subirse al repositorio.
+
+Para desplegar `supabase/functions/delete-account/index.ts` en Supabase, usa la variable automática `SUPABASE_SECRET_KEYS` de Edge Functions o configura una secret personalizada llamada `SECRET_KEYS` con una secret key de backend desde JWT Signing Keys/API Keys. El formato esperado es un JSON de claves, por ejemplo:
+
+```env
+SECRET_KEYS={"default":"sb_secret_tu_clave"}
+```
+
+> Esta variable es solo para Supabase Edge Functions. No debe existir como `VITE_` ni usarse desde el frontend. La función lee `SUPABASE_SECRET_KEYS` primero, luego `SECRET_KEYS`, y deja `SUPABASE_SERVICE_ROLE_KEY` solo como fallback legacy.
