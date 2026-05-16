@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   },
   detailRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 6,
     minHeight: 10,
     marginBottom: 0,
@@ -489,6 +489,7 @@ const corporateStyles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 7,
     fontSize: 8.5,
+    lineHeight: 1.25,
   },
   tableHeadCell: {
     paddingHorizontal: 8,
@@ -598,6 +599,19 @@ const formatIssueDate = (value: string) => {
   return value;
 };
 
+const formatPdfText = (value: string | number | undefined, fallback = "") => {
+  const text = String(value ?? fallback).trim() || fallback;
+
+  return text
+    .split(/(\s+)/)
+    .map((part) => {
+      if (/^\s+$/.test(part) || part.length <= 24) return part;
+
+      return part.match(/.{1,24}/g)?.join(" ") ?? part;
+    })
+    .join("");
+};
+
 const getCompanyInitials = (name: string) => {
   const initials = name
     .split(/\s+/)
@@ -637,13 +651,13 @@ const CorporateQuotePdfDocument = ({ company, quote, items }: Props) => {
                   <Image src={company.logoUrl} style={styles.logoImage} />
                 ) : (
                   <Text style={corporateStyles.brandMarkText}>
-                    {getCompanyInitials(company.name)}
+                    {getCompanyInitials(formatPdfText(company.name))}
                   </Text>
                 )}
               </View>
               <View>
                 <Text style={corporateStyles.brandName}>
-                  {company.name || "Tu empresa"}
+                  {formatPdfText(company.name, "Tu empresa")}
                 </Text>
                 <Text style={corporateStyles.brandMeta}>
                   PRESUPUESTOS Y SERVICIOS
@@ -668,29 +682,39 @@ const CorporateQuotePdfDocument = ({ company, quote, items }: Props) => {
           <View style={corporateStyles.infoGrid}>
             <View style={corporateStyles.infoBlock}>
               <Text style={corporateStyles.sectionTitle}>Presupuesto para</Text>
-              <Text style={corporateStyles.clientName}>{quote.client}</Text>
-              <Text style={corporateStyles.detailText}>
-                RIF/RUT: {quote.clientRif}
+              <Text style={corporateStyles.clientName}>
+                {formatPdfText(quote.client)}
               </Text>
               <Text style={corporateStyles.detailText}>
-                Dirección: {quote.clientAddress}
+                RIF/RUT: {formatPdfText(quote.clientRif)}
               </Text>
-              <Text style={corporateStyles.detailText}>Obra: {quote.work}</Text>
+              <Text style={corporateStyles.detailText}>
+                Dirección: {formatPdfText(quote.clientAddress)}
+              </Text>
+              <Text style={corporateStyles.detailText}>
+                Obra: {formatPdfText(quote.work)}
+              </Text>
             </View>
 
             <View style={corporateStyles.infoBlockRight}>
               <Text style={corporateStyles.sectionTitle}>Datos de contacto</Text>
               <View style={corporateStyles.methodRow}>
                 <Text style={corporateStyles.methodLabel}>Empresa</Text>
-                <Text style={corporateStyles.methodValue}>{company.name}</Text>
+                <Text style={corporateStyles.methodValue}>
+                  {formatPdfText(company.name)}
+                </Text>
               </View>
               <View style={corporateStyles.methodRow}>
                 <Text style={corporateStyles.methodLabel}>RIF/RUT</Text>
-                <Text style={corporateStyles.methodValue}>{company.rif}</Text>
+                <Text style={corporateStyles.methodValue}>
+                  {formatPdfText(company.rif)}
+                </Text>
               </View>
               <View style={corporateStyles.methodRow}>
                 <Text style={corporateStyles.methodLabel}>Teléfono</Text>
-                <Text style={corporateStyles.methodValue}>{company.phone}</Text>
+                <Text style={corporateStyles.methodValue}>
+                  {formatPdfText(company.phone)}
+                </Text>
               </View>
             </View>
           </View>
@@ -726,7 +750,7 @@ const CorporateQuotePdfDocument = ({ company, quote, items }: Props) => {
                   {String(index + 1).padStart(2, "0")}
                 </Text>
                 <Text style={[corporateStyles.tableCell, corporateStyles.corpDesc]}>
-                  {item.description}
+                  {formatPdfText(item.description)}
                 </Text>
                 <Text style={[corporateStyles.tableCell, corporateStyles.corpPrice]}>
                   {formatMoney(item.unitPrice, currency)}
@@ -749,7 +773,7 @@ const CorporateQuotePdfDocument = ({ company, quote, items }: Props) => {
               {noteLines.length > 0 ? (
                 noteLines.map((line, index) => (
                   <Text key={index} style={corporateStyles.termsText}>
-                    {line}
+                    {formatPdfText(line)}
                   </Text>
                 ))
               ) : (
@@ -789,10 +813,11 @@ const CorporateQuotePdfDocument = ({ company, quote, items }: Props) => {
         <View style={corporateStyles.footer}>
           <View style={corporateStyles.footerDark}>
             <Text style={corporateStyles.footerText}>
-              {company.phone || "Teléfono no configurado"}  |  {company.rif}
+              {formatPdfText(company.phone, "Teléfono no configurado")}  |{" "}
+              {formatPdfText(company.rif)}
             </Text>
             <Text style={corporateStyles.footerText}>
-              {company.addressLines || "Dirección de la empresa"}
+              {formatPdfText(company.addressLines, "Dirección de la empresa")}
             </Text>
           </View>
           <View style={corporateStyles.footerAccent} />
@@ -855,11 +880,17 @@ export const QuotePdfDocument = ({
             </View>
 
             <View style={styles.companyInfo}>
-              <Text style={styles.companyName}>{company.name}</Text>
-              <Text style={styles.metaText}>RIF/RUT: {company.rif}</Text>
-              <Text style={styles.metaText}>Teléfono: {company.phone}</Text>
+              <Text style={styles.companyName}>
+                {formatPdfText(company.name, "Tu empresa")}
+              </Text>
               <Text style={styles.metaText}>
-                Dirección: {company.addressLines}
+                RIF/RUT: {formatPdfText(company.rif)}
+              </Text>
+              <Text style={styles.metaText}>
+                Teléfono: {formatPdfText(company.phone)}
+              </Text>
+              <Text style={styles.metaText}>
+                Dirección: {formatPdfText(company.addressLines)}
               </Text>
             </View>
           </View>
@@ -892,15 +923,19 @@ export const QuotePdfDocument = ({
             </Text>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Cliente</Text>
-              <Text style={styles.detailValue}>{quote.client}</Text>
+              <Text style={styles.detailValue}>{formatPdfText(quote.client)}</Text>
             </View>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>RIF/RUT</Text>
-              <Text style={styles.detailValue}>{quote.clientRif}</Text>
+              <Text style={styles.detailValue}>
+                {formatPdfText(quote.clientRif)}
+              </Text>
             </View>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Dirección</Text>
-              <Text style={styles.detailValue}>{quote.clientAddress}</Text>
+              <Text style={styles.detailValue}>
+                {formatPdfText(quote.clientAddress)}
+              </Text>
             </View>
           </View>
 
@@ -910,7 +945,7 @@ export const QuotePdfDocument = ({
             </Text>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Obra</Text>
-              <Text style={styles.detailValue}>{quote.work}</Text>
+              <Text style={styles.detailValue}>{formatPdfText(quote.work)}</Text>
             </View>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Ítems</Text>
@@ -1015,7 +1050,7 @@ export const QuotePdfDocument = ({
                     { paddingVertical: template.cellPadding },
                   ]}
                 >
-                  {item.code}
+                  {formatPdfText(item.code)}
                 </Text>
                 <Text
                   style={[
@@ -1024,7 +1059,7 @@ export const QuotePdfDocument = ({
                     { paddingVertical: template.cellPadding },
                   ]}
                 >
-                  {item.unit}
+                  {formatPdfText(item.unit)}
                 </Text>
                 <Text
                   style={[
@@ -1033,7 +1068,7 @@ export const QuotePdfDocument = ({
                     { paddingVertical: template.cellPadding },
                   ]}
                 >
-                  {item.description}
+                  {formatPdfText(item.description)}
                 </Text>
                 <Text
                   style={[
@@ -1051,7 +1086,7 @@ export const QuotePdfDocument = ({
                     { paddingVertical: template.cellPadding },
                   ]}
                 >
-                  {item.sg}
+                  {formatPdfText(item.sg)}
                 </Text>
                 <Text
                   style={[
@@ -1083,7 +1118,7 @@ export const QuotePdfDocument = ({
                 <Text style={styles.notesTitle}>Notas</Text>
                 {noteLines.map((line, index) => (
                   <Text key={index} style={styles.noteText}>
-                    {line}
+                    {formatPdfText(line)}
                   </Text>
                 ))}
               </>
