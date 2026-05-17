@@ -8,6 +8,7 @@ import {
   removeQuotePdf,
   uploadQuotePdf,
 } from "../../lib/quotePdfStorage";
+import { prepareCompanyLogoForPdf } from "../../lib/companyLogoStorage";
 import { supabase } from "../../lib/supabaseClient";
 import type { QuoteInfo, QuoteItem, QuoteTemplateId } from "../../types/types";
 
@@ -442,9 +443,10 @@ export const HistoryPage = () => {
         import("@react-pdf/renderer"),
         import("../../components/QuotePdfDocument"),
       ]);
+      const pdfCompany = await prepareCompanyLogoForPdf(company);
       const pdfBlob = await pdf(
         <QuotePdfDocument
-          company={company}
+          company={pdfCompany}
           quote={record.quote}
           items={items}
           templateId={selectedTemplate}

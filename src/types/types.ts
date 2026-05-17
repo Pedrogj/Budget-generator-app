@@ -24,6 +24,7 @@ export interface CompanyInfo {
   phone: string;
   addressLines: string;
   logoUrl?: string;
+  logoPath?: string;
   defaultCurrency?: "USD" | "CLP";
   ivaRate?: number;
 }

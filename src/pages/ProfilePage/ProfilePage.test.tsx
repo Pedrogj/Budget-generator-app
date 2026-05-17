@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Swal from "sweetalert2";
 import { MemoryRouter } from "react-router-dom";
@@ -204,13 +204,13 @@ describe("ProfilePage", () => {
     );
   });
 
-  it("shows an error for unsupported logo types", async () => {
-    const user = userEvent.setup();
-
+  it("shows an error for unsupported logo types", () => {
     renderProfilePage();
 
     const file = new File(["avatar"], "avatar.gif", { type: "image/gif" });
-    await user.upload(screen.getByLabelText(/subir logo/i), file);
+    fireEvent.change(screen.getByLabelText(/subir logo/i), {
+      target: { files: [file] },
+    });
 
     expect(screen.getByText(/usa una imagen png o jpg/i)).toBeVisible();
   });

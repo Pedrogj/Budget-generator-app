@@ -113,11 +113,12 @@ auth.users (Supabase Auth)
 
 ### Campos principales
 
-**companies**: id, profile_id, name, rif, tax_id_label, phone, address_lines, logo_url, default_currency, iva_rate
+**companies**: id, profile_id, name, rif, tax_id_label, phone, address_lines, logo_url, logo_path, default_currency, iva_rate
 **clients**: id, company_id, name, rif, address, email, phone
 **quotes**: id, company_id, client_id, work, issue_date, currency, client_name, client_rif, client_address, notes, iva_rate, subtotal, iva, total, pdf_path, pdf_template_id, pdf_generated_at
 **quote_items**: id, quote_id, code, unit, description, quantity, sg, unit_price
 **storage bucket `quote-pdfs`**: PDFs generados, ruta `userId/companyId/quoteId/file-template-version.pdf`, bucket privado.
+**storage bucket `company-logos`**: logos optimizados, ruta `userId/companyId/logo-version.png|jpg`, bucket privado.
 
 ### Clientes
 
@@ -125,7 +126,7 @@ auth.users (Supabase Auth)
 
 ### Empresa y Presupuestos
 
-`ProfilePage` espera `updateCompany()` antes de mostrar éxito. El logo se maneja como Data URL, acepta PNG/JPG, máximo 1 MB y 600x600 px, y puede quitarse. `tax_id_label` permite elegir cómo se muestra el documento fiscal en la app y PDFs (`RIF`, `RUT` o `DNI`). `updateCompany()` debe lanzar errores de Supabase para evitar estado local optimista incorrecto. La zona de peligro invoca `deleteCurrentAccount()`, exige confirmación escribiendo `ELIMINAR`, y luego redirige a `/login`.
+`ProfilePage` espera `updateCompany()` antes de mostrar éxito. El logo acepta PNG/JPG hasta 1 MB, se optimiza en navegador a máximo 320x320 px, se sube al bucket privado `company-logos` como PNG/JPG compatible con `@react-pdf` y se guarda como `companies.logo_path`; `logo_url` queda solo como fallback legacy para base64 antiguo. `tax_id_label` permite elegir cómo se muestra el documento fiscal en la app y PDFs (`RIF`, `RUT` o `DNI`). `updateCompany()` debe lanzar errores de Supabase para evitar estado local optimista incorrecto. La zona de peligro invoca `deleteCurrentAccount()`, exige confirmación escribiendo `ELIMINAR`, y luego redirige a `/login`.
 
 `delete-account` es una Supabase Edge Function que valida el JWT del usuario, usa una secret key de backend solo del lado servidor, borra primero los archivos del bucket privado `quote-pdfs` bajo la carpeta `user.id`, elimina en orden `quote_items`, `quotes`, `clients`, `companies`, `profiles`, y finalmente llama `auth.admin.deleteUser(user.id)`. La función prioriza `SUPABASE_SECRET_KEYS`, acepta `SECRET_KEYS` como secret personalizada compatible con el Dashboard, espera formato JSON (`{"default":"sb_secret_..."}`) y mantiene `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_SERVICE_ROLE` solo como fallback legacy.
 
@@ -158,6 +159,10 @@ Las migraciones viven en `supabase/migrations/`.
   - Crea políticas de Storage para que cada usuario autenticado solo pueda leer/subir PDFs bajo su carpeta `auth.uid()`.
 - `20260516173000_add_company_tax_id_label.sql`
   - Agrega `companies.tax_id_label` con valores permitidos `RIF`, `RUT` y `DNI`.
+- `20260517123000_add_company_logo_storage.sql`
+  - Crea/actualiza el bucket privado `company-logos`.
+  - Agrega `companies.logo_path`.
+  - Crea políticas de Storage para que cada usuario autenticado solo pueda leer/subir logos bajo su carpeta `auth.uid()`.
 
 Estado verificado después de aplicar:
 

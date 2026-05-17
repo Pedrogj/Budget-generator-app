@@ -12,6 +12,7 @@ import { useQuote } from "../../context/QuoteContext";
 import type { ChangeEvent } from "react";
 import Swal from "sweetalert2";
 import { uploadQuotePdf } from "../../lib/quotePdfStorage";
+import { prepareCompanyLogoForPdf } from "../../lib/companyLogoStorage";
 
 const itemSchema = z.object({
   code: z.string().trim().default("NA"),
@@ -183,9 +184,10 @@ export const QuoteFormPage = () => {
           import("@react-pdf/renderer"),
           import("../../components/QuotePdfDocument"),
         ]);
+        const pdfCompany = await prepareCompanyLogoForPdf(company);
         const pdfBlob = await pdf(
           <QuotePdfDocument
-            company={company}
+            company={pdfCompany}
             quote={savedQuote}
             items={payload.items}
             templateId={selectedTemplate}

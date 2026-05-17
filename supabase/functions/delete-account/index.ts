@@ -9,6 +9,7 @@ const corsHeaders = {
 
 type DeleteSummary = {
   storageFilesDeleted: number;
+  logoFilesDeleted: number;
   quoteItemsDeleted: number;
   quotesDeleted: number;
   clientsDeleted: number;
@@ -106,6 +107,7 @@ Deno.serve(async (req) => {
 
     const summary: DeleteSummary = {
       storageFilesDeleted: 0,
+      logoFilesDeleted: 0,
       quoteItemsDeleted: 0,
       quotesDeleted: 0,
       clientsDeleted: 0,
@@ -113,13 +115,16 @@ Deno.serve(async (req) => {
       profileDeleted: false,
     };
 
-    async function deleteStorageFolder(prefix: string): Promise<number> {
+    async function deleteStorageFolder(
+      bucket: string,
+      prefix: string,
+    ): Promise<number> {
       let deleted = 0;
       let offset = 0;
 
       while (true) {
         const { data: objects, error: listError } = await supabaseAdmin.storage
-          .from("quote-pdfs")
+          .from(bucket)
           .list(prefix, { limit: 1000, offset });
 
         if (listError) throw listError;
@@ -133,13 +138,13 @@ Deno.serve(async (req) => {
           if (object.id) {
             filePaths.push(objectPath);
           } else {
-            deleted += await deleteStorageFolder(objectPath);
+            deleted += await deleteStorageFolder(bucket, objectPath);
           }
         }
 
         for (const paths of chunk(filePaths, 1000)) {
           const { error: removeError } = await supabaseAdmin.storage
-            .from("quote-pdfs")
+            .from(bucket)
             .remove(paths);
 
           if (removeError) throw removeError;
@@ -153,7 +158,14 @@ Deno.serve(async (req) => {
       return deleted;
     }
 
-    summary.storageFilesDeleted = await deleteStorageFolder(user.id);
+    summary.storageFilesDeleted = await deleteStorageFolder(
+      "quote-pdfs",
+      user.id,
+    );
+    summary.logoFilesDeleted = await deleteStorageFolder(
+      "company-logos",
+      user.id,
+    );
 
     const { data: companies, error: companiesError } = await supabaseAdmin
       .from("companies")

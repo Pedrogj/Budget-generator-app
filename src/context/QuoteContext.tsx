@@ -14,9 +14,10 @@ import type {
 } from "../types/types";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "./AuthContext";
+import { createCompanyLogoSignedUrl } from "../lib/companyLogoStorage";
 
 const companySelect =
-  "id,name,rif,tax_id_label,phone,address_lines,logo_url,default_currency,iva_rate";
+  "id,name,rif,tax_id_label,phone,address_lines,logo_url,logo_path,default_currency,iva_rate";
 const clientSelect = "id,name,rif,address,email,phone";
 const quoteTemplateStorageKey = "presupuesta.quoteTemplate";
 
@@ -49,6 +50,7 @@ const initialCompany: CompanyInfo = {
   phone: "",
   addressLines: "",
   logoUrl: "",
+  logoPath: "",
   defaultCurrency: "USD",
   ivaRate: 16,
 };
@@ -135,6 +137,16 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
         let currentCompanyId: string | undefined;
 
         if (companyRow) {
+          let logoUrl = companyRow.logo_url ?? undefined;
+
+          if (companyRow.logo_path) {
+            try {
+              logoUrl = await createCompanyLogoSignedUrl(companyRow.logo_path);
+            } catch (logoError) {
+              console.warn("Error creating company logo signed URL", logoError);
+            }
+          }
+
           setCompany({
             id: companyRow.id,
             name: companyRow.name,
@@ -142,7 +154,8 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
             taxIdLabel: companyRow.tax_id_label ?? "RIF",
             phone: companyRow.phone,
             addressLines: companyRow.address_lines,
-            logoUrl: companyRow.logo_url ?? undefined,
+            logoUrl,
+            logoPath: companyRow.logo_path ?? undefined,
             defaultCurrency: companyRow.default_currency ?? "USD",
             ivaRate: companyRow.iva_rate ?? 16,
           });
@@ -159,6 +172,7 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
               phone: "",
               address_lines: "",
               logo_url: null,
+              logo_path: null,
               default_currency: "USD",
               iva_rate: 16,
             })
@@ -176,6 +190,7 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
               phone: inserted.phone,
               addressLines: inserted.address_lines,
               logoUrl: inserted.logo_url ?? undefined,
+              logoPath: inserted.logo_path ?? undefined,
               defaultCurrency: inserted.default_currency ?? "USD",
               ivaRate: inserted.iva_rate ?? 16,
             });
@@ -246,6 +261,7 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
       company.phone === merged.phone &&
       company.addressLines === merged.addressLines &&
       company.logoUrl === merged.logoUrl &&
+      company.logoPath === merged.logoPath &&
       company.defaultCurrency === merged.defaultCurrency &&
       company.ivaRate === merged.ivaRate;
 
@@ -262,7 +278,8 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
             tax_id_label: merged.taxIdLabel ?? "RIF",
             phone: merged.phone,
             address_lines: merged.addressLines,
-            logo_url: merged.logoUrl ?? null,
+            logo_url: merged.logoPath ? null : merged.logoUrl ?? null,
+            logo_path: merged.logoPath ?? null,
             default_currency: merged.defaultCurrency ?? "USD",
             iva_rate: merged.ivaRate ?? 16,
           })
@@ -283,7 +300,8 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
             tax_id_label: merged.taxIdLabel ?? "RIF",
             phone: merged.phone,
             address_lines: merged.addressLines,
-            logo_url: merged.logoUrl ?? null,
+            logo_url: merged.logoPath ? null : merged.logoUrl ?? null,
+            logo_path: merged.logoPath ?? null,
             default_currency: merged.defaultCurrency ?? "USD",
             iva_rate: merged.ivaRate ?? 16,
           })

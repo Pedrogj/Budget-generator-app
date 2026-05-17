@@ -6,9 +6,13 @@ import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 import { useQuote } from "../../context/QuoteContext";
 import { deleteCurrentAccount } from "../../lib/accountDeletion";
-
-const MAX_LOGO_DIMENSION = 600;
-const MAX_LOGO_SIZE_BYTES = 1024 * 1024;
+import {
+  maxCompanyLogoDimension,
+  maxCompanyLogoSourceBytes,
+  optimizeCompanyLogo,
+  removeCompanyLogo,
+  uploadCompanyLogo,
+} from "../../lib/companyLogoStorage";
 
 const profileSchema = z.object({
   name: z.string().trim().min(1, "El nombre de la empresa es requerido"),
@@ -39,15 +43,17 @@ export const ProfilePage = () => {
   const [logoError, setLogoError] = useState<string | null>(null);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [logoDraft, setLogoDraft] = useState<{
-    sourceLogo?: string;
-    value?: string;
+    sourcePath?: string;
+    previewUrl?: string;
+    blob?: Blob;
+    remove?: boolean;
   }>({
-    sourceLogo: company.logoUrl,
-    value: company.logoUrl,
+    sourcePath: company.logoPath,
+    previewUrl: company.logoUrl,
   });
   const tempLogo =
-    logoDraft.sourceLogo === company.logoUrl
-      ? logoDraft.value
+    logoDraft.sourcePath === company.logoPath
+      ? logoDraft.previewUrl
       : company.logoUrl;
 
   const resolver: Resolver<ProfileFormValues> = zodResolver(
@@ -85,22 +91,76 @@ export const ProfilePage = () => {
     });
   }, [company, reset]);
 
+  useEffect(() => {
+    setLogoDraft((current) => {
+      if (current.blob || current.remove) return current;
+      if (
+        current.sourcePath === company.logoPath &&
+        current.previewUrl === company.logoUrl
+      ) {
+        return current;
+      }
+
+      return {
+        sourcePath: company.logoPath,
+        previewUrl: company.logoUrl,
+      };
+    });
+  }, [company.logoPath, company.logoUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (logoDraft.previewUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(logoDraft.previewUrl);
+      }
+    };
+  }, [logoDraft.previewUrl]);
+
   const taxIdLabel = watch("taxIdLabel");
 
   const onSubmit: SubmitHandler<ProfileFormValues> = async (data) => {
     try {
+      let logoPath = company.logoPath;
+      let logoUrl = company.logoUrl;
+
+      if (logoDraft.remove) {
+        if (company.logoPath) {
+          await removeCompanyLogo(company.logoPath);
+        }
+
+        logoPath = undefined;
+        logoUrl = undefined;
+      } else if (logoDraft.blob) {
+        if (!company.id) {
+          throw new Error("La empresa aún no está lista para subir el logo.");
+        }
+
+        const uploadedLogo = await uploadCompanyLogo({
+          companyId: company.id,
+          logoBlob: logoDraft.blob,
+          previousPath: company.logoPath,
+        });
+        logoPath = uploadedLogo.path;
+        logoUrl = uploadedLogo.signedUrl;
+      }
+
       await updateCompany({
         name: data.name,
         rif: data.rif,
         taxIdLabel: data.taxIdLabel,
         phone: data.phone,
-        logoUrl: tempLogo || undefined,
+        logoUrl,
+        logoPath,
         addressLines: data.addressLines,
         defaultCurrency: data.defaultCurrency,
         ivaRate: data.ivaRate,
       });
 
       reset(data);
+      setLogoDraft({
+        sourcePath: logoPath,
+        previewUrl: logoUrl,
+      });
 
       await Swal.fire({
         icon: "success",
@@ -119,7 +179,7 @@ export const ProfilePage = () => {
     }
   };
 
-  const handleLogoChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleLogoChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -131,53 +191,45 @@ export const ProfilePage = () => {
       return;
     }
 
-    if (file.size > MAX_LOGO_SIZE_BYTES) {
+    if (file.size > maxCompanyLogoSourceBytes) {
       setLogoError("El logo no debe superar 1 MB.");
       event.target.value = "";
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
+    try {
+      const optimizedLogo = await optimizeCompanyLogo(file);
+      const previewUrl = URL.createObjectURL(optimizedLogo);
 
-      const img = new Image();
-      img.onload = () => {
-        const { naturalWidth, naturalHeight } = img;
+      if (logoDraft.previewUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(logoDraft.previewUrl);
+      }
 
-        if (
-          naturalWidth > MAX_LOGO_DIMENSION ||
-          naturalHeight > MAX_LOGO_DIMENSION
-        ) {
-          setLogoError(
-            `El logo es demasiado grande (${naturalWidth}x${naturalHeight}px). El máximo permitido es 600x600 px.`,
-          );
-          event.target.value = "";
-          return;
-        }
-
-        setLogoDraft({
-          sourceLogo: company.logoUrl,
-          value: dataUrl,
-        });
-        event.target.value = "";
-      };
-      img.onerror = () => {
-        setLogoError("No se pudo leer la imagen. Intenta con otro archivo.");
-      };
-      img.src = dataUrl;
-    };
-    reader.onerror = () => {
-      setLogoError("Error al leer el archivo. Intenta nuevamente.");
-    };
-    reader.readAsDataURL(file);
+      setLogoDraft({
+        sourcePath: company.logoPath,
+        previewUrl,
+        blob: optimizedLogo,
+      });
+    } catch (err) {
+      setLogoError(
+        err instanceof Error
+          ? err.message
+          : "No se pudo optimizar el logo. Intenta con otra imagen.",
+      );
+    } finally {
+      event.target.value = "";
+    }
   };
 
   const handleRemoveLogo = () => {
     setLogoError(null);
+    if (logoDraft.previewUrl?.startsWith("blob:")) {
+      URL.revokeObjectURL(logoDraft.previewUrl);
+    }
     setLogoDraft({
-      sourceLogo: company.logoUrl,
-      value: undefined,
+      sourcePath: company.logoPath,
+      previewUrl: undefined,
+      remove: true,
     });
   };
 
@@ -233,7 +285,9 @@ export const ProfilePage = () => {
     }
   };
 
-  const hasLogoChange = tempLogo !== company.logoUrl;
+  const hasLogoChange =
+    logoDraft.sourcePath === company.logoPath &&
+    (logoDraft.previewUrl !== company.logoUrl || logoDraft.remove);
   const isCompanyReady = !!company.id;
   const isSubmitDisabled =
     (!isDirty && !hasLogoChange) || isSubmitting || !isCompanyReady;
@@ -335,7 +389,9 @@ export const ProfilePage = () => {
             <div>
               <h2>Logo</h2>
               <p className="profile-help">
-                Usa una imagen PNG o JPG de máximo 1 MB y 600x600 px.
+                Usa PNG o JPG de máximo 1 MB. Lo optimizaremos a{" "}
+                {maxCompanyLogoDimension}x{maxCompanyLogoDimension} px y se
+                guardará en Storage.
               </p>
 
               <label className="profile-file-field">

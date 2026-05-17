@@ -6,6 +6,7 @@ import {
   createQuotePdfSignedUrl,
   uploadQuotePdf,
 } from "../../lib/quotePdfStorage";
+import { prepareCompanyLogoForPdf } from "../../lib/companyLogoStorage";
 
 const QuotePdfViewer = lazy(() =>
   import("../../components/QuotePdfViewer").then((module) => ({
@@ -98,9 +99,10 @@ export const QuotePreviewPage = () => {
         import("@react-pdf/renderer"),
         import("../../components/QuotePdfDocument"),
       ]);
+      const pdfCompany = await prepareCompanyLogoForPdf(company);
       const pdfBlob = await pdf(
         <QuotePdfDocument
-          company={company}
+          company={pdfCompany}
           quote={quote}
           items={items}
           templateId={selectedTemplate}

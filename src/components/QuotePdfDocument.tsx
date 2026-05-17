@@ -57,9 +57,6 @@ const styles = StyleSheet.create({
   logoBox: {
     width: 54,
     height: 54,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.panel,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -386,10 +383,8 @@ const corporateStyles = StyleSheet.create({
   brandMark: {
     width: 34,
     height: 34,
-    borderRadius: 17,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#fbbf24",
   },
   brandMarkText: {
     color: "#111111",

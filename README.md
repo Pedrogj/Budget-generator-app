@@ -102,13 +102,15 @@ Usuario no autenticado
      ├─ Dirección
      ├─ Moneda por defecto (USD / CLP)
      ├─ Tasa de IVA (%)
-     └─ Logo de empresa (imagen, máx. 600x600px)
-         └─ Se almacena como Data URL (base64) en la DB
+     └─ Logo de empresa (PNG/JPG, máx. 1 MB original)
+         └─ Se optimiza a 320x320 px antes de subir
+         └─ Se guarda como PNG o JPG compatible con PDF
+         └─ Se almacena en el bucket privado company-logos
          └─ Puede reemplazarse o quitarse desde la página
 ```
 
 - El formulario valida con **Zod**: todos los campos son obligatorios, el IVA debe ser entre 0–20%.
-- El logo se valida en el cliente (PNG/JPG, máximo 1 MB y dimensiones máximas) y se convierte a base64 con `FileReader`.
+- El logo se optimiza en el navegador y se guarda en Supabase Storage como PNG/JPG compatible con `@react-pdf`; la tabla `companies` conserva solo `logo_path` y mantiene `logo_url` como fallback legacy.
 - Solo se guarda si hay cambios reales (comparación campo a campo).
 - El guardado espera la respuesta de Supabase antes de mostrar éxito; si falla, se muestra error con SweetAlert2.
 - La moneda configurada aquí se usa automáticamente en los presupuestos.
@@ -342,6 +344,7 @@ La aplicación utiliza las siguientes tablas en PostgreSQL (vía Supabase):
 | `quotes` | Cabecera de cada presupuesto generado, incluyendo nota opcional y totales |
 | `quote_items` | Ítems/líneas de cada presupuesto |
 | Storage `quote-pdfs` | PDFs generados de presupuestos, guardados en un bucket privado |
+| Storage `company-logos` | Logos optimizados de empresa, guardados en un bucket privado |
 
 ### Eliminación de Cuenta
 
@@ -364,8 +367,10 @@ El esquema de Supabase se versiona en `supabase/migrations/`.
 - `quotes.subtotal`, `quotes.iva`, `quotes.total` y `quotes.iva_rate` se usan para listar el historial sin cargar ítems.
 - `quotes.pdf_path`, `quotes.pdf_template_id` y `quotes.pdf_generated_at` registran el PDF generado en Storage.
 - `companies.tax_id_label` define si el documento fiscal se imprime como `RIF`, `RUT` o `DNI` en formularios, catálogo visual y PDFs.
+- `companies.logo_path` apunta al logo optimizado en el bucket privado `company-logos`; `logo_url` queda como compatibilidad para logos antiguos en base64.
 - El bucket privado `quote-pdfs` usa rutas `userId/companyId/quoteId/archivo.pdf` y políticas sobre `storage.objects` para permitir acceso solo al usuario autenticado dueño de esa carpeta.
-- La Edge Function `delete-account` elimina objetos de Storage usando la API de Storage antes de borrar el usuario, para evitar archivos huérfanos y bloqueos de Supabase Auth por objetos todavía asociados al usuario.
+- El bucket privado `company-logos` usa rutas `userId/companyId/logo-version.png` o `.jpg` y políticas equivalentes por carpeta de usuario.
+- La Edge Function `delete-account` elimina objetos de Storage en `quote-pdfs` y `company-logos` antes de borrar el usuario, para evitar archivos huérfanos y bloqueos de Supabase Auth por objetos todavía asociados al usuario.
 - Las consultas desde el frontend deben pedir columnas explícitas en vez de `select("*")` para bajar egress y evitar transferir datos que la UI no usa.
 - En desarrollo, React `StrictMode` puede duplicar efectos y hacer que algunas lecturas aparezcan repetidas en los logs de Supabase; validar egress real con build/producción.
 
@@ -396,6 +401,7 @@ interface CompanyInfo {
   phone: string;
   addressLines: string;
   logoUrl?: string;
+  logoPath?: string;
   defaultCurrency?: "USD" | "CLP";
   ivaRate?: number;
 }
