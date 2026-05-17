@@ -607,6 +607,10 @@ const formatPdfText = (value: string | number | undefined, fallback = "") => {
     .join("");
 };
 
+const hasItemText = (items: QuoteItem[], field: "code" | "unit" | "sg") => {
+  return items.some((item) => String(item[field] ?? "").trim().length > 0);
+};
+
 const getCompanyInitials = (name: string) => {
   const initials = name
     .split(/\s+/)
@@ -858,6 +862,9 @@ export const QuotePdfDocument = ({
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean);
+  const showCodeColumn = hasItemText(items, "code");
+  const showUnitColumn = hasItemText(items, "unit");
+  const showSgColumn = hasItemText(items, "sg");
 
   return (
     <Document>
@@ -953,26 +960,30 @@ export const QuotePdfDocument = ({
 
         <View style={styles.table}>
           <View style={[styles.tableHeader, { backgroundColor: template.tableHeader }]}>
-            <Text
-              style={[
-                styles.cell,
-                styles.headerCell,
-                styles.colCode,
-                { color: template.tableHeaderText },
-              ]}
-            >
-              Código
-            </Text>
-            <Text
-              style={[
-                styles.cell,
-                styles.headerCell,
-                styles.colUnit,
-                { color: template.tableHeaderText },
-              ]}
-            >
-              UND
-            </Text>
+            {showCodeColumn && (
+              <Text
+                style={[
+                  styles.cell,
+                  styles.headerCell,
+                  styles.colCode,
+                  { color: template.tableHeaderText },
+                ]}
+              >
+                Código
+              </Text>
+            )}
+            {showUnitColumn && (
+              <Text
+                style={[
+                  styles.cell,
+                  styles.headerCell,
+                  styles.colUnit,
+                  { color: template.tableHeaderText },
+                ]}
+              >
+                UND
+              </Text>
+            )}
             <Text
               style={[
                 styles.cell,
@@ -993,16 +1004,18 @@ export const QuotePdfDocument = ({
             >
               Cant.
             </Text>
-            <Text
-              style={[
-                styles.cell,
-                styles.headerCell,
-                styles.colSg,
-                { color: template.tableHeaderText },
-              ]}
-            >
-              SG
-            </Text>
+            {showSgColumn && (
+              <Text
+                style={[
+                  styles.cell,
+                  styles.headerCell,
+                  styles.colSg,
+                  { color: template.tableHeaderText },
+                ]}
+              >
+                SG
+              </Text>
+            )}
             <Text
               style={[
                 styles.cell,
@@ -1040,24 +1053,28 @@ export const QuotePdfDocument = ({
                     : [styles.tableRow, { minHeight: template.rowMinHeight }]
                 }
               >
-                <Text
-                  style={[
-                    styles.cell,
-                    styles.colCode,
-                    { paddingVertical: template.cellPadding },
-                  ]}
-                >
-                  {formatPdfText(item.code)}
-                </Text>
-                <Text
-                  style={[
-                    styles.cell,
-                    styles.colUnit,
-                    { paddingVertical: template.cellPadding },
-                  ]}
-                >
-                  {formatPdfText(item.unit)}
-                </Text>
+                {showCodeColumn && (
+                  <Text
+                    style={[
+                      styles.cell,
+                      styles.colCode,
+                      { paddingVertical: template.cellPadding },
+                    ]}
+                  >
+                    {formatPdfText(item.code)}
+                  </Text>
+                )}
+                {showUnitColumn && (
+                  <Text
+                    style={[
+                      styles.cell,
+                      styles.colUnit,
+                      { paddingVertical: template.cellPadding },
+                    ]}
+                  >
+                    {formatPdfText(item.unit)}
+                  </Text>
+                )}
                 <Text
                   style={[
                     styles.cell,
@@ -1076,15 +1093,17 @@ export const QuotePdfDocument = ({
                 >
                   {item.quantity}
                 </Text>
-                <Text
-                  style={[
-                    styles.cell,
-                    styles.colSg,
-                    { paddingVertical: template.cellPadding },
-                  ]}
-                >
-                  {formatPdfText(item.sg)}
-                </Text>
+                {showSgColumn && (
+                  <Text
+                    style={[
+                      styles.cell,
+                      styles.colSg,
+                      { paddingVertical: template.cellPadding },
+                    ]}
+                  >
+                    {formatPdfText(item.sg)}
+                  </Text>
+                )}
                 <Text
                   style={[
                     styles.cell,

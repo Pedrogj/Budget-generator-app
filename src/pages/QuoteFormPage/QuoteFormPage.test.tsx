@@ -67,8 +67,8 @@ const baseQuoteContext = {
   },
   items: [
     {
-      code: "NA",
-      unit: "UND",
+      code: "",
+      unit: "",
       description: "",
       quantity: 1,
       sg: "",
@@ -213,6 +213,14 @@ describe("QuoteFormPage", () => {
           currency: "USD",
           notes: "",
         }),
+        items: [
+          expect.objectContaining({
+            code: "",
+            unit: "",
+            description: "Instalación",
+            sg: "",
+          }),
+        ],
       })
     );
     expect(await screen.findByText("Preview route")).toBeInTheDocument();

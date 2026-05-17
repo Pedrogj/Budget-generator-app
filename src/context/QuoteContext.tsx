@@ -69,8 +69,8 @@ const initialQuote: QuoteInfo = {
 
 const initialItems: QuoteItem[] = [
   {
-    code: "NA",
-    unit: "NA",
+    code: "",
+    unit: "",
     description: "",
     quantity: 1,
     sg: "",
@@ -463,11 +463,11 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
 
     const itemsToInsert = items.map((item) => ({
       quote_id: quoteId,
-      code: item.code,
-      unit: item.unit,
-      description: item.description,
+      code: item.code.trim(),
+      unit: item.unit.trim(),
+      description: item.description.trim(),
       quantity: item.quantity,
-      sg: item.sg,
+      sg: item.sg.trim(),
       unit_price: item.unitPrice,
     }));
 

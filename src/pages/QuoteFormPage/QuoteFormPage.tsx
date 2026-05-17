@@ -15,8 +15,8 @@ import { uploadQuotePdf } from "../../lib/quotePdfStorage";
 import { prepareCompanyLogoForPdf } from "../../lib/companyLogoStorage";
 
 const itemSchema = z.object({
-  code: z.string().trim().default("NA"),
-  unit: z.string().trim().default("NA"),
+  code: z.string().trim().default(""),
+  unit: z.string().trim().default(""),
   description: z.string().trim().min(1, "La descripción es requerida"),
   quantity: z.coerce
     .number({ error: "La cantidad debe ser un número" })
@@ -50,8 +50,8 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const emptyItem = {
-  code: "NA",
-  unit: "NA",
+  code: "",
+  unit: "",
   description: "",
   quantity: 1,
   sg: "",
@@ -365,8 +365,8 @@ export const QuoteFormPage = () => {
               type="button"
               onClick={() =>
                 append({
-                  code: "NA",
-                  unit: "NA",
+                  code: "",
+                  unit: "",
                   description: "",
                   quantity: 1,
                   sg: "",
@@ -389,12 +389,18 @@ export const QuoteFormPage = () => {
                 <div className="quote-item-row" key={field.id}>
                   <label className="quote-code-field">
                     <span>Código</span>
-                    <input {...register(`items.${index}.code` as const)} />
+                    <input
+                      placeholder="Opcional"
+                      {...register(`items.${index}.code` as const)}
+                    />
                   </label>
 
                   <label className="quote-unit-field">
                     <span>UND</span>
-                    <input {...register(`items.${index}.unit` as const)} />
+                    <input
+                      placeholder="Opcional"
+                      {...register(`items.${index}.unit` as const)}
+                    />
                   </label>
 
                   <label className="quote-description-field">
@@ -425,7 +431,10 @@ export const QuoteFormPage = () => {
 
                   <label className="quote-sg-field">
                     <span>SG</span>
-                    <input {...register(`items.${index}.sg` as const)} />
+                    <input
+                      placeholder="Opcional"
+                      {...register(`items.${index}.sg` as const)}
+                    />
                   </label>
 
                   <label className="quote-price-field">

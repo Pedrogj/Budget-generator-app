@@ -153,8 +153,8 @@ function mapQuoteRow(row: QuoteRow): QuoteHistoryRecord {
 
 function mapQuoteItemRows(rows: QuoteItemRow[]): QuoteItem[] {
   return rows.map((item) => ({
-    code: item.code ?? "NA",
-    unit: item.unit ?? "NA",
+    code: item.code ?? "",
+    unit: item.unit ?? "",
     description: item.description,
     quantity: Number(item.quantity) || 0,
     sg: item.sg ?? "",
