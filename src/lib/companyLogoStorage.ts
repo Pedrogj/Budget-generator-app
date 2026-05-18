@@ -10,7 +10,11 @@ const maxOptimizedLogoBytes = 240 * 1024;
 interface UploadCompanyLogoParams {
   companyId: string;
   logoBlob: Blob;
-  previousPath?: string;
+}
+
+interface CleanupCompanyLogosParams {
+  companyId: string;
+  keepPath?: string;
 }
 
 function getImageDimensions(source: string) {
@@ -177,7 +181,6 @@ export async function prepareCompanyLogoForPdf(company: CompanyInfo) {
 export async function uploadCompanyLogo({
   companyId,
   logoBlob,
-  previousPath,
 }: UploadCompanyLogoParams) {
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError) throw userError;
@@ -199,17 +202,48 @@ export async function uploadCompanyLogo({
 
   if (uploadError) throw uploadError;
 
-  if (previousPath && previousPath !== path) {
-    try {
-      await removeCompanyLogo(previousPath);
-    } catch (error) {
-      console.warn("Could not remove previous company logo", error);
-    }
-  }
-
   return {
     path,
     signedUrl: await createCompanyLogoSignedUrl(path),
+  };
+}
+
+export async function cleanupCompanyLogos({
+  companyId,
+  keepPath,
+}: CleanupCompanyLogosParams) {
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError) throw userError;
+  if (!userData.user) {
+    throw new Error("Debes iniciar sesión para limpiar logos antiguos");
+  }
+
+  const folderPath = `${userData.user.id}/${companyId}`;
+  const { data: files, error: listError } = await supabase.storage
+    .from(companyLogoBucket)
+    .list(folderPath, {
+      limit: 1000,
+      sortBy: { column: "created_at", order: "desc" },
+    });
+
+  if (listError) throw listError;
+
+  const stalePaths = (files ?? [])
+    .filter((file) => file.name && file.id !== null)
+    .map((file) => `${folderPath}/${file.name}`)
+    .filter((path) => path !== keepPath);
+
+  for (let index = 0; index < stalePaths.length; index += 1000) {
+    const batch = stalePaths.slice(index, index + 1000);
+    const { error: removeError } = await supabase.storage
+      .from(companyLogoBucket)
+      .remove(batch);
+
+    if (removeError) throw removeError;
+  }
+
+  return {
+    removedCount: stalePaths.length,
   };
 }
 

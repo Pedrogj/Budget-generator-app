@@ -5,6 +5,10 @@ import { MemoryRouter } from "react-router-dom";
 import { ProfilePage } from "./ProfilePage";
 import { useQuote } from "../../context/QuoteContext";
 import { deleteCurrentAccount } from "../../lib/accountDeletion";
+import {
+  cleanupCompanyLogos,
+  uploadCompanyLogo,
+} from "../../lib/companyLogoStorage";
 
 vi.mock("../../context/QuoteContext", () => ({
   useQuote: vi.fn(),
@@ -12,6 +16,20 @@ vi.mock("../../context/QuoteContext", () => ({
 
 vi.mock("../../lib/accountDeletion", () => ({
   deleteCurrentAccount: vi.fn(),
+}));
+
+vi.mock("../../lib/companyLogoStorage", () => ({
+  cleanupCompanyLogos: vi.fn().mockResolvedValue({ removedCount: 0 }),
+  maxCompanyLogoDimension: 320,
+  maxCompanyLogoSourceBytes: 1024 * 1024,
+  optimizeCompanyLogo: vi
+    .fn()
+    .mockResolvedValue(new Blob(["optimized"], { type: "image/png" })),
+  removeCompanyLogo: vi.fn().mockResolvedValue(undefined),
+  uploadCompanyLogo: vi.fn().mockResolvedValue({
+    path: "user-1/company-1/logo-new.png",
+    signedUrl: "https://signed.test/logo-new.png",
+  }),
 }));
 
 vi.mock("sweetalert2", () => ({
@@ -23,6 +41,8 @@ vi.mock("sweetalert2", () => ({
 const mockedUseQuote = vi.mocked(useQuote);
 const mockedSwal = vi.mocked(Swal.fire);
 const mockedDeleteCurrentAccount = vi.mocked(deleteCurrentAccount);
+const mockedCleanupCompanyLogos = vi.mocked(cleanupCompanyLogos);
+const mockedUploadCompanyLogo = vi.mocked(uploadCompanyLogo);
 
 const baseQuoteContext = {
   company: {
@@ -33,6 +53,7 @@ const baseQuoteContext = {
     phone: "+56 9",
     addressLines: "Calle 1",
     logoUrl: "data:image/png;base64,logo",
+    logoPath: "user-1/company-1/logo-old.png",
     defaultCurrency: "USD" as const,
     ivaRate: 16,
   },
@@ -76,6 +97,17 @@ describe("ProfilePage", () => {
       ReturnType<typeof Swal.fire>
     >);
     mockedDeleteCurrentAccount.mockResolvedValue(undefined);
+    mockedUploadCompanyLogo.mockResolvedValue({
+      path: "user-1/company-1/logo-new.png",
+      signedUrl: "https://signed.test/logo-new.png",
+    });
+    mockedCleanupCompanyLogos.mockResolvedValue({ removedCount: 0 });
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:logo-preview");
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it("renders company data", () => {
@@ -213,6 +245,46 @@ describe("ProfilePage", () => {
     });
 
     expect(screen.getByText(/usa una imagen png o jpg/i)).toBeVisible();
+  });
+
+  it("warns when replacing the logo succeeds but old logo cleanup fails", async () => {
+    const user = userEvent.setup();
+    const updateCompany = vi.fn().mockResolvedValue(undefined);
+
+    mockedUploadCompanyLogo.mockResolvedValueOnce({
+      path: "user-1/company-1/logo-new.png",
+      signedUrl: "https://signed.test/logo-new.png",
+    });
+    mockedCleanupCompanyLogos.mockRejectedValueOnce(new Error("Storage bloqueado"));
+
+    renderProfilePage({ updateCompany });
+
+    const file = new File(["logo"], "logo.png", { type: "image/png" });
+    await user.upload(screen.getByLabelText(/subir logo/i), file);
+    await user.click(screen.getByRole("button", { name: /guardar cambios/i }));
+
+    expect(mockedUploadCompanyLogo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        companyId: "company-1",
+      }),
+    );
+    expect(updateCompany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        logoPath: "user-1/company-1/logo-new.png",
+        logoUrl: "https://signed.test/logo-new.png",
+      }),
+    );
+    expect(mockedCleanupCompanyLogos).toHaveBeenCalledWith({
+      companyId: "company-1",
+      keepPath: "user-1/company-1/logo-new.png",
+    });
+    expect(mockedSwal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        icon: "warning",
+        title: "Datos guardados",
+        text: expect.stringContaining("no se pudieron limpiar algunos logos antiguos"),
+      }),
+    );
   });
 
   it("deletes the account after explicit confirmation", async () => {

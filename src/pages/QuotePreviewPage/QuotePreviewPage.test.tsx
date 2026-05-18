@@ -110,6 +110,7 @@ describe("QuotePreviewPage", () => {
     const summary = screen.getByLabelText(/resumen del presupuesto/i);
 
     expect(within(summary).getByText("Cliente Ágil")).toBeInTheDocument();
+    expect(within(summary).getByText("Descripción")).toBeInTheDocument();
     expect(within(summary).getByText("Instalación eléctrica")).toBeInTheDocument();
     expect(within(summary).getByText("Modelo aplicado")).toBeInTheDocument();
     expect(within(summary).getByText("Profesional")).toBeInTheDocument();
@@ -117,6 +118,8 @@ describe("QuotePreviewPage", () => {
     expect(await screen.findByTestId("pdf-viewer")).toBeInTheDocument();
     expect(screen.getByText("Nota personalizada")).toBeInTheDocument();
     expect(screen.getByText("Vigencia de 15 días")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /editar/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /modelos/i })).not.toBeInTheDocument();
   });
 
   it("uses quote data to build the download filename", () => {

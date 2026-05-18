@@ -7,10 +7,10 @@ import { useNavigate } from "react-router-dom";
 import { useQuote } from "../../context/QuoteContext";
 import { deleteCurrentAccount } from "../../lib/accountDeletion";
 import {
+  cleanupCompanyLogos,
   maxCompanyLogoDimension,
   maxCompanyLogoSourceBytes,
   optimizeCompanyLogo,
-  removeCompanyLogo,
   uploadCompanyLogo,
 } from "../../lib/companyLogoStorage";
 
@@ -122,14 +122,13 @@ export const ProfilePage = () => {
     try {
       let logoPath = company.logoPath;
       let logoUrl = company.logoUrl;
+      let logoCleanupFailed = false;
+      let shouldCleanupLogos = false;
 
       if (logoDraft.remove) {
-        if (company.logoPath) {
-          await removeCompanyLogo(company.logoPath);
-        }
-
         logoPath = undefined;
         logoUrl = undefined;
+        shouldCleanupLogos = !!company.logoPath;
       } else if (logoDraft.blob) {
         if (!company.id) {
           throw new Error("La empresa aún no está lista para subir el logo.");
@@ -138,10 +137,10 @@ export const ProfilePage = () => {
         const uploadedLogo = await uploadCompanyLogo({
           companyId: company.id,
           logoBlob: logoDraft.blob,
-          previousPath: company.logoPath,
         });
         logoPath = uploadedLogo.path;
         logoUrl = uploadedLogo.signedUrl;
+        shouldCleanupLogos = true;
       }
 
       await updateCompany({
@@ -156,19 +155,39 @@ export const ProfilePage = () => {
         ivaRate: data.ivaRate,
       });
 
+      if (shouldCleanupLogos && company.id) {
+        try {
+          await cleanupCompanyLogos({
+            companyId: company.id,
+            keepPath: logoPath,
+          });
+        } catch (cleanupError) {
+          logoCleanupFailed = true;
+          console.warn("Could not clean up old company logos", cleanupError);
+        }
+      }
+
       reset(data);
       setLogoDraft({
         sourcePath: logoPath,
         previewUrl: logoUrl,
       });
 
-      await Swal.fire({
-        icon: "success",
-        title: "Datos guardados",
-        text: "La información de tu empresa se actualizó correctamente.",
-        timer: 1700,
-        showConfirmButton: false,
-      });
+      if (logoCleanupFailed) {
+        await Swal.fire({
+          icon: "warning",
+          title: "Datos guardados",
+          text: "Los datos se guardaron correctamente, pero no se pudieron limpiar algunos logos antiguos de Storage. Revisa los permisos del bucket o intenta guardar nuevamente.",
+        });
+      } else {
+        await Swal.fire({
+          icon: "success",
+          title: "Datos guardados",
+          text: "La información de tu empresa se actualizó correctamente.",
+          timer: 1700,
+          showConfirmButton: false,
+        });
+      }
     } catch (err) {
       console.error("Error al guardar empresa", err);
       await Swal.fire({

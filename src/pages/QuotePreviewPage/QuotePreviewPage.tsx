@@ -165,16 +165,6 @@ export const QuotePreviewPage = () => {
         </div>
 
         <div className="quote-preview-actions">
-          {!isReadOnly && (
-            <Link className="quote-preview-secondary" to="/quotes/new">
-              Editar
-            </Link>
-          )}
-          {!hasStoredPreview && (
-            <Link className="quote-preview-secondary" to="/quotes/templates">
-              Modelos
-            </Link>
-          )}
           <button
             type="button"
             className="quote-preview-action"
@@ -197,7 +187,7 @@ export const QuotePreviewPage = () => {
           <strong>{quote.client}</strong>
         </div>
         <div>
-          <span>Obra</span>
+          <span>Descripción</span>
           <strong>{quote.work}</strong>
         </div>
         {!hasStoredPreview && (

@@ -692,12 +692,14 @@ const CorporateQuotePdfDocument = ({ company, quote, items }: Props) => {
                 Dirección: {formatPdfText(quote.clientAddress)}
               </Text>
               <Text style={corporateStyles.detailText}>
-                Obra: {formatPdfText(quote.work)}
+                Descripción: {formatPdfText(quote.work)}
               </Text>
             </View>
 
             <View style={corporateStyles.infoBlockRight}>
-              <Text style={corporateStyles.sectionTitle}>Datos de contacto</Text>
+              <Text style={corporateStyles.sectionTitle}>
+                Datos de contacto
+              </Text>
               <View style={corporateStyles.methodRow}>
                 <Text style={corporateStyles.methodLabel}>Empresa</Text>
                 <Text style={corporateStyles.methodValue}>
@@ -721,19 +723,41 @@ const CorporateQuotePdfDocument = ({ company, quote, items }: Props) => {
 
           <View style={corporateStyles.table}>
             <View style={corporateStyles.tableHeader}>
-              <Text style={[corporateStyles.tableHeadCell, corporateStyles.corpCode]}>
+              <Text
+                style={[
+                  corporateStyles.tableHeadCell,
+                  corporateStyles.corpCode,
+                ]}
+              >
                 No.
               </Text>
-              <Text style={[corporateStyles.tableHeadCell, corporateStyles.corpDesc]}>
+              <Text
+                style={[
+                  corporateStyles.tableHeadCell,
+                  corporateStyles.corpDesc,
+                ]}
+              >
                 Descripción
               </Text>
-              <Text style={[corporateStyles.tableHeadCell, corporateStyles.corpPrice]}>
+              <Text
+                style={[
+                  corporateStyles.tableHeadCell,
+                  corporateStyles.corpPrice,
+                ]}
+              >
                 Precio
               </Text>
-              <Text style={[corporateStyles.tableHeadCell, corporateStyles.corpQty]}>
+              <Text
+                style={[corporateStyles.tableHeadCell, corporateStyles.corpQty]}
+              >
                 Cant.
               </Text>
-              <Text style={[corporateStyles.tableHeadCell, corporateStyles.corpTotal]}>
+              <Text
+                style={[
+                  corporateStyles.tableHeadCell,
+                  corporateStyles.corpTotal,
+                ]}
+              >
                 Total
               </Text>
             </View>
@@ -746,19 +770,29 @@ const CorporateQuotePdfDocument = ({ company, quote, items }: Props) => {
                   index % 2 === 1 ? corporateStyles.tableRowAlt : {},
                 ]}
               >
-                <Text style={[corporateStyles.tableCell, corporateStyles.corpCode]}>
+                <Text
+                  style={[corporateStyles.tableCell, corporateStyles.corpCode]}
+                >
                   {String(index + 1).padStart(2, "0")}
                 </Text>
-                <Text style={[corporateStyles.tableCell, corporateStyles.corpDesc]}>
+                <Text
+                  style={[corporateStyles.tableCell, corporateStyles.corpDesc]}
+                >
                   {formatPdfText(item.description)}
                 </Text>
-                <Text style={[corporateStyles.tableCell, corporateStyles.corpPrice]}>
+                <Text
+                  style={[corporateStyles.tableCell, corporateStyles.corpPrice]}
+                >
                   {formatMoney(item.unitPrice, currency)}
                 </Text>
-                <Text style={[corporateStyles.tableCell, corporateStyles.corpQty]}>
+                <Text
+                  style={[corporateStyles.tableCell, corporateStyles.corpQty]}
+                >
                   {item.quantity}
                 </Text>
-                <Text style={[corporateStyles.tableCell, corporateStyles.corpTotal]}>
+                <Text
+                  style={[corporateStyles.tableCell, corporateStyles.corpTotal]}
+                >
                   {formatMoney(item.quantity * item.unitPrice, currency)}
                 </Text>
               </View>
@@ -795,7 +829,9 @@ const CorporateQuotePdfDocument = ({ company, quote, items }: Props) => {
                 </Text>
               </View>
               <View style={corporateStyles.totalRow}>
-                <Text style={corporateStyles.totalLabel}>IVA {ivaRatePercent}%</Text>
+                <Text style={corporateStyles.totalLabel}>
+                  IVA {ivaRatePercent}%
+                </Text>
                 <Text style={corporateStyles.totalValue}>
                   {formatMoney(iva, currency)}
                 </Text>
@@ -813,7 +849,7 @@ const CorporateQuotePdfDocument = ({ company, quote, items }: Props) => {
         <View style={corporateStyles.footer}>
           <View style={corporateStyles.footerDark}>
             <Text style={corporateStyles.footerText}>
-              {formatPdfText(company.phone, "Teléfono no configurado")}  |{" "}
+              {formatPdfText(company.phone, "Teléfono no configurado")} |{" "}
               {formatPdfText(company.rif)}
             </Text>
             <Text style={corporateStyles.footerText}>
@@ -868,7 +904,10 @@ export const QuotePdfDocument = ({
 
   return (
     <Document>
-      <Page size="LETTER" style={[styles.page, { padding: template.pagePadding }]}>
+      <Page
+        size="LETTER"
+        style={[styles.page, { padding: template.pagePadding }]}
+      >
         {template.showTopBar && (
           <View style={[styles.topBar, { backgroundColor: template.topBar }]} />
         )}
@@ -921,13 +960,17 @@ export const QuotePdfDocument = ({
         </View>
 
         <View style={styles.detailGrid}>
-          <View style={[styles.detailPanel, { backgroundColor: template.panel }]}>
+          <View
+            style={[styles.detailPanel, { backgroundColor: template.panel }]}
+          >
             <Text style={[styles.panelTitle, { color: template.accent }]}>
               Datos del cliente
             </Text>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Cliente</Text>
-              <Text style={styles.detailValue}>{formatPdfText(quote.client)}</Text>
+              <Text style={styles.detailValue}>
+                {formatPdfText(quote.client)}
+              </Text>
             </View>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>{taxIdLabel}</Text>
@@ -943,13 +986,17 @@ export const QuotePdfDocument = ({
             </View>
           </View>
 
-          <View style={[styles.detailPanel, { backgroundColor: template.panel }]}>
+          <View
+            style={[styles.detailPanel, { backgroundColor: template.panel }]}
+          >
             <Text style={[styles.panelTitle, { color: template.accent }]}>
               Detalle del trabajo
             </Text>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Obra</Text>
-              <Text style={styles.detailValue}>{formatPdfText(quote.work)}</Text>
+              <Text style={styles.detailLabel}>Descripción</Text>
+              <Text style={styles.detailValue}>
+                {formatPdfText(quote.work)}
+              </Text>
             </View>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Ítems</Text>
@@ -959,7 +1006,12 @@ export const QuotePdfDocument = ({
         </View>
 
         <View style={styles.table}>
-          <View style={[styles.tableHeader, { backgroundColor: template.tableHeader }]}>
+          <View
+            style={[
+              styles.tableHeader,
+              { backgroundColor: template.tableHeader },
+            ]}
+          >
             {showCodeColumn && (
               <Text
                 style={[
@@ -1127,8 +1179,12 @@ export const QuotePdfDocument = ({
           })}
         </View>
 
-        <View style={[styles.footerRow, { marginTop: template.footerMarginTop }]}>
-          <View style={[styles.notesPanel, { borderLeftColor: template.accent }]}>
+        <View
+          style={[styles.footerRow, { marginTop: template.footerMarginTop }]}
+        >
+          <View
+            style={[styles.notesPanel, { borderLeftColor: template.accent }]}
+          >
             {noteLines.length > 0 && (
               <>
                 <Text style={styles.notesTitle}>Notas</Text>
@@ -1154,7 +1210,12 @@ export const QuotePdfDocument = ({
                 {formatMoney(iva, currency)}
               </Text>
             </View>
-            <View style={[styles.grandTotalRow, { backgroundColor: template.header }]}>
+            <View
+              style={[
+                styles.grandTotalRow,
+                { backgroundColor: template.header },
+              ]}
+            >
               <Text style={styles.grandTotalLabel}>TOTAL</Text>
               <Text style={styles.grandTotalValue}>
                 {formatMoney(total, currency)}
