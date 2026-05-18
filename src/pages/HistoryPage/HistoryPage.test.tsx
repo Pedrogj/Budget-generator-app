@@ -77,12 +77,31 @@ const quoteRows = [
   },
 ];
 
-function mockQuotesQuery(data = quoteRows, error = null) {
-  const order = vi.fn().mockResolvedValue({ data, error });
+function createQuoteRow(id: number) {
+  return {
+    id: `quote-${id}`,
+    work: `Trabajo ${id}`,
+    client_name: `Cliente ${id}`,
+    client_rif: `RIF-${id}`,
+    client_address: `Calle ${id}`,
+    issue_date: "2026-05-10",
+    currency: "USD",
+    notes: "",
+    total: id * 10,
+    pdf_path: "",
+    pdf_template_id: "",
+    pdf_generated_at: "",
+    created_at: `2026-05-${String(id).padStart(2, "0")}T12:00:00Z`,
+  };
+}
+
+function mockQuotesQuery(data = quoteRows, error = null, count = data.length) {
+  const range = vi.fn().mockResolvedValue({ data, error, count });
+  const order = vi.fn(() => ({ range }));
   const eq = vi.fn(() => ({ order }));
   const select = vi.fn(() => ({ eq }));
 
-  return { select, eq, order };
+  return { select, eq, order, range };
 }
 
 function mockDeleteQuery(error: unknown = null) {
@@ -182,7 +201,39 @@ describe("HistoryPage", () => {
 
     expect(quotesQuery.select).toHaveBeenCalledWith(
       "id,work,client_name,client_rif,client_address,issue_date,currency,notes,total,pdf_path,pdf_template_id,pdf_generated_at,created_at",
+      { count: "exact" },
     );
+    expect(quotesQuery.range).toHaveBeenCalledWith(0, 9);
+  });
+
+  it("loads the next page with a Supabase range instead of fetching all quotes", async () => {
+    const user = userEvent.setup();
+    const firstPageQuery = mockQuotesQuery(
+      Array.from({ length: 10 }, (_, index) => createQuoteRow(index + 1)),
+      null,
+      12,
+    );
+    const secondPageQuery = mockQuotesQuery(
+      [createQuoteRow(11), createQuoteRow(12)],
+      null,
+      12,
+    );
+
+    mockedSupabaseFrom
+      .mockReturnValueOnce(firstPageQuery as never)
+      .mockReturnValueOnce(secondPageQuery as never);
+
+    renderHistoryPage();
+
+    expect(await screen.findByText("Cliente 1")).toBeInTheDocument();
+    expect(screen.getByText("Mostrando 1-10 de 12")).toBeInTheDocument();
+    expect(firstPageQuery.range).toHaveBeenCalledWith(0, 9);
+
+    await user.click(screen.getByRole("button", { name: /siguiente/i }));
+
+    expect(await screen.findByText("Cliente 11")).toBeInTheDocument();
+    expect(screen.getByText("Mostrando 11-12 de 12")).toBeInTheDocument();
+    expect(secondPageQuery.range).toHaveBeenCalledWith(10, 19);
   });
 
   it("loads a saved quote into preview state and navigates to preview", async () => {

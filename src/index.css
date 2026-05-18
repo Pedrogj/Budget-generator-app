@@ -770,7 +770,7 @@ button:disabled {
 
 .history-summary {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.65rem;
 }
 
@@ -851,6 +851,35 @@ button:disabled {
 
 .history-item-actions button,
 .history-secondary-action {
+  padding: 0.32rem 0.68rem;
+  font-size: 0.8rem;
+}
+
+.history-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0.75rem 0.85rem;
+  background: #ffffff;
+  color: #4b5563;
+  font-size: 0.9rem;
+}
+
+.history-pagination div {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.history-pagination strong {
+  color: #111827;
+  font-size: 0.88rem;
+}
+
+.history-pagination button {
   padding: 0.32rem 0.68rem;
   font-size: 0.8rem;
 }
@@ -1486,16 +1515,20 @@ button:disabled {
   }
 
   .history-primary-action,
-  .history-item-actions {
+  .history-item-actions,
+  .history-pagination,
+  .history-pagination div {
     width: 100%;
   }
 
-  .history-item-actions {
+  .history-item-actions,
+  .history-pagination {
     flex-direction: column;
   }
 
   .history-item-actions button,
-  .history-secondary-action {
+  .history-secondary-action,
+  .history-pagination button {
     width: 100%;
   }
 

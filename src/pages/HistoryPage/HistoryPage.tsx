@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { useQuote } from "../../context/QuoteContext";
@@ -86,6 +86,8 @@ const quotesSelectWithoutPdf = [
   "created_at",
 ].join(",");
 
+const quotesPageSize = 10;
+
 function formatMoney(value: number, currency: "USD" | "CLP") {
   return new Intl.NumberFormat("es-CL", {
     style: "currency",
@@ -171,28 +173,42 @@ function isForeignKeyDeleteError(error: unknown) {
   );
 }
 
-async function fetchQuoteRows(companyId: string) {
+async function fetchQuoteRows(companyId: string, page: number) {
+  const from = (page - 1) * quotesPageSize;
+  const to = from + quotesPageSize - 1;
   const baseQuery = (select: string) =>
     supabase
       .from("quotes")
-      .select(select)
+      .select(select, { count: "exact" })
       .eq("company_id", companyId)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .range(from, to);
 
-  const { data, error } = await baseQuery(quotesSelectWithNotes);
+  const { data, error, count } = await baseQuery(quotesSelectWithNotes);
 
-  if (!error) return data as unknown as QuoteRow[];
+  if (!error) {
+    return {
+      rows: data as unknown as QuoteRow[],
+      count: count ?? 0,
+    };
+  }
 
   if (error.message.toLowerCase().includes("pdf_")) {
     const fallback = await baseQuery(quotesSelectWithoutPdf);
     if (fallback.error) throw fallback.error;
-    return fallback.data as unknown as QuoteRow[];
+    return {
+      rows: fallback.data as unknown as QuoteRow[],
+      count: fallback.count ?? 0,
+    };
   }
 
   if (error.message.toLowerCase().includes("notes")) {
     const fallback = await baseQuery(quotesSelectWithoutNotes);
     if (fallback.error) throw fallback.error;
-    return fallback.data as unknown as QuoteRow[];
+    return {
+      rows: fallback.data as unknown as QuoteRow[],
+      count: fallback.count ?? 0,
+    };
   }
 
   throw error;
@@ -221,13 +237,28 @@ export const HistoryPage = () => {
   const [itemsByQuoteId, setItemsByQuoteId] = useState<
     Record<string, QuoteItem[]>
   >({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalQuotes, setTotalQuotes] = useState(0);
   const isCompanyReady = !!company.id;
+  const totalPages = Math.max(1, Math.ceil(totalQuotes / quotesPageSize));
+  const currentPageStart =
+    totalQuotes === 0 ? 0 : (currentPage - 1) * quotesPageSize + 1;
+  const currentPageEnd = Math.min(currentPage * quotesPageSize, totalQuotes);
 
   useEffect(() => {
+    setCurrentPage(1);
+    setItemsByQuoteId({});
+
     if (!company.id) {
       setLoading(false);
+      setQuotes([]);
+      setTotalQuotes(0);
       return;
     }
+  }, [company.id]);
+
+  useEffect(() => {
+    if (!company.id) return;
 
     let isMounted = true;
 
@@ -236,8 +267,9 @@ export const HistoryPage = () => {
       setErrorMessage(null);
 
       try {
-        const rows = await fetchQuoteRows(company.id!);
+        const { rows, count } = await fetchQuoteRows(company.id!, currentPage);
         if (isMounted) {
+          setTotalQuotes(count);
           setQuotes(rows.map(mapQuoteRow));
         }
       } catch (error) {
@@ -257,24 +289,7 @@ export const HistoryPage = () => {
     return () => {
       isMounted = false;
     };
-  }, [company.id]);
-
-  const totalQuotes = quotes.length;
-  const totalAmount = useMemo(() => {
-    return quotes.reduce((sum, record) => {
-      if (typeof record.total === "number" && Number.isFinite(record.total)) {
-        return sum + record.total;
-      }
-
-      const items = record.items ?? itemsByQuoteId[record.id] ?? [];
-      const subtotal = items.reduce(
-        (itemSum, item) => itemSum + item.quantity * item.unitPrice,
-        0,
-      );
-      const ivaRate = Number(company.ivaRate ?? 16);
-      return sum + subtotal + subtotal * (ivaRate / 100);
-    }, 0);
-  }, [company.ivaRate, itemsByQuoteId, quotes]);
+  }, [company.id, currentPage]);
 
   const getQuoteItems = async (record: QuoteHistoryRecord) => {
     const cachedItems = record.items ?? itemsByQuoteId[record.id];
@@ -345,6 +360,10 @@ export const HistoryPage = () => {
       }
 
       setQuotes((prev) => prev.filter((quote) => quote.id !== record.id));
+      setTotalQuotes((prev) => Math.max(0, prev - 1));
+      if (quotes.length === 1 && currentPage > 1) {
+        setCurrentPage((page) => Math.max(1, page - 1));
+      }
 
       await Swal.fire({
         icon: "success",
@@ -508,12 +527,6 @@ export const HistoryPage = () => {
           <span>Presupuestos</span>
           <strong>{totalQuotes}</strong>
         </div>
-        <div>
-          <span>Total estimado</span>
-          <strong>
-            {formatMoney(totalAmount, company.defaultCurrency ?? "USD")}
-          </strong>
-        </div>
       </section>
 
       {!isCompanyReady ? (
@@ -540,83 +553,114 @@ export const HistoryPage = () => {
           </Link>
         </section>
       ) : (
-        <section className="history-list" aria-label="Presupuestos guardados">
-          {quotes.map((record) => {
-            const items = record.items ?? itemsByQuoteId[record.id] ?? [];
-            const subtotal = items.reduce(
-              (sum, item) => sum + item.quantity * item.unitPrice,
-              0,
-            );
-            const ivaRate = Number(company.ivaRate ?? 16);
-            const hasLoadedItems = items.length > 0;
-            const total =
-              typeof record.total === "number" && Number.isFinite(record.total)
-                ? record.total
-                : hasLoadedItems
-                  ? subtotal + subtotal * (ivaRate / 100)
-                  : null;
-            const fileName = `presupuesto-${toFileSlug(record.quote.client)}-${
-              record.quote.issueDate || "sin-fecha"
-            }.pdf`;
+        <>
+          <section className="history-list" aria-label="Presupuestos guardados">
+            {quotes.map((record) => {
+              const items = record.items ?? itemsByQuoteId[record.id] ?? [];
+              const subtotal = items.reduce(
+                (sum, item) => sum + item.quantity * item.unitPrice,
+                0,
+              );
+              const ivaRate = Number(company.ivaRate ?? 16);
+              const hasLoadedItems = items.length > 0;
+              const total =
+                typeof record.total === "number" && Number.isFinite(record.total)
+                  ? record.total
+                  : hasLoadedItems
+                    ? subtotal + subtotal * (ivaRate / 100)
+                    : null;
+              const fileName = `presupuesto-${toFileSlug(record.quote.client)}-${
+                record.quote.issueDate || "sin-fecha"
+              }.pdf`;
 
-            return (
-              <article className="history-item" key={record.id}>
-                <div className="history-item-main">
-                  <div className="history-item-title">
-                    <strong>{record.quote.client}</strong>
-                    <span>{formatDate(record.quote.issueDate)}</span>
+              return (
+                <article className="history-item" key={record.id}>
+                  <div className="history-item-main">
+                    <div className="history-item-title">
+                      <strong>{record.quote.client}</strong>
+                      <span>{formatDate(record.quote.issueDate)}</span>
+                    </div>
+                    <p>{record.quote.work}</p>
+                    <div className="history-item-meta">
+                      <span>
+                        {hasLoadedItems
+                          ? `${items.length} ítem(s)`
+                          : "Ítems bajo demanda"}
+                      </span>
+                      <span>{record.quote.currency}</span>
+                      <span>
+                        {typeof total === "number" && Number.isFinite(total)
+                          ? formatMoney(total, record.quote.currency)
+                          : "Total pendiente"}
+                      </span>
+                    </div>
                   </div>
-                  <p>{record.quote.work}</p>
-                  <div className="history-item-meta">
-                    <span>
-                      {hasLoadedItems
-                        ? `${items.length} ítem(s)`
-                        : "Ítems bajo demanda"}
-                    </span>
-                    <span>{record.quote.currency}</span>
-                    <span>
-                      {typeof total === "number" && Number.isFinite(total)
-                        ? formatMoney(total, record.quote.currency)
-                        : "Total pendiente"}
-                    </span>
-                  </div>
-                </div>
 
-                <div className="history-item-actions">
-                  <button
-                    type="button"
-                    onClick={() => void handlePreview(record)}
-                    disabled={loadingItemsId === record.id}
-                  >
-                    {loadingItemsId === record.id
-                      ? "Cargando..."
-                      : "Previsualizar"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleExport(record, fileName)}
-                    disabled={
-                      loadingItemsId === record.id || exportingId === record.id
-                    }
-                  >
-                    {exportingId === record.id
-                      ? "Exportando..."
-                      : loadingItemsId === record.id
+                  <div className="history-item-actions">
+                    <button
+                      type="button"
+                      onClick={() => void handlePreview(record)}
+                      disabled={loadingItemsId === record.id}
+                    >
+                      {loadingItemsId === record.id
                         ? "Cargando..."
-                        : "Exportar PDF"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleDelete(record)}
-                    disabled={deletingId === record.id}
-                  >
-                    {deletingId === record.id ? "Eliminando..." : "Eliminar"}
-                  </button>
-                </div>
-              </article>
-            );
-          })}
-        </section>
+                        : "Previsualizar"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleExport(record, fileName)}
+                      disabled={
+                        loadingItemsId === record.id || exportingId === record.id
+                      }
+                    >
+                      {exportingId === record.id
+                        ? "Exportando..."
+                        : loadingItemsId === record.id
+                          ? "Cargando..."
+                          : "Exportar PDF"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleDelete(record)}
+                      disabled={deletingId === record.id}
+                    >
+                      {deletingId === record.id ? "Eliminando..." : "Eliminar"}
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </section>
+
+          {totalPages > 1 && (
+            <nav className="history-pagination" aria-label="Paginación del historial">
+              <span>
+                Mostrando {currentPageStart}-{currentPageEnd} de {totalQuotes}
+              </span>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                  disabled={currentPage === 1 || loading}
+                >
+                  Anterior
+                </button>
+                <strong>
+                  Página {currentPage} de {totalPages}
+                </strong>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCurrentPage((page) => Math.min(totalPages, page + 1))
+                  }
+                  disabled={currentPage === totalPages || loading}
+                >
+                  Siguiente
+                </button>
+              </div>
+            </nav>
+          )}
+        </>
       )}
     </div>
   );
