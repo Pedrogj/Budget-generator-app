@@ -149,9 +149,16 @@ describe("ClientsPage", () => {
     await user.click(
       within(firstClient!).getByRole("button", { name: /editar/i })
     );
-    await user.clear(screen.getByLabelText(/^nombre$/i));
-    await user.type(screen.getByLabelText(/^nombre$/i), "Cliente Uno Editado");
-    await user.click(screen.getByRole("button", { name: /guardar cambios/i }));
+
+    const dialog = screen.getByRole("dialog", { name: /editar cliente/i });
+    await user.clear(within(dialog).getByLabelText(/^nombre$/i));
+    await user.type(
+      within(dialog).getByLabelText(/^nombre$/i),
+      "Cliente Uno Editado"
+    );
+    await user.click(
+      within(dialog).getByRole("button", { name: /guardar cambios/i })
+    );
 
     expect(updateClient).toHaveBeenCalledWith("client-1", {
       name: "Cliente Uno Editado",
@@ -160,6 +167,26 @@ describe("ClientsPage", () => {
       phone: "+56 1",
       address: "Calle 1",
     });
+  });
+
+  it("closes the edit popup without saving when cancelled", async () => {
+    const user = userEvent.setup();
+    const updateClient = vi.fn().mockResolvedValue(undefined);
+
+    renderClientsPage({ updateClient });
+
+    const firstClient = screen.getByText("Cliente Uno").closest("article");
+    expect(firstClient).not.toBeNull();
+
+    await user.click(
+      within(firstClient!).getByRole("button", { name: /editar/i })
+    );
+    const dialog = screen.getByRole("dialog", { name: /editar cliente/i });
+
+    await user.click(within(dialog).getByRole("button", { name: /^cancelar$/i }));
+
+    expect(screen.queryByRole("dialog", { name: /editar cliente/i })).not.toBeInTheDocument();
+    expect(updateClient).not.toHaveBeenCalled();
   });
 
   it("deletes a client after confirmation", async () => {

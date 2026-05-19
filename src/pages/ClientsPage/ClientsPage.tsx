@@ -68,33 +68,58 @@ export const ClientsPage = () => {
       ...emptyClientForm,
     },
   });
+  const {
+    register: registerEdit,
+    handleSubmit: handleEditSubmit,
+    reset: resetEdit,
+    formState: {
+      errors: editErrors,
+      isSubmitting: isEditSubmitting,
+    },
+  } = useForm<ClientFormValues>({
+    resolver: zodResolver(clientSchema),
+    defaultValues: {
+      ...emptyClientForm,
+    },
+  });
 
   const onSubmit = async (data: ClientFormValues) => {
     try {
-      if (editingId) {
-        await updateClient(editingId, data);
-        setEditingId(null);
-        reset(emptyClientForm);
+      await addClient(data);
+      reset(emptyClientForm);
 
-        await Swal.fire({
-          icon: "success",
-          title: "Cliente actualizado",
-          text: "Los datos del cliente se actualizaron correctamente.",
-          timer: 1500,
-          showConfirmButton: false,
-        });
-      } else {
-        await addClient(data);
-        reset(emptyClientForm);
+      await Swal.fire({
+        icon: "success",
+        title: "Cliente agregado",
+        text: "El cliente se agregó correctamente.",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    } catch (err) {
+      console.error("Error al guardar cliente", err);
+      await Swal.fire({
+        icon: "error",
+        title: "No se pudo guardar el cliente",
+        text: getErrorMessage(err),
+      });
+    }
+  };
 
-        await Swal.fire({
-          icon: "success",
-          title: "Cliente agregado",
-          text: "El cliente se agregó correctamente.",
-          timer: 1500,
-          showConfirmButton: false,
-        });
-      }
+  const onEditSubmit = async (data: ClientFormValues) => {
+    if (!editingId) return;
+
+    try {
+      await updateClient(editingId, data);
+      setEditingId(null);
+      resetEdit(emptyClientForm);
+
+      await Swal.fire({
+        icon: "success",
+        title: "Cliente actualizado",
+        text: "Los datos del cliente se actualizaron correctamente.",
+        timer: 1500,
+        showConfirmButton: false,
+      });
     } catch (err) {
       console.error("Error al guardar cliente", err);
       await Swal.fire({
@@ -142,13 +167,13 @@ export const ClientsPage = () => {
     // If you were editing that client, we reset
     if (editingId === id) {
       setEditingId(null);
-      reset(emptyClientForm);
+      resetEdit(emptyClientForm);
     }
   };
 
   const handleEditClick = (client: ClientInfo) => {
     setEditingId(client.id);
-    reset({
+    resetEdit({
       name: client.name,
       rif: client.rif,
       address: client.address,
@@ -159,7 +184,7 @@ export const ClientsPage = () => {
 
   const handleCancelEdit = () => {
     setEditingId(null);
-    reset(emptyClientForm);
+    resetEdit(emptyClientForm);
   };
 
   return (
@@ -179,10 +204,7 @@ export const ClientsPage = () => {
       <section className="clients-panel">
         <form className="client-form" noValidate onSubmit={handleSubmit(onSubmit)}>
           <div className="client-form-heading">
-            <h2>{editingId ? "Editar cliente" : "Nuevo cliente"}</h2>
-            {editingClient && (
-              <span className="editing-pill">Editando {editingClient.name}</span>
-            )}
+            <h2>Nuevo cliente</h2>
           </div>
 
           <label>
@@ -230,7 +252,7 @@ export const ClientsPage = () => {
 
           <div className="client-form-actions">
             <button type="submit" disabled={isSubmitting || !isCompanyReady}>
-              {editingId ? "Guardar cambios" : "Agregar cliente"}
+              Agregar cliente
             </button>
 
             {!isCompanyReady && (
@@ -239,11 +261,6 @@ export const ClientsPage = () => {
               </p>
             )}
 
-            {editingId && (
-              <button type="button" onClick={handleCancelEdit}>
-                Cancelar edición
-              </button>
-            )}
           </div>
         </form>
       </section>
@@ -279,15 +296,24 @@ export const ClientsPage = () => {
                 <div className="client-summary">
                   <div className="client-title-row">
                     <strong>{client.name}</strong>
-                    <span>{client.rif}</span>
+                    <span>
+                      {taxIdLabel} {client.rif}
+                    </span>
                   </div>
-                  <p>{client.address}</p>
-                  {(client.email || client.phone) && (
-                    <div className="client-meta">
-                      {client.email && <span>{client.email}</span>}
-                      {client.phone && <span>{client.phone}</span>}
+                  <div className="client-detail-grid">
+                    <div>
+                      <span>Dirección</span>
+                      <strong>{client.address}</strong>
                     </div>
-                  )}
+                    <div>
+                      <span>Contacto</span>
+                      <strong>
+                        {client.email || client.phone
+                          ? [client.email, client.phone].filter(Boolean).join(" · ")
+                          : "Sin contacto"}
+                      </strong>
+                    </div>
+                  </div>
                 </div>
                 <div className="client-actions">
                   <button
@@ -309,6 +335,105 @@ export const ClientsPage = () => {
           </div>
         )}
       </section>
+
+      {editingClient && (
+        <div
+          className="client-modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              handleCancelEdit();
+            }
+          }}
+        >
+          <section
+            className="client-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="client-edit-title"
+          >
+            <div className="client-modal-header">
+              <div>
+                <h2 id="client-edit-title">Editar cliente</h2>
+                <p>{editingClient.name}</p>
+              </div>
+              <button
+                type="button"
+                className="client-modal-close"
+                onClick={handleCancelEdit}
+                aria-label="Cerrar edición"
+              >
+                ×
+              </button>
+            </div>
+
+            <form
+              className="client-form"
+              noValidate
+              onSubmit={handleEditSubmit(onEditSubmit)}
+            >
+              <label>
+                <span>Nombre</span>
+                <input autoComplete="organization" {...registerEdit("name")} />
+                {editErrors.name && (
+                  <p className="form-error">{editErrors.name.message}</p>
+                )}
+              </label>
+
+              <label>
+                <span>{taxIdLabel}</span>
+                <input autoComplete="off" {...registerEdit("rif")} />
+                {editErrors.rif && (
+                  <p className="form-error">{editErrors.rif.message}</p>
+                )}
+              </label>
+
+              <div className="client-form-grid">
+                <label>
+                  <span>Correo</span>
+                  <input
+                    type="email"
+                    autoComplete="email"
+                    inputMode="email"
+                    {...registerEdit("email")}
+                  />
+                  {editErrors.email && (
+                    <p className="form-error">{editErrors.email.message}</p>
+                  )}
+                </label>
+
+                <label>
+                  <span>Teléfono</span>
+                  <input type="tel" autoComplete="tel" {...registerEdit("phone")} />
+                  {editErrors.phone && (
+                    <p className="form-error">{editErrors.phone.message}</p>
+                  )}
+                </label>
+              </div>
+
+              <label>
+                <span>Dirección</span>
+                <textarea className="client-address" {...registerEdit("address")} />
+                {editErrors.address && (
+                  <p className="form-error">{editErrors.address.message}</p>
+                )}
+              </label>
+
+              <div className="client-modal-actions">
+                <button type="button" onClick={handleCancelEdit}>
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isEditSubmitting || !isCompanyReady}
+                >
+                  {isEditSubmitting ? "Guardando..." : "Guardar cambios"}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
     </div>
   );
 };
