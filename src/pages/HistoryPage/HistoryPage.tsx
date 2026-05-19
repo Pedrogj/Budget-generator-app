@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { useQuote } from "../../context/QuoteContext";
+import { LoadingState } from "../../components";
 import {
   createQuotePdfPreviewUrl,
   createQuotePdfSignedUrl,
@@ -530,15 +531,15 @@ export const HistoryPage = () => {
       </section>
 
       {!isCompanyReady ? (
-        <section className="history-empty">
-          <strong>Cargando empresa</strong>
-          <p>Espera un momento mientras preparamos tu historial.</p>
-        </section>
+        <LoadingState
+          title="Cargando empresa"
+          message="Espera un momento mientras preparamos tu historial."
+        />
       ) : loading ? (
-        <section className="history-empty">
-          <strong>Cargando historial</strong>
-          <p>Estamos buscando tus presupuestos guardados.</p>
-        </section>
+        <LoadingState
+          title="Cargando historial"
+          message="Estamos buscando tus presupuestos guardados."
+        />
       ) : errorMessage ? (
         <section className="history-empty">
           <strong>No se pudo cargar el historial</strong>

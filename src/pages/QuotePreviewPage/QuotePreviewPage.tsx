@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { lazy, Suspense, useState } from "react";
 import { useQuote } from "../../context/QuoteContext";
 import { getQuoteTemplate } from "../../components/quoteTemplates";
+import { LoadingState } from "../../components";
 import {
   createQuotePdfSignedUrl,
   uploadQuotePdf,
@@ -219,7 +220,11 @@ export const QuotePreviewPage = () => {
           <Suspense
             fallback={
               <div className="quote-preview-viewer quote-preview-loading">
-                Preparando vista previa...
+                <LoadingState
+                  title="Preparando vista previa"
+                  message="Estamos generando el visor del PDF."
+                  variant="inline"
+                />
               </div>
             }
           >
