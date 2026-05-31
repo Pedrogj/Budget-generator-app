@@ -26,6 +26,11 @@ const quoteTemplateStorageKey = "presupuesta.quoteTemplate";
 const defaultBrandPrimaryColor = "#0f172a";
 const defaultBrandAccentColor = "#0284c7";
 
+const optionalClientText = (value?: string) => {
+  const trimmed = value?.trim() ?? "";
+  return trimmed || null;
+};
+
 interface QuoteContextType {
   company: CompanyInfo;
   quote: QuoteInfo;
@@ -315,7 +320,8 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
         const { data: clientsRows, error: clientsError } = await supabase
           .from("clients")
           .select(clientSelect)
-          .eq("company_id", currentCompanyId);
+          .eq("company_id", currentCompanyId)
+          .order("created_at", { ascending: false });
 
         if (clientsError) {
           console.error("Error loading clients", clientsError);
@@ -325,8 +331,8 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
               clientsRows.map((client) => ({
                 id: client.id,
                 name: client.name,
-                rif: client.rif,
-                address: client.address,
+                rif: client.rif ?? "",
+                address: client.address ?? "",
                 email: client.email ?? "",
                 phone: client.phone ?? "",
               })),
@@ -464,11 +470,11 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
       const { data: updated, error } = await supabase
         .from("clients")
         .update({
-          name: data.name,
-          rif: data.rif,
-          address: data.address,
-          email: data.email || null,
-          phone: data.phone || null,
+          name: data.name.trim(),
+          rif: optionalClientText(data.rif),
+          address: optionalClientText(data.address),
+          email: optionalClientText(data.email),
+          phone: optionalClientText(data.phone),
         })
         .eq("id", id)
         .select(clientSelect)
@@ -485,8 +491,8 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
             ? {
                 id: updated.id,
                 name: updated.name,
-                rif: updated.rif,
-                address: updated.address,
+                rif: updated.rif ?? "",
+                address: updated.address ?? "",
                 email: updated.email ?? "",
                 phone: updated.phone ?? "",
               }
@@ -509,11 +515,11 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
         .from("clients")
         .insert({
           company_id: company.id,
-          name: data.name,
-          rif: data.rif,
-          address: data.address,
-          email: data.email || null,
-          phone: data.phone || null,
+          name: data.name.trim(),
+          rif: optionalClientText(data.rif),
+          address: optionalClientText(data.address),
+          email: optionalClientText(data.email),
+          phone: optionalClientText(data.phone),
         })
         .select(clientSelect)
         .single();
@@ -524,15 +530,15 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
       }
 
       setClients((prev) => [
-        ...prev,
         {
           id: inserted.id,
           name: inserted.name,
-          rif: inserted.rif,
-          address: inserted.address,
+          rif: inserted.rif ?? "",
+          address: inserted.address ?? "",
           email: inserted.email ?? "",
           phone: inserted.phone ?? "",
         },
+        ...prev,
       ]);
     } catch (err) {
       console.error("Unexpected error in addClient", err);

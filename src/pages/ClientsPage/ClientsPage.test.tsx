@@ -103,11 +103,25 @@ describe("ClientsPage", () => {
     await user.click(screen.getByRole("button", { name: /agregar cliente/i }));
 
     expect(await screen.findByText(/ingresa al menos 2 caracteres/i)).toBeVisible();
-    expect(
-      screen.getByText(/ingresa el documento fiscal del cliente/i),
-    ).toBeVisible();
-    expect(screen.getByText(/ingresa la dirección del cliente/i)).toBeVisible();
     expect(baseQuoteContext.addClient).not.toHaveBeenCalled();
+  });
+
+  it("adds a client with only the required name", async () => {
+    const user = userEvent.setup();
+    const addClient = vi.fn().mockResolvedValue(undefined);
+
+    renderClientsPage({ addClient });
+
+    await user.type(screen.getByLabelText(/^nombre$/i), "Cliente Sin Datos");
+    await user.click(screen.getByRole("button", { name: /agregar cliente/i }));
+
+    expect(addClient).toHaveBeenCalledWith({
+      name: "Cliente Sin Datos",
+      rif: "",
+      email: "",
+      phone: "",
+      address: "",
+    });
   });
 
   it("adds a client with optional contact fields", async () => {

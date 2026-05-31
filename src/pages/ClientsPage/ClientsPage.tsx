@@ -8,15 +8,10 @@ import type { ClientInfo } from "../../types/types";
 
 const clientSchema = z.object({
   name: z.string().trim().min(2, "Ingresa al menos 2 caracteres"),
-  rif: z.string().trim().min(2, "Ingresa el documento fiscal del cliente"),
-  address: z.string().trim().min(2, "Ingresa la dirección del cliente"),
-  email: z
-    .string()
-    .trim()
-    .email("Ingresa un correo válido")
-    .or(z.literal(""))
-    .optional(),
-  phone: z.string().trim().optional(),
+  rif: z.string().trim(),
+  address: z.string().trim(),
+  email: z.string().trim().email("Ingresa un correo válido").or(z.literal("")),
+  phone: z.string().trim(),
 });
 
 type ClientFormValues = z.infer<typeof clientSchema>;
@@ -297,13 +292,13 @@ export const ClientsPage = () => {
                   <div className="client-title-row">
                     <strong>{client.name}</strong>
                     <span>
-                      {taxIdLabel} {client.rif}
+                      {taxIdLabel} {client.rif || "No informado"}
                     </span>
                   </div>
                   <div className="client-detail-grid">
                     <div>
                       <span>Dirección</span>
-                      <strong>{client.address}</strong>
+                      <strong>{client.address || "No informada"}</strong>
                     </div>
                     <div>
                       <span>Contacto</span>
@@ -426,9 +421,7 @@ export const ClientsPage = () => {
               </label>
 
               <div className="client-modal-actions">
-                <button type="button" onClick={handleCancelEdit}>
-                  Cancelar
-                </button>
+                <button onClick={handleCancelEdit}>Cancelar</button>
                 <button
                   type="submit"
                   disabled={isEditSubmitting || !isCompanyReady}
