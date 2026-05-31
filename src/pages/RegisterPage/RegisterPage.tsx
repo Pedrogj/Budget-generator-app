@@ -87,6 +87,7 @@ export const RegisterPage = () => {
     <div className="page auth-page">
       <section className="auth-card" aria-labelledby="register-title">
         <div className="auth-header">
+          <p className="auth-brand">presupuesta.cl</p>
           <h1 id="register-title">Crear cuenta</h1>
           <p className="auth-subtitle">
             Configura tu espacio para crear presupuestos profesionales.

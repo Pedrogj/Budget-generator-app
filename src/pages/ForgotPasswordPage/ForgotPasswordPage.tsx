@@ -59,6 +59,7 @@ export const ForgotPasswordPage = () => {
     <div className="page auth-page">
       <section className="auth-card" aria-labelledby="forgot-password-title">
         <div className="auth-header">
+          <p className="auth-brand">presupuesta.cl</p>
           <h1 id="forgot-password-title">Recuperar contraseña</h1>
           <p className="auth-subtitle">
             Ingresa tu correo y te enviaremos un enlace seguro para crear una

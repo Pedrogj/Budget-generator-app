@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, useLocation } from "react-router-dom";
 import { QuotePreviewPage } from "./pages/QuotePreviewPage/QuotePreviewPage";
 import { Navbar } from "./components";
 import { QuoteFormPage } from "./pages/QuoteFormPage/QuoteFormPage";
@@ -13,9 +13,17 @@ import { QuoteTemplatesPage } from "./pages/QuoteTemplatesPage/QuoteTemplatesPag
 import { ResetPasswordPage } from "./pages/ResetPasswordPage/ResetPasswordPage";
 
 export const AppRouter = () => {
+  const { pathname } = useLocation();
+  const isAuthRoute = [
+    "/login",
+    "/register",
+    "/forgot-password",
+    "/reset-password",
+  ].includes(pathname);
+
   return (
-    <div className="app">
-      <Navbar />
+    <div className={`app ${isAuthRoute ? "app-auth" : ""}`}>
+      {!isAuthRoute && <Navbar />}
       <main className="app-main">
         <Routes>
           {/* Public */}

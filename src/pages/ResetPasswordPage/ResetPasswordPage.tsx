@@ -69,6 +69,7 @@ export const ResetPasswordPage = () => {
     <div className="page auth-page">
       <section className="auth-card" aria-labelledby="reset-password-title">
         <div className="auth-header">
+          <p className="auth-brand">presupuesta.cl</p>
           <h1 id="reset-password-title">Nueva contraseña</h1>
           <p className="auth-subtitle">
             Define una contraseña nueva para recuperar el acceso a tu cuenta.

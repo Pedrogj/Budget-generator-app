@@ -48,6 +48,7 @@ describe("RegisterPage", () => {
     expect(
       screen.getByRole("heading", { name: /crear cuenta/i })
     ).toBeInTheDocument();
+    expect(screen.getByText("presupuesta.cl")).toBeInTheDocument();
     expect(screen.getByLabelText(/correo electrónico/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/^contraseña$/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/confirmar contraseña/i)).toBeInTheDocument();

@@ -48,6 +48,7 @@ describe("LoginPage", () => {
     expect(
       screen.getByRole("heading", { name: /iniciar sesión/i })
     ).toBeInTheDocument();
+    expect(screen.getByText("presupuesta.cl")).toBeInTheDocument();
     expect(screen.getByLabelText(/correo electrónico/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/^contraseña$/i)).toBeInTheDocument();
     expect(

@@ -35,29 +35,31 @@ src/
 │
 ├── components/
 │   ├── index.ts                 # Barrel export (solo Navbar por ahora)
-│   ├── quoteTemplates.ts        # Catálogo de modelos PDF disponibles
+│   ├── quoteTemplates.ts        # Catálogo de modelos PDF + helpers de colores de marca
 │   ├── Navbar/
 │   │   ├── Navbar.tsx           # Sidebar desktop, topbar sticky con empresa y menú móvil
 │   │   └── Navbar.css           # Estilos del navbar (dark theme, responsive)
 │   ├── RequiredAuth/
 │   │   └── RequiredAuth.tsx     # HOC guardia de rutas: redirige a /login si no hay sesión
-│   └── QuotePdfDocument.tsx     # Componente @react-pdf con plantilla PDF profesional
+│   └── QuotePdfDocument.tsx     # Componente @react-pdf con plantillas PDF y colores de marca
 │
 ├── pages/
 │   ├── LoginPage/LoginPage.tsx          # Login con email/password
 │   ├── RegisterPage/RegisterPage.tsx    # Registro + auto-login → redirige a /profile
 │   ├── ForgotPasswordPage/ForgotPasswordPage.tsx  # Solicita correo de recuperación
 │   ├── ResetPasswordPage/ResetPasswordPage.tsx    # Define nueva contraseña
-│   ├── ProfilePage/ProfilePage.tsx      # Config empresa + logo validado/removible
+│   ├── ProfilePage/ProfilePage.tsx      # Config empresa + identidad visual + logo validado/removible
 │   ├── ClientsPage/ClientsPage.tsx      # CRUD de clientes + búsqueda
 │   ├── QuoteFormPage/QuoteFormPage.tsx  # Presupuesto con cliente, ítems dinámicos y totales en vivo
-│   ├── QuotePreviewPage/QuotePreviewPage.tsx  # Vista previa PDF (PDFViewer) + descarga (PDFDownloadLink)
+│   ├── QuotePreviewPage/QuotePreviewPage.tsx  # Vista previa PDF (PDFViewer/iframe) + descarga/regeneración
 │   ├── QuoteTemplatesPage/QuoteTemplatesPage.tsx  # Catálogo visual de modelos PDF
 │   └── HistoryPage/HistoryPage.tsx      # Historial de presupuestos guardados + exportar/eliminar
 │
 ├── lib/
 │   ├── accountDeletion.ts      # Invoca Edge Function delete-account y cierra sesión
+│   ├── companyLogoStorage.ts   # Optimiza/sube logos y prepara URLs/data URLs para PDF
 │   ├── passwordRecovery.ts     # resetPasswordForEmail + updateUser
+│   ├── quotePdfStorage.ts      # Sube PDFs, crea URLs firmadas y elimina archivos
 │   └── supabaseClient.ts       # Instancia singleton de createClient(url, anonKey)
 │
 ├── supabase/functions/
@@ -113,7 +115,7 @@ auth.users (Supabase Auth)
 
 ### Campos principales
 
-**companies**: id, profile_id, name, rif, tax_id_label, phone, address_lines, logo_url, logo_path, default_currency, iva_rate
+**companies**: id, profile_id, name, rif, tax_id_label, phone, address_lines, logo_url, logo_path, default_currency, iva_rate, brand_primary_color, brand_accent_color
 **clients**: id, company_id, name, rif, address, email, phone
 **quotes**: id, company_id, client_id, work, issue_date, currency, client_name, client_rif, client_address, notes, iva_rate, subtotal, iva, total, pdf_path, pdf_template_id, pdf_generated_at
 **quote_items**: id, quote_id, code, unit, description, quantity, sg, unit_price
@@ -126,7 +128,9 @@ auth.users (Supabase Auth)
 
 ### Empresa y Presupuestos
 
-`ProfilePage` espera `updateCompany()` antes de mostrar éxito. El logo acepta PNG/JPG hasta 1 MB, se optimiza en navegador a máximo 320x320 px, se sube al bucket privado `company-logos` como PNG/JPG compatible con `@react-pdf` y se guarda como `companies.logo_path`; `logo_url` queda solo como fallback legacy para base64 antiguo. `tax_id_label` permite elegir cómo se muestra el documento fiscal en la app y PDFs (`RIF`, `RUT` o `DNI`). `updateCompany()` debe lanzar errores de Supabase para evitar estado local optimista incorrecto. La zona de peligro invoca `deleteCurrentAccount()`, exige confirmación escribiendo `ELIMINAR`, y luego redirige a `/login`.
+`ProfilePage` espera `updateCompany()` antes de mostrar éxito. Además de datos fiscales, moneda e IVA, permite definir identidad visual con `brand_primary_color` y `brand_accent_color`; ambos deben ser HEX `#RRGGBB`. Esos colores se aplican a miniaturas de plantillas y PDFs nuevos/regenerados. El logo acepta PNG/JPG hasta 1 MB, se optimiza en navegador a máximo 320x320 px, se sube al bucket privado `company-logos` como PNG/JPG compatible con `@react-pdf` y se guarda como `companies.logo_path`; `logo_url` queda solo como fallback legacy para base64 antiguo. `tax_id_label` permite elegir cómo se muestra el documento fiscal en la app y PDFs (`RIF`, `RUT` o `DNI`). `updateCompany()` debe lanzar errores de Supabase para evitar estado local optimista incorrecto. La zona de peligro invoca `deleteCurrentAccount()`, exige confirmación escribiendo `ELIMINAR`, y luego redirige a `/login`.
+
+`QuoteContext` usa selects explícitos para `companies`. Para compatibilidad durante despliegues parciales, intenta leer/escribir `brand_primary_color` y `brand_accent_color`, pero si Supabase responde que esas columnas aún no existen, reintenta con el select/payload anterior y usa los colores por defecto (`#0f172a` y `#0284c7`) en memoria. Esto evita que la empresa y los clientes desaparezcan mientras la migración de colores está pendiente. Una vez aplicada la migración, los colores se persisten normalmente.
 
 `delete-account` es una Supabase Edge Function que valida el JWT del usuario, usa una secret key de backend solo del lado servidor, borra primero los archivos del bucket privado `quote-pdfs` bajo la carpeta `user.id`, elimina en orden `quote_items`, `quotes`, `clients`, `companies`, `profiles`, y finalmente llama `auth.admin.deleteUser(user.id)`. La función prioriza `SUPABASE_SECRET_KEYS`, acepta `SECRET_KEYS` como secret personalizada compatible con el Dashboard, espera formato JSON (`{"default":"sb_secret_..."}`) y mantiene `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_SERVICE_ROLE` solo como fallback legacy.
 
@@ -134,9 +138,9 @@ auth.users (Supabase Auth)
 
 `HistoryPage` carga inicialmente solo cabeceras desde `quotes` para pintar rápido y reducir egress de PostgREST. Si un presupuesto tiene `pdf_path`, previsualizar crea una URL firmada y manda `pdfPreviewUrl` a `QuotePreviewPage`; así se muestra el PDF histórico guardado y no se reaplica el modelo seleccionado actualmente. Los `quote_items` se consultan bajo demanda solo cuando hay que regenerar/exportar sin PDF reutilizable. Al exportar, si existe `pdf_path` con el mismo `pdf_template_id` seleccionado, usa URL firmada de Storage; si no, regenera el PDF, lo sube y descarga el blob. La eliminación intenta borrar el PDF de Storage y luego `quotes`; si la FK bloquea por ítems dependientes, borra `quote_items` y reintenta. Fallos al borrar Storage se registran como warning para no bloquear la eliminación del presupuesto.
 
-`QuoteTemplatesPage` muestra un catálogo visual de modelos con miniaturas referenciales del presupuesto usando datos ficticios (empresa, cliente, ítems, IVA y total) y actualiza `selectedTemplate` en `QuoteContext`. La preferencia se guarda en `localStorage` con la clave `presupuesta.quoteTemplate`. No persiste en Supabase ni altera presupuestos históricos.
+`QuoteTemplatesPage` muestra un catálogo visual de modelos con miniaturas referenciales del presupuesto usando datos ficticios (empresa, cliente, ítems, IVA y total) y actualiza `selectedTemplate` en `QuoteContext`. Las miniaturas reciben variables CSS derivadas de la identidad visual de la empresa para que el usuario vea cómo se aplican sus colores. La preferencia se guarda en `localStorage` con la clave `presupuesta.quoteTemplate`. No persiste en Supabase ni altera presupuestos históricos.
 
-`QuotePdfDocument` recibe `templateId` y usa una plantilla PDF parametrizada. Modelos actuales: `professional`, `classic`, `compact`, `bold` y `corporate`. Comparten los mismos datos, pero cambian acentos, densidad, cabecera, tabla y totales. `corporate` usa un layout propio con cabecera negra, acento amarillo, tabla destacada y footer oscuro inspirado en factura corporativa.
+`quoteTemplates.ts` centraliza el catálogo y helpers de marca: valida colores HEX, calcula color de texto legible para fondos claros/oscuros y genera un color suave mezclado con blanco. `QuotePdfDocument` recibe `templateId` y usa una plantilla PDF parametrizada. Modelos actuales: `professional`, `classic`, `compact`, `bold` y `corporate`. Comparten los mismos datos, pero cambian densidad, cabecera, tabla y totales; los colores base se sobrescriben con `brand_primary_color` y `brand_accent_color`. `corporate` usa un layout propio con cabecera oscura, acento de marca, tabla destacada y footer oscuro inspirado en factura corporativa.
 
 ### Migraciones aplicadas
 
@@ -163,6 +167,10 @@ Las migraciones viven en `supabase/migrations/`.
   - Crea/actualiza el bucket privado `company-logos`.
   - Agrega `companies.logo_path`.
   - Crea políticas de Storage para que cada usuario autenticado solo pueda leer/subir logos bajo su carpeta `auth.uid()`.
+- `20260531143000_add_company_brand_colors.sql`
+  - Agrega `companies.brand_primary_color` y `companies.brand_accent_color`.
+  - Define defaults `#0f172a` y `#0284c7`.
+  - Agrega checks para aceptar solo valores HEX `#RRGGBB`.
 
 Estado verificado después de aplicar:
 
@@ -179,7 +187,7 @@ Estado verificado después de aplicar:
 - **Componentes**: exportados como `export const ComponentName`, no default exports.
 - **Formularios**: siempre React Hook Form + Zod resolver. Errores mostrados con `<p className="form-error">`.
 - **Alertas**: SweetAlert2 para feedback al usuario (éxito, error, confirmación de eliminación).
-- **Estilos**: CSS vanilla en `index.css`. Inputs, textareas y selects comparten estilo base; las páginas usan clases por dominio (`auth-*`, `clients-*`, `quote-*`, `profile-*`). En desktop, `.app` usa layout de sidebar fijo de 260px más topbar sticky con nombre de empresa y cierre de sesión; en móvil vuelve a navegación superior.
+- **Estilos**: CSS vanilla en `index.css`. Inputs, textareas, selects y color pickers comparten estilo base; las páginas usan clases por dominio (`auth-*`, `clients-*`, `quote-*`, `profile-*`). En desktop, `.app` usa layout de sidebar fijo de 260px más topbar sticky con nombre de empresa y cierre de sesión; en móvil vuelve a navegación superior. Las miniaturas de plantillas usan variables CSS `--brand-primary`, `--brand-accent`, `--brand-primary-contrast`, `--brand-accent-contrast` y `--brand-soft`.
 - **Estado**: React Context API (no Redux/Zustand). Dos providers anidados.
 - **Supabase**: llamadas directas desde los contexts, no hay service layer separado. Usar selects explícitos, no `select("*")`, para bajar egress. Mantener cargas pesadas bajo demanda y considerar paginación si el historial crece.
 - **Desarrollo**: React `StrictMode` puede duplicar efectos y lecturas en logs de Supabase; confirmar tráfico real con build/producción antes de optimizar de más.
@@ -213,7 +221,7 @@ Accesibles con `import.meta.env.VITE_*`. El archivo `.env` está en `.gitignore`
 ## Flujo Principal
 
 1. Usuario se registra → si hay sesión redirige a `/profile`; si Supabase requiere confirmación, va a `/login`
-2. Configura datos de empresa (nombre, tipo de documento fiscal, número, teléfono, dirección, logo, moneda, IVA)
+2. Configura datos de empresa (nombre, tipo de documento fiscal, número, teléfono, dirección, logo, moneda, IVA y colores de marca)
 3. Agrega clientes en `/clients`
 4. Crea presupuesto en `/quotes/new`: selecciona cliente, agrega ítems con precios y revisa totales
 5. Guarda → datos persisten en Supabase → actualiza estado local → navega a `/quotes/preview`

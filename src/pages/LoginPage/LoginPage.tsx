@@ -69,6 +69,7 @@ export const LoginPage = () => {
     <div className="page auth-page">
       <section className="auth-card" aria-labelledby="login-title">
         <div className="auth-header">
+          <p className="auth-brand">presupuesta.cl</p>
           <h1 id="login-title">Iniciar sesión</h1>
           <p className="auth-subtitle">
             Accede para gestionar tu empresa, clientes y presupuestos.
