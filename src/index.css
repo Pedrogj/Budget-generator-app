@@ -1129,7 +1129,7 @@ button:disabled {
 .template-preview-topline {
   flex: 0 0 auto;
   height: 0.3rem;
-  background: #0f172a;
+  background: var(--brand-primary, #0f172a);
 }
 
 .template-preview-heading {
@@ -1147,7 +1147,7 @@ button:disabled {
   border: 1px solid #cbd5e1;
   border-radius: 4px;
   background: #f8fafc;
-  color: #0284c7;
+  color: var(--brand-accent, #0284c7);
   font-size: 0.62rem;
   font-weight: 800;
 }
@@ -1191,7 +1191,7 @@ button:disabled {
 }
 
 .template-preview-heading aside strong {
-  color: #0f172a;
+  color: var(--brand-primary, #0f172a);
   font-size: 0.56rem;
   letter-spacing: 0;
 }
@@ -1199,8 +1199,8 @@ button:disabled {
 .template-preview-heading aside span {
   border-radius: 999px;
   padding: 0.08rem 0.24rem;
-  background: #e0f2fe;
-  color: #075985;
+  background: var(--brand-soft, #e0f2fe);
+  color: var(--brand-accent, #075985);
   font-weight: 700;
 }
 
@@ -1225,7 +1225,7 @@ button:disabled {
 }
 
 .template-preview-panels span {
-  color: #0284c7;
+  color: var(--brand-accent, #0284c7);
   font-size: 0.42rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -1253,8 +1253,8 @@ button:disabled {
 }
 
 .template-preview-table-head {
-  background: #0f172a;
-  color: #ffffff;
+  background: var(--brand-primary, #0f172a);
+  color: var(--brand-primary-contrast, #ffffff);
   font-size: 0.42rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -1294,7 +1294,7 @@ button:disabled {
 .template-preview-footer p {
   align-self: start;
   min-width: 0;
-  border-left: 3px solid #0284c7;
+  border-left: 3px solid var(--brand-accent, #0284c7);
   padding: 0.26rem 0.35rem;
   background: #f8fafc;
   color: #475569;
@@ -1329,8 +1329,8 @@ button:disabled {
   grid-column: 1 / -1;
   border-radius: 3px;
   padding: 0.24rem 0.3rem;
-  background: #111827;
-  color: #ffffff;
+  background: var(--brand-primary, #111827);
+  color: var(--brand-primary-contrast, #ffffff);
   font-size: 0.52rem;
   text-align: right;
 }
@@ -1357,27 +1357,27 @@ button:disabled {
 
 .template-preview-classic .template-preview-logo,
 .template-preview-classic .template-preview-panels span {
-  color: #111827;
+  color: var(--brand-primary, #111827);
 }
 
 .template-preview-classic .template-preview-heading aside span {
   border: 1px solid #9ca3af;
   background: #ffffff;
-  color: #111827;
+  color: var(--brand-primary, #111827);
 }
 
 .template-preview-classic .template-preview-table-head {
   border: 1px solid #9ca3af;
-  background: #e5e7eb;
-  color: #111827;
+  background: var(--brand-soft, #e5e7eb);
+  color: var(--brand-accent, #111827);
 }
 
 .template-preview-classic .template-preview-footer p {
-  border-left-color: #111827;
+  border-left-color: var(--brand-primary, #111827);
 }
 
 .template-preview-classic .template-preview-footer b {
-  background: #111827;
+  background: var(--brand-primary, #111827);
 }
 
 .template-preview-compact {
@@ -1389,27 +1389,28 @@ button:disabled {
 .template-preview-compact .template-preview-topline,
 .template-preview-compact .template-preview-table-head,
 .template-preview-compact .template-preview-footer b {
-  background: #0f766e;
+  background: var(--brand-primary, #0f766e);
+  color: var(--brand-primary-contrast, #ffffff);
 }
 
 .template-preview-compact .template-preview-logo,
 .template-preview-compact .template-preview-panels section,
 .template-preview-compact .template-preview-footer p {
-  background: #ccfbf1;
+  background: var(--brand-soft, #ccfbf1);
 }
 
 .template-preview-compact .template-preview-logo,
 .template-preview-compact .template-preview-panels span {
-  color: #0f766e;
+  color: var(--brand-accent, #0f766e);
 }
 
 .template-preview-compact .template-preview-heading aside span {
-  background: #ccfbf1;
-  color: #134e4a;
+  background: var(--brand-soft, #ccfbf1);
+  color: var(--brand-accent, #134e4a);
 }
 
 .template-preview-compact .template-preview-footer p {
-  border-left-color: #0f766e;
+  border-left-color: var(--brand-accent, #0f766e);
 }
 
 .template-preview-bold {
@@ -1419,22 +1420,23 @@ button:disabled {
 .template-preview-bold .template-preview-topline,
 .template-preview-bold .template-preview-table-head,
 .template-preview-bold .template-preview-footer b {
-  background: #111111;
+  background: var(--brand-primary, #111111);
+  color: var(--brand-primary-contrast, #ffffff);
 }
 
 .template-preview-bold .template-preview-logo {
   border-color: #fecaca;
-  background: #dc2626;
-  color: #ffffff;
+  background: var(--brand-accent, #dc2626);
+  color: var(--brand-accent-contrast, #ffffff);
 }
 
 .template-preview-bold .template-preview-heading aside strong {
-  color: #111111;
+  color: var(--brand-primary, #111111);
 }
 
 .template-preview-bold .template-preview-heading aside span {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--brand-soft, #fee2e2);
+  color: var(--brand-accent, #991b1b);
 }
 
 .template-preview-bold .template-preview-panels section,
@@ -1444,7 +1446,7 @@ button:disabled {
 }
 
 .template-preview-bold .template-preview-panels span {
-  color: #dc2626;
+  color: var(--brand-accent, #dc2626);
 }
 
 .template-preview-bold .template-preview-table {
@@ -1456,11 +1458,11 @@ button:disabled {
 }
 
 .template-preview-bold .template-preview-footer p {
-  border-left-color: #dc2626;
+  border-left-color: var(--brand-accent, #dc2626);
 }
 
 .template-preview-bold .template-preview-footer b {
-  border-left: 4px solid #dc2626;
+  border-left: 4px solid var(--brand-accent, #dc2626);
 }
 
 .template-preview-corporate {
@@ -1471,7 +1473,12 @@ button:disabled {
 .template-preview-corporate .template-preview-topline {
   height: 2.35rem;
   margin: -0.55rem -0.55rem 0;
-  background: linear-gradient(105deg, #111111 0 68%, #fbbf24 68% 73%, #ffffff 73%);
+  background: linear-gradient(
+    105deg,
+    var(--brand-primary, #111111) 0 68%,
+    var(--brand-accent, #fbbf24) 68% 73%,
+    #ffffff 73%
+  );
 }
 
 .template-preview-corporate .template-preview-heading {
@@ -1482,8 +1489,8 @@ button:disabled {
 
 .template-preview-corporate .template-preview-logo {
   border-color: transparent;
-  background: #fbbf24;
-  color: #111111;
+  background: var(--brand-accent, #fbbf24);
+  color: var(--brand-accent-contrast, #111111);
 }
 
 .template-preview-corporate .template-preview-heading > div strong,
@@ -1492,12 +1499,12 @@ button:disabled {
 }
 
 .template-preview-corporate .template-preview-heading aside strong {
-  color: #fbbf24;
+  color: var(--brand-accent, #fbbf24);
 }
 
 .template-preview-corporate .template-preview-heading aside span {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--brand-soft, #fef3c7);
+  color: var(--brand-accent, #92400e);
 }
 
 .template-preview-corporate .template-preview-panels section {
@@ -1506,7 +1513,7 @@ button:disabled {
 }
 
 .template-preview-corporate .template-preview-panels span {
-  color: #fbbf24;
+  color: var(--brand-accent, #fbbf24);
 }
 
 .template-preview-corporate .template-preview-table {
@@ -1515,8 +1522,8 @@ button:disabled {
 }
 
 .template-preview-corporate .template-preview-table-head {
-  background: #fbbf24;
-  color: #111111;
+  background: var(--brand-accent, #fbbf24);
+  color: var(--brand-accent-contrast, #111111);
 }
 
 .template-preview-corporate .template-preview-table-row:nth-child(odd) {
@@ -1524,14 +1531,14 @@ button:disabled {
 }
 
 .template-preview-corporate .template-preview-footer p {
-  border-left-color: #fbbf24;
+  border-left-color: var(--brand-accent, #fbbf24);
   background: #ffffff;
 }
 
 .template-preview-corporate .template-preview-footer b {
   border-radius: 999px;
-  background: #fbbf24;
-  color: #ffffff;
+  background: var(--brand-accent, #fbbf24);
+  color: var(--brand-accent-contrast, #ffffff);
 }
 
 .template-card-body {
@@ -1758,6 +1765,24 @@ button:disabled {
   resize: vertical;
 }
 
+.profile-color-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 220px));
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+}
+
+.profile-color-field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.profile-color-field input[type="color"] {
+  width: 100%;
+  height: 42px;
+  padding: 0.2rem;
+}
+
 .profile-logo-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 180px;
@@ -1837,7 +1862,8 @@ button:disabled {
   }
 
   .profile-grid,
-  .profile-logo-layout {
+  .profile-logo-layout,
+  .profile-color-grid {
     grid-template-columns: 1fr;
   }
 }

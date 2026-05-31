@@ -27,6 +27,8 @@ export interface CompanyInfo {
   logoPath?: string;
   defaultCurrency?: "USD" | "CLP";
   ivaRate?: number;
+  brandPrimaryColor?: string;
+  brandAccentColor?: string;
 }
 
 export interface QuoteInfo {

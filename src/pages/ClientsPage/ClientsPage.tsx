@@ -1,10 +1,10 @@
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import z from "zod";
 import Swal from "sweetalert2";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuote } from "../../context/QuoteContext";
 import type { ClientInfo } from "../../types/types";
-import { useMemo, useState } from "react";
 
 const clientSchema = z.object({
   name: z.string().trim().min(2, "Ingresa al menos 2 caracteres"),
@@ -72,10 +72,7 @@ export const ClientsPage = () => {
     register: registerEdit,
     handleSubmit: handleEditSubmit,
     reset: resetEdit,
-    formState: {
-      errors: editErrors,
-      isSubmitting: isEditSubmitting,
-    },
+    formState: { errors: editErrors, isSubmitting: isEditSubmitting },
   } = useForm<ClientFormValues>({
     resolver: zodResolver(clientSchema),
     defaultValues: {
@@ -202,7 +199,11 @@ export const ClientsPage = () => {
       </div>
 
       <section className="clients-panel">
-        <form className="client-form" noValidate onSubmit={handleSubmit(onSubmit)}>
+        <form
+          className="client-form"
+          noValidate
+          onSubmit={handleSubmit(onSubmit)}
+        >
           <div className="client-form-heading">
             <h2>Nuevo cliente</h2>
           </div>
@@ -260,7 +261,6 @@ export const ClientsPage = () => {
                 Espera un momento mientras cargamos la empresa
               </p>
             )}
-
           </div>
         </form>
       </section>
@@ -309,17 +309,16 @@ export const ClientsPage = () => {
                       <span>Contacto</span>
                       <strong>
                         {client.email || client.phone
-                          ? [client.email, client.phone].filter(Boolean).join(" · ")
+                          ? [client.email, client.phone]
+                              .filter(Boolean)
+                              .join(" · ")
                           : "Sin contacto"}
                       </strong>
                     </div>
                   </div>
                 </div>
                 <div className="client-actions">
-                  <button
-                    type="button"
-                    onClick={() => handleEditClick(client)}
-                  >
+                  <button type="button" onClick={() => handleEditClick(client)}>
                     Editar
                   </button>
                   <button
@@ -404,7 +403,11 @@ export const ClientsPage = () => {
 
                 <label>
                   <span>Teléfono</span>
-                  <input type="tel" autoComplete="tel" {...registerEdit("phone")} />
+                  <input
+                    type="tel"
+                    autoComplete="tel"
+                    {...registerEdit("phone")}
+                  />
                   {editErrors.phone && (
                     <p className="form-error">{editErrors.phone.message}</p>
                   )}
@@ -413,7 +416,10 @@ export const ClientsPage = () => {
 
               <label>
                 <span>Dirección</span>
-                <textarea className="client-address" {...registerEdit("address")} />
+                <textarea
+                  className="client-address"
+                  {...registerEdit("address")}
+                />
                 {editErrors.address && (
                   <p className="form-error">{editErrors.address.message}</p>
                 )}

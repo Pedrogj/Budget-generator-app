@@ -11,15 +11,19 @@ import type {
   QuoteItem,
   ClientInfo,
   QuoteTemplateId,
+  TaxIdLabel,
 } from "../types/types";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "./AuthContext";
 import { createCompanyLogoSignedUrl } from "../lib/companyLogoStorage";
 
-const companySelect =
+const baseCompanySelect =
   "id,name,rif,tax_id_label,phone,address_lines,logo_url,logo_path,default_currency,iva_rate";
+const companySelect = `${baseCompanySelect},brand_primary_color,brand_accent_color`;
 const clientSelect = "id,name,rif,address,email,phone";
 const quoteTemplateStorageKey = "presupuesta.quoteTemplate";
+const defaultBrandPrimaryColor = "#0f172a";
+const defaultBrandAccentColor = "#0284c7";
 
 interface QuoteContextType {
   company: CompanyInfo;
@@ -53,6 +57,8 @@ const initialCompany: CompanyInfo = {
   logoPath: "",
   defaultCurrency: "USD",
   ivaRate: 16,
+  brandPrimaryColor: defaultBrandPrimaryColor,
+  brandAccentColor: defaultBrandAccentColor,
 };
 
 const initialQuote: QuoteInfo = {
@@ -97,6 +103,82 @@ function getInitialQuoteTemplate(): QuoteTemplateId {
   return "professional";
 }
 
+function isMissingBrandColorColumnsError(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+
+  const values = Object.values(error as Record<string, unknown>)
+    .filter((value): value is string => typeof value === "string")
+    .join(" ");
+
+  return (
+    values.includes("brand_primary_color") ||
+    values.includes("brand_accent_color")
+  );
+}
+
+function getTaxIdLabel(value: string | null | undefined): TaxIdLabel {
+  if (value === "RUT" || value === "DNI") return value;
+  return "RIF";
+}
+
+type CompanyRow = {
+  id: string;
+  name: string;
+  rif: string;
+  tax_id_label?: string | null;
+  phone: string;
+  address_lines: string;
+  logo_url?: string | null;
+  logo_path?: string | null;
+  default_currency?: "USD" | "CLP" | null;
+  iva_rate?: number | null;
+  brand_primary_color?: string | null;
+  brand_accent_color?: string | null;
+};
+
+function mapCompanyRowToCompany(companyRow: CompanyRow): CompanyInfo {
+  return {
+    id: companyRow.id,
+    name: companyRow.name,
+    rif: companyRow.rif,
+    taxIdLabel: getTaxIdLabel(companyRow.tax_id_label),
+    phone: companyRow.phone,
+    addressLines: companyRow.address_lines,
+    logoUrl: companyRow.logo_url ?? undefined,
+    logoPath: companyRow.logo_path ?? undefined,
+    defaultCurrency: companyRow.default_currency ?? "USD",
+    ivaRate: companyRow.iva_rate ?? 16,
+    brandPrimaryColor:
+      companyRow.brand_primary_color ?? defaultBrandPrimaryColor,
+    brandAccentColor: companyRow.brand_accent_color ?? defaultBrandAccentColor,
+  };
+}
+
+function getCompanyPayload(company: CompanyInfo) {
+  return {
+    name: company.name,
+    rif: company.rif,
+    tax_id_label: company.taxIdLabel ?? "RIF",
+    phone: company.phone,
+    address_lines: company.addressLines,
+    logo_url: company.logoPath ? null : company.logoUrl ?? null,
+    logo_path: company.logoPath ?? null,
+    default_currency: company.defaultCurrency ?? "USD",
+    iva_rate: company.ivaRate ?? 16,
+    brand_primary_color: company.brandPrimaryColor ?? defaultBrandPrimaryColor,
+    brand_accent_color: company.brandAccentColor ?? defaultBrandAccentColor,
+  };
+}
+
+function withoutBrandColorColumns<T extends Record<string, unknown>>(
+  payload: T,
+) {
+  const nextPayload = { ...payload };
+  delete nextPayload.brand_primary_color;
+  delete nextPayload.brand_accent_color;
+  return nextPayload;
+}
+
 export const QuoteProvider = ({ children }: { children: ReactNode }) => {
   const { user, loading: authLoading } = useAuth();
 
@@ -123,12 +205,26 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
     const loadFromSupabase = async () => {
       try {
         // 3) Cargar (o crear) la company del usuario actual
-        const { data: companyRow, error: companyError } = await supabase
+        let companyResult = await supabase
           .from("companies")
           .select(companySelect)
           .eq("profile_id", user.id)
           .limit(1)
           .maybeSingle();
+
+        if (
+          companyResult.error &&
+          isMissingBrandColorColumnsError(companyResult.error)
+        ) {
+          companyResult = await supabase
+            .from("companies")
+            .select(baseCompanySelect)
+            .eq("profile_id", user.id)
+            .limit(1)
+            .maybeSingle();
+        }
+
+        const { data: companyRow, error: companyError } = companyResult;
 
         if (companyError) {
           console.error("Error loading company from Supabase", companyError);
@@ -137,63 +233,53 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
         let currentCompanyId: string | undefined;
 
         if (companyRow) {
-          let logoUrl = companyRow.logo_url ?? undefined;
+          const mappedCompany = mapCompanyRowToCompany(companyRow);
 
-          if (companyRow.logo_path) {
+          if (mappedCompany.logoPath) {
             try {
-              logoUrl = await createCompanyLogoSignedUrl(companyRow.logo_path);
+              mappedCompany.logoUrl = await createCompanyLogoSignedUrl(
+                mappedCompany.logoPath,
+              );
             } catch (logoError) {
               console.warn("Error creating company logo signed URL", logoError);
             }
           }
 
-          setCompany({
-            id: companyRow.id,
-            name: companyRow.name,
-            rif: companyRow.rif,
-            taxIdLabel: companyRow.tax_id_label ?? "RIF",
-            phone: companyRow.phone,
-            addressLines: companyRow.address_lines,
-            logoUrl,
-            logoPath: companyRow.logo_path ?? undefined,
-            defaultCurrency: companyRow.default_currency ?? "USD",
-            ivaRate: companyRow.iva_rate ?? 16,
-          });
+          setCompany(mappedCompany);
           currentCompanyId = companyRow.id;
         } else {
           // Si el usuario no tiene empresa, creamos una vacía ligada a su profile
-          const { data: inserted, error: insertError } = await supabase
+          const initialCompanyPayload = {
+            profile_id: user.id,
+            ...getCompanyPayload({
+              ...initialCompany,
+              logoUrl: undefined,
+              logoPath: undefined,
+            }),
+          };
+          let insertResult = await supabase
             .from("companies")
-            .insert({
-              profile_id: user.id,
-              name: "",
-              rif: "",
-              tax_id_label: "RIF",
-              phone: "",
-              address_lines: "",
-              logo_url: null,
-              logo_path: null,
-              default_currency: "USD",
-              iva_rate: 16,
-            })
+            .insert(initialCompanyPayload)
             .select(companySelect)
             .single();
+
+          if (
+            insertResult.error &&
+            isMissingBrandColorColumnsError(insertResult.error)
+          ) {
+            insertResult = await supabase
+              .from("companies")
+              .insert(withoutBrandColorColumns(initialCompanyPayload))
+              .select(baseCompanySelect)
+              .single();
+          }
+
+          const { data: inserted, error: insertError } = insertResult;
 
           if (insertError) {
             console.error("Error inserting initial company", insertError);
           } else if (inserted) {
-            setCompany({
-              id: inserted.id,
-              name: inserted.name,
-              rif: inserted.rif,
-              taxIdLabel: inserted.tax_id_label ?? "RIF",
-              phone: inserted.phone,
-              addressLines: inserted.address_lines,
-              logoUrl: inserted.logo_url ?? undefined,
-              logoPath: inserted.logo_path ?? undefined,
-              defaultCurrency: inserted.default_currency ?? "USD",
-              ivaRate: inserted.iva_rate ?? 16,
-            });
+            setCompany(mapCompanyRowToCompany(inserted));
             currentCompanyId = inserted.id;
           }
         }
@@ -263,50 +349,65 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
       company.logoUrl === merged.logoUrl &&
       company.logoPath === merged.logoPath &&
       company.defaultCurrency === merged.defaultCurrency &&
-      company.ivaRate === merged.ivaRate;
+      company.ivaRate === merged.ivaRate &&
+      company.brandPrimaryColor === merged.brandPrimaryColor &&
+      company.brandAccentColor === merged.brandAccentColor;
 
     if (isSame) return;
 
     try {
+      const companyPayload = getCompanyPayload(merged);
+
       if (company.id) {
         // UPDATE
-        const { error } = await supabase
+        let updateResult = await supabase
           .from("companies")
-          .update({
-            name: merged.name,
-            rif: merged.rif,
-            tax_id_label: merged.taxIdLabel ?? "RIF",
-            phone: merged.phone,
-            address_lines: merged.addressLines,
-            logo_url: merged.logoPath ? null : merged.logoUrl ?? null,
-            logo_path: merged.logoPath ?? null,
-            default_currency: merged.defaultCurrency ?? "USD",
-            iva_rate: merged.ivaRate ?? 16,
-          })
+          .update(companyPayload)
           .eq("id", company.id)
           .eq("profile_id", user.id);
+
+        if (
+          updateResult.error &&
+          isMissingBrandColorColumnsError(updateResult.error)
+        ) {
+          updateResult = await supabase
+            .from("companies")
+            .update(withoutBrandColorColumns(companyPayload))
+            .eq("id", company.id)
+            .eq("profile_id", user.id);
+        }
+
+        const { error } = updateResult;
 
         if (error) {
           console.error("Error updating company in Supabase", error);
           throw error;
         }
       } else {
-        const { data: inserted, error } = await supabase
+        let insertResult = await supabase
           .from("companies")
           .insert({
             profile_id: user.id,
-            name: merged.name,
-            rif: merged.rif,
-            tax_id_label: merged.taxIdLabel ?? "RIF",
-            phone: merged.phone,
-            address_lines: merged.addressLines,
-            logo_url: merged.logoPath ? null : merged.logoUrl ?? null,
-            logo_path: merged.logoPath ?? null,
-            default_currency: merged.defaultCurrency ?? "USD",
-            iva_rate: merged.ivaRate ?? 16,
+            ...companyPayload,
           })
           .select(companySelect)
           .single();
+
+        if (
+          insertResult.error &&
+          isMissingBrandColorColumnsError(insertResult.error)
+        ) {
+          insertResult = await supabase
+            .from("companies")
+            .insert({
+              profile_id: user.id,
+              ...withoutBrandColorColumns(companyPayload),
+            })
+            .select(baseCompanySelect)
+            .single();
+        }
+
+        const { data: inserted, error } = insertResult;
 
         if (error) {
           console.error("Error inserting company in Supabase", error);

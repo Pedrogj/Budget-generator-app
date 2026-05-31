@@ -13,6 +13,10 @@ import {
   optimizeCompanyLogo,
   uploadCompanyLogo,
 } from "../../lib/companyLogoStorage";
+import {
+  defaultBrandAccentColor,
+  defaultBrandPrimaryColor,
+} from "../../components/quoteTemplates";
 
 const profileSchema = z.object({
   name: z.string().trim().min(1, "El nombre de la empresa es requerido"),
@@ -25,6 +29,8 @@ const profileSchema = z.object({
     .number({ error: "El IVA debe ser un número" })
     .min(0, "El IVA no puede ser negativo")
     .max(20, "El IVA no puede superar 20%"),
+  brandPrimaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, "El color principal no es válido"),
+  brandAccentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, "El color de acento no es válido"),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -76,6 +82,8 @@ export const ProfilePage = () => {
       addressLines: company.addressLines ?? "",
       defaultCurrency: company.defaultCurrency ?? "USD",
       ivaRate: company.ivaRate ?? 16,
+      brandPrimaryColor: company.brandPrimaryColor ?? defaultBrandPrimaryColor,
+      brandAccentColor: company.brandAccentColor ?? defaultBrandAccentColor,
     },
   });
 
@@ -88,6 +96,8 @@ export const ProfilePage = () => {
       addressLines: company.addressLines ?? "",
       defaultCurrency: company.defaultCurrency ?? "USD",
       ivaRate: company.ivaRate ?? 16,
+      brandPrimaryColor: company.brandPrimaryColor ?? defaultBrandPrimaryColor,
+      brandAccentColor: company.brandAccentColor ?? defaultBrandAccentColor,
     });
   }, [company, reset]);
 
@@ -153,6 +163,8 @@ export const ProfilePage = () => {
         addressLines: data.addressLines,
         defaultCurrency: data.defaultCurrency,
         ivaRate: data.ivaRate,
+        brandPrimaryColor: data.brandPrimaryColor,
+        brandAccentColor: data.brandAccentColor,
       });
 
       if (shouldCleanupLogos && company.id) {
@@ -401,6 +413,30 @@ export const ProfilePage = () => {
               <p className="form-error">{errors.addressLines.message}</p>
             )}
           </label>
+        </section>
+
+        <section className="profile-panel">
+          <h2>Identidad visual</h2>
+          <p className="profile-help">
+            Estos colores se aplicarán en las plantillas y PDFs que selecciones.
+          </p>
+          <div className="profile-color-grid">
+            <label className="profile-color-field">
+              <span>Color principal</span>
+              <input type="color" {...register("brandPrimaryColor")} />
+              {errors.brandPrimaryColor && (
+                <p className="form-error">{errors.brandPrimaryColor.message}</p>
+              )}
+            </label>
+
+            <label className="profile-color-field">
+              <span>Color de acento</span>
+              <input type="color" {...register("brandAccentColor")} />
+              {errors.brandAccentColor && (
+                <p className="form-error">{errors.brandAccentColor.message}</p>
+              )}
+            </label>
+          </div>
         </section>
 
         <section className="profile-panel">

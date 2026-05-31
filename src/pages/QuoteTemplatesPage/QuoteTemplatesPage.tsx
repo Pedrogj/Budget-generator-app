@@ -1,5 +1,9 @@
 import { Link } from "react-router-dom";
-import { quoteTemplates } from "../../components/quoteTemplates";
+import type { CSSProperties } from "react";
+import {
+  getCompanyBrandColors,
+  quoteTemplates,
+} from "../../components/quoteTemplates";
 import { useQuote } from "../../context/QuoteContext";
 import type { QuoteTemplateId } from "../../types/types";
 
@@ -35,6 +39,14 @@ export const QuoteTemplatesPage = () => {
   const { selectedTemplate, setQuoteTemplate, quote, items, company } =
     useQuote();
   const taxIdLabel = company.taxIdLabel ?? "RIF";
+  const brandColors = getCompanyBrandColors(company);
+  const previewStyle = {
+    "--brand-primary": brandColors.primary,
+    "--brand-accent": brandColors.accent,
+    "--brand-primary-contrast": brandColors.primaryContrast,
+    "--brand-accent-contrast": brandColors.accentContrast,
+    "--brand-soft": brandColors.softAccent,
+  } as CSSProperties;
   const hasQuoteData =
     quote.work.trim() &&
     quote.client.trim() &&
@@ -74,6 +86,7 @@ export const QuoteTemplatesPage = () => {
             >
               <div
                 className={getPreviewClass(template.id)}
+                style={previewStyle}
                 role="img"
                 aria-label={`Vista referencial del modelo ${template.name}`}
               >

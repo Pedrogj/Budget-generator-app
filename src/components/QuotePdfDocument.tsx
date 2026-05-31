@@ -12,6 +12,7 @@ import type {
   QuoteItem,
   QuoteTemplateId,
 } from "../types/types";
+import { getCompanyBrandColors } from "./quoteTemplates";
 
 interface Props {
   items: QuoteItem[];
@@ -345,6 +346,28 @@ const templateStyles: Record<
   },
 };
 
+function getBrandedTemplate(
+  templateId: QuoteTemplateId,
+  company: CompanyInfo,
+) {
+  const base = templateStyles[templateId] ?? templateStyles.professional;
+  const brand = getCompanyBrandColors(company);
+
+  return {
+    ...base,
+    accent: brand.accent,
+    header: brand.primary,
+    topBar: brand.primary,
+    tableHeader: templateId === "classic" ? brand.softAccent : brand.primary,
+    tableHeaderText:
+      templateId === "classic" ? brand.accent : brand.primaryContrast,
+    statusBackground: brand.softAccent,
+    statusText: brand.accent,
+    panel: templateId === "classic" ? base.panel : brand.softAccent,
+    brand,
+  };
+}
+
 const corporateStyles = StyleSheet.create({
   page: {
     padding: 0,
@@ -623,6 +646,7 @@ const getCompanyInitials = (name: string) => {
 };
 
 const CorporateQuotePdfDocument = ({ company, quote, items }: Props) => {
+  const brand = getCompanyBrandColors(company);
   const taxIdLabel = company.taxIdLabel ?? "RIF";
   const currency: "USD" | "CLP" =
     (quote.currency as "USD" | "CLP") ??
@@ -644,30 +668,64 @@ const CorporateQuotePdfDocument = ({ company, quote, items }: Props) => {
     <Document>
       <Page size="LETTER" style={corporateStyles.page}>
         <View style={corporateStyles.header}>
-          <View style={corporateStyles.headerDark}>
+          <View
+            style={[
+              corporateStyles.headerDark,
+              { backgroundColor: brand.primary },
+            ]}
+          >
             <View style={corporateStyles.brandRow}>
-              <View style={corporateStyles.brandMark}>
+              <View
+                style={[
+                  corporateStyles.brandMark,
+                  { backgroundColor: brand.accent },
+                ]}
+              >
                 {company.logoUrl ? (
                   <Image src={company.logoUrl} style={styles.logoImage} />
                 ) : (
-                  <Text style={corporateStyles.brandMarkText}>
+                  <Text
+                    style={[
+                      corporateStyles.brandMarkText,
+                      { color: brand.accentContrast },
+                    ]}
+                  >
                     {getCompanyInitials(formatPdfText(company.name))}
                   </Text>
                 )}
               </View>
               <View>
-                <Text style={corporateStyles.brandName}>
+                <Text
+                  style={[
+                    corporateStyles.brandName,
+                    { color: brand.primaryContrast },
+                  ]}
+                >
                   {formatPdfText(company.name, "Tu empresa")}
                 </Text>
-                <Text style={corporateStyles.brandMeta}>
+                <Text
+                  style={[
+                    corporateStyles.brandMeta,
+                    { color: brand.primaryContrast },
+                  ]}
+                >
                   PRESUPUESTOS Y SERVICIOS
                 </Text>
               </View>
             </View>
           </View>
-          <View style={corporateStyles.headerAccent} />
+          <View
+            style={[
+              corporateStyles.headerAccent,
+              { backgroundColor: brand.accent },
+            ]}
+          />
           <View style={corporateStyles.headerLight}>
-            <Text style={corporateStyles.documentTitle}>PRESUPUESTO</Text>
+            <Text
+              style={[corporateStyles.documentTitle, { color: brand.accent }]}
+            >
+              PRESUPUESTO
+            </Text>
             <Text style={corporateStyles.documentMeta}>
               Fecha: {formatIssueDate(quote.issueDate)}
             </Text>
@@ -681,7 +739,11 @@ const CorporateQuotePdfDocument = ({ company, quote, items }: Props) => {
         <View style={corporateStyles.content}>
           <View style={corporateStyles.infoGrid}>
             <View style={corporateStyles.infoBlock}>
-              <Text style={corporateStyles.sectionTitle}>Presupuesto para</Text>
+              <Text
+                style={[corporateStyles.sectionTitle, { color: brand.accent }]}
+              >
+                Presupuesto para
+              </Text>
               <Text style={corporateStyles.clientName}>
                 {formatPdfText(quote.client)}
               </Text>
@@ -697,7 +759,9 @@ const CorporateQuotePdfDocument = ({ company, quote, items }: Props) => {
             </View>
 
             <View style={corporateStyles.infoBlockRight}>
-              <Text style={corporateStyles.sectionTitle}>
+              <Text
+                style={[corporateStyles.sectionTitle, { color: brand.accent }]}
+              >
                 Datos de contacto
               </Text>
               <View style={corporateStyles.methodRow}>
@@ -722,11 +786,17 @@ const CorporateQuotePdfDocument = ({ company, quote, items }: Props) => {
           </View>
 
           <View style={corporateStyles.table}>
-            <View style={corporateStyles.tableHeader}>
+            <View
+              style={[
+                corporateStyles.tableHeader,
+                { backgroundColor: brand.accent },
+              ]}
+            >
               <Text
                 style={[
                   corporateStyles.tableHeadCell,
                   corporateStyles.corpCode,
+                  { color: brand.accentContrast },
                 ]}
               >
                 No.
@@ -735,6 +805,7 @@ const CorporateQuotePdfDocument = ({ company, quote, items }: Props) => {
                 style={[
                   corporateStyles.tableHeadCell,
                   corporateStyles.corpDesc,
+                  { color: brand.accentContrast },
                 ]}
               >
                 Descripción
@@ -743,12 +814,17 @@ const CorporateQuotePdfDocument = ({ company, quote, items }: Props) => {
                 style={[
                   corporateStyles.tableHeadCell,
                   corporateStyles.corpPrice,
+                  { color: brand.accentContrast },
                 ]}
               >
                 Precio
               </Text>
               <Text
-                style={[corporateStyles.tableHeadCell, corporateStyles.corpQty]}
+                style={[
+                  corporateStyles.tableHeadCell,
+                  corporateStyles.corpQty,
+                  { color: brand.accentContrast },
+                ]}
               >
                 Cant.
               </Text>
@@ -756,6 +832,7 @@ const CorporateQuotePdfDocument = ({ company, quote, items }: Props) => {
                 style={[
                   corporateStyles.tableHeadCell,
                   corporateStyles.corpTotal,
+                  { color: brand.accentContrast },
                 ]}
               >
                 Total
@@ -801,7 +878,9 @@ const CorporateQuotePdfDocument = ({ company, quote, items }: Props) => {
 
           <View style={corporateStyles.bottomGrid}>
             <View style={corporateStyles.terms}>
-              <Text style={corporateStyles.sectionTitle}>
+              <Text
+                style={[corporateStyles.sectionTitle, { color: brand.accent }]}
+              >
                 Términos y condiciones
               </Text>
               {noteLines.length > 0 ? (
@@ -836,9 +915,26 @@ const CorporateQuotePdfDocument = ({ company, quote, items }: Props) => {
                   {formatMoney(iva, currency)}
                 </Text>
               </View>
-              <View style={corporateStyles.totalPill}>
-                <Text style={corporateStyles.totalPillText}>Total</Text>
-                <Text style={corporateStyles.totalPillText}>
+              <View
+                style={[
+                  corporateStyles.totalPill,
+                  { backgroundColor: brand.accent },
+                ]}
+              >
+                <Text
+                  style={[
+                    corporateStyles.totalPillText,
+                    { color: brand.accentContrast },
+                  ]}
+                >
+                  Total
+                </Text>
+                <Text
+                  style={[
+                    corporateStyles.totalPillText,
+                    { color: brand.accentContrast },
+                  ]}
+                >
                   {formatMoney(total, currency)}
                 </Text>
               </View>
@@ -847,7 +943,12 @@ const CorporateQuotePdfDocument = ({ company, quote, items }: Props) => {
         </View>
 
         <View style={corporateStyles.footer}>
-          <View style={corporateStyles.footerDark}>
+          <View
+            style={[
+              corporateStyles.footerDark,
+              { backgroundColor: brand.primary },
+            ]}
+          >
             <Text style={corporateStyles.footerText}>
               {formatPdfText(company.phone, "Teléfono no configurado")} |{" "}
               {formatPdfText(company.rif)}
@@ -856,7 +957,12 @@ const CorporateQuotePdfDocument = ({ company, quote, items }: Props) => {
               {formatPdfText(company.addressLines, "Dirección de la empresa")}
             </Text>
           </View>
-          <View style={corporateStyles.footerAccent} />
+          <View
+            style={[
+              corporateStyles.footerAccent,
+              { backgroundColor: brand.accent },
+            ]}
+          />
         </View>
       </Page>
     </Document>
@@ -880,7 +986,7 @@ export const QuotePdfDocument = ({
     );
   }
 
-  const template = templateStyles[templateId] ?? templateStyles.professional;
+  const template = getBrandedTemplate(templateId, company);
   const taxIdLabel = company.taxIdLabel ?? "RIF";
   const currency: "USD" | "CLP" =
     (quote.currency as "USD" | "CLP") ??
