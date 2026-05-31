@@ -49,6 +49,7 @@ function renderNavbar(authOverrides = {}) {
     items: [],
     clients: [],
     selectedTemplate: "professional",
+    loading: false,
     setFromForm: vi.fn(),
     setQuoteTemplate: vi.fn(),
     updateCompany: vi.fn(),

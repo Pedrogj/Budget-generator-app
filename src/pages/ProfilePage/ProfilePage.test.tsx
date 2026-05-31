@@ -68,6 +68,7 @@ const baseQuoteContext = {
   items: [],
   clients: [],
   selectedTemplate: "professional" as const,
+  loading: false,
   setFromForm: vi.fn(),
   setQuoteTemplate: vi.fn(),
   updateCompany: vi.fn().mockResolvedValue(undefined),

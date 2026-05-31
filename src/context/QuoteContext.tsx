@@ -2,6 +2,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -31,6 +32,7 @@ interface QuoteContextType {
   items: QuoteItem[];
   clients: ClientInfo[];
   selectedTemplate: QuoteTemplateId;
+  loading: boolean;
 
   setFromForm: (data: { quote: QuoteInfo; items: QuoteItem[] }) => void;
   setQuoteTemplate: (templateId: QuoteTemplateId) => void;
@@ -188,21 +190,39 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
   const [clients, setClients] = useState<ClientInfo[]>(initialClients);
   const [selectedTemplate, setSelectedTemplate] =
     useState<QuoteTemplateId>(getInitialQuoteTemplate);
+  const [loading, setLoading] = useState(true);
+  const loadedUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     // 1) Esperamos a saber si hay usuario
-    if (authLoading) return;
+    if (authLoading) {
+      if (!loadedUserIdRef.current) {
+        setLoading(true);
+      }
+      return;
+    }
 
     // 2) Si NO hay usuario, reseteamos estado y no llamamos a Supabase
     if (!user) {
+      loadedUserIdRef.current = null;
       setCompany(initialCompany);
       setClients(initialClients);
       setQuote(initialQuote);
       setItems(initialItems);
+      setLoading(false);
       return;
     }
 
+    if (loadedUserIdRef.current === user.id) {
+      setLoading(false);
+      return;
+    }
+
+    let isCurrentLoad = true;
+
     const loadFromSupabase = async () => {
+      setLoading(true);
+
       try {
         // 3) Cargar (o crear) la company del usuario actual
         let companyResult = await supabase
@@ -245,7 +265,9 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
             }
           }
 
-          setCompany(mappedCompany);
+          if (isCurrentLoad) {
+            setCompany(mappedCompany);
+          }
           currentCompanyId = companyRow.id;
         } else {
           // Si el usuario no tiene empresa, creamos una vacía ligada a su profile
@@ -279,7 +301,9 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
           if (insertError) {
             console.error("Error inserting initial company", insertError);
           } else if (inserted) {
-            setCompany(mapCompanyRowToCompany(inserted));
+            if (isCurrentLoad) {
+              setCompany(mapCompanyRowToCompany(inserted));
+            }
             currentCompanyId = inserted.id;
           }
         }
@@ -296,24 +320,35 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
         if (clientsError) {
           console.error("Error loading clients", clientsError);
         } else if (clientsRows) {
-          setClients(
-            clientsRows.map((client) => ({
-              id: client.id,
-              name: client.name,
-              rif: client.rif,
-              address: client.address,
-              email: client.email ?? "",
-              phone: client.phone ?? "",
-            })),
-          );
+          if (isCurrentLoad) {
+            setClients(
+              clientsRows.map((client) => ({
+                id: client.id,
+                name: client.name,
+                rif: client.rif,
+                address: client.address,
+                email: client.email ?? "",
+                phone: client.phone ?? "",
+              })),
+            );
+          }
         }
       } catch (err) {
         console.error("Unexpected error loading data from Supabase", err);
+      } finally {
+        if (isCurrentLoad) {
+          loadedUserIdRef.current = user.id;
+          setLoading(false);
+        }
       }
     };
 
     loadFromSupabase();
-  }, [authLoading, user]);
+
+    return () => {
+      isCurrentLoad = false;
+    };
+  }, [authLoading, user?.id]);
 
   const setFromForm: QuoteContextType["setFromForm"] = (data) => {
     setQuote(data.quote);
@@ -599,6 +634,7 @@ export const QuoteProvider = ({ children }: { children: ReactNode }) => {
         items,
         clients,
         selectedTemplate,
+        loading,
         setFromForm,
         setQuoteTemplate,
         updateCompany,

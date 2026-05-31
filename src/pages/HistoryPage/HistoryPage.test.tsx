@@ -136,6 +136,7 @@ function renderHistoryPage(overrides = {}) {
     items: [],
     clients: [],
     selectedTemplate: "professional",
+    loading: false,
     setFromForm,
     setQuoteTemplate: vi.fn(),
     updateCompany: vi.fn(),

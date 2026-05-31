@@ -84,6 +84,7 @@ const baseQuoteContext = {
     },
   ],
   selectedTemplate: "professional" as const,
+  loading: false,
   setFromForm: vi.fn(),
   setQuoteTemplate: vi.fn(),
   updateCompany: vi.fn(),

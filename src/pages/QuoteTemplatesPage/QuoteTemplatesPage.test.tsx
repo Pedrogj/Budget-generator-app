@@ -43,6 +43,7 @@ function renderQuoteTemplatesPage(overrides = {}) {
     ],
     clients: [],
     selectedTemplate: "professional",
+    loading: false,
     setQuoteTemplate,
     setFromForm: vi.fn(),
     updateCompany: vi.fn(),
